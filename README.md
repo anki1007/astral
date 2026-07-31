@@ -1,2 +1,1 @@
-# ats
-An automatic system for live data analysis
+Astral Forecast Engine
