@@ -6944,7 +6944,7 @@ const TA_TF = {
 };
 const TA_SESSION_START = 9.25, TA_SESSION_END = 15.5;   // 09:15 → 15:30 IST
 
-async function taFetch(sym, tf){
+async function taFetchYahoo(sym, tf){
   const cfg=TA_TF[tf];
   // range= is Yahoo's shorthand and silently caps history; period1/period2
   // asks for everything from 1998 (or inception) instead. Intraday keeps the
@@ -6982,6 +6982,26 @@ async function taFetch(sym, tf){
   throw new Error(lastErr||'all price sources failed');
 }
 
+/* Routing wrapper. The intraday win is the big one here: Yahoo serves ~60 days
+   of 5-minute bars, Upstox serves them from Jan 2022. */
+const TA_UPSTOX_UNIT={intraday:['minutes','5'], weekly:['weeks','1'], monthly:['months','1'], daily:['days','1']};
+async function taFetch(sym, tf, univKey){
+  const yahoo=()=>taFetchYahoo(sym, tf);
+  if(!univKey || !dsCanUpstox(univKey) || !TA_UPSTOX_UNIT[tf]) return yahoo();
+  const [unit,intv]=TA_UPSTOX_UNIT[tf];
+  const from = tf==='intraday' ? '2022-01-01' : RE_HISTORY_START;
+  const to   = reISO(Date.now());
+  const rows = await dsBars(univKey, unit, intv, from, to, yahoo);
+  if(!rows.length) return yahoo();
+  // already in Yahoo's shape when the fallback ran
+  if(rows[0].ts!==undefined) return rows;
+  return rows.map(r=>{
+    const t=String(r.t||r.date);
+    const hh=t.length>=16 ? (+t.slice(11,13))+(+t.slice(14,16))/60 : 9.25;   // stamps are IST
+    return {ts:Date.parse(t)||reMs(r.date), o:r.o,h:r.h,l:r.l,c:r.c, date:r.date, hour:hh};
+  });
+}
+
 function taYield(){ return typeof reYield==='function' ? reYield() : new Promise(r=>setTimeout(r,0)); }
 
 /* Build the backward (graded) calendar. */
@@ -6992,7 +7012,7 @@ async function taBacktest(instKey, tf, ay, opts){
   setP(5,`fetching ${u.label} ${cfg.label} history from Yahoo Finance …`);
   const ck=u.sym+'|'+tf;
   let bars=window.TA.ohlc[ck];
-  if(!bars){ bars=await taFetch(u.sym,tf); window.TA.ohlc[ck]=bars; }
+  if(!bars){ bars=await taFetch(u.sym,tf,instKey); window.TA.ohlc[ck]=bars; }
   if(bars.length<12) throw new Error(`only ${bars.length} ${cfg.label} bars available`);
 
   const rows=[]; let n=0;
@@ -7476,6 +7496,7 @@ function tAstral(){
         Every score on this tab comes from <b>Tech_Astro_Analysis.md</b> and nothing else — the pair matrix, the sign and degree tables, placement, speed (Mand / Atichari), Shar, the Strong Bullish &amp; Bearish permutations, Dwidwadash and Shadashtak by sign, day×nakshatra, Vargottam, Gandanta, Panchak, Sankranti, Khappar, Bhadra, D9 conjunctions, the combustion and rise rules, the SBC Vedh table and all 137 numbered observations, plus Chapter 2's technical rules.
         Open <b>☑ Rule audit</b> to see every section of the source and whether it is firing right now; every fired rule shows its own § citation and the source's own words.
       </div>
+      <div style="margin-top:9px">${dsPanelHTML()}</div>
       <div id="ta-prog" style="margin-top:8px">${taProgressHTML()}</div>
     </div></div>
   <div id="ta-body">${taBodyHTML()}</div>`;
@@ -15384,6 +15405,190 @@ function reThresholds(kind){
        rule:'short-term correction &gt;3% and &lt;10% &nbsp;·&nbsp; long-term correction ≥10%'};
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DATA SOURCE ROUTER — Upstox for NSE, Yahoo for everything else
+   ---------------------------------------------------------------------------
+   Upstox cannot be called from this page: it sends no Access-Control-Allow-
+   Origin header to a browser, and its token needs an api_secret that must
+   never sit in a public repo. So NSE data goes through a Worker that holds the
+   token (see upstox-worker.js). Until that Worker's URL is configured, every
+   request silently falls back to Yahoo and nothing breaks.
+
+   Depth, measured from each provider's own documentation and confirmed by
+   fetch:
+                        Yahoo              Upstox v3
+     NIFTY index        2007-09            Jan 2000     ← Upstox wins by 7 years
+     NSE stocks         1998               Jan 2000     ← Yahoo wins by 2 years
+     intraday bars      60 days            Jan 2022     ← Upstox wins by 4 years
+     US / commodities   full history       not offered  ← Yahoo only
+   Neither is better everywhere, so SPLICE mode uses Upstox from 2000 and takes
+   the 1998–1999 tail from Yahoo, which is exactly the "1998 or oldest
+   available" rule the engines already follow.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+window.DS = window.DS || {
+  proxy:  (function(){ try{ return localStorage.getItem('astralUpstoxProxy')||''; }catch(e){ return ''; } })(),
+  mode:   (function(){ try{ return localStorage.getItem('astralDataMode')||'auto'; }catch(e){ return 'auto'; } })(),
+  health: null,          // null = untested, true/false = last /health result
+  lastErr:'',
+  stats:  {upstox:0, yahoo:0, spliced:0}
+};
+
+function dsSetProxy(u){
+  window.DS.proxy=(u||'').trim().replace(/\/+$/,'');
+  window.DS.health=null; window.DS.lastErr='';
+  try{ localStorage.setItem('astralUpstoxProxy', window.DS.proxy); }catch(e){}
+}
+function dsSetMode(m){
+  window.DS.mode=m;
+  try{ localStorage.setItem('astralDataMode', m); }catch(e){}
+}
+window.dsSetProxy=dsSetProxy; window.dsSetMode=dsSetMode;
+
+/* Which Upstox tradingsymbol does this universe key map to?
+   Equities use their NSE symbol verbatim; indices carry Upstox's own names. */
+const DS_INDEX_SYM = {
+  NIFTY:'NIFTY 50', BANKNIFTY:'NIFTY BANK', FINNIFTY:'NIFTY FIN SERVICE',
+  MIDCPNIFTY:'NIFTY MID SELECT', NIFTYNXT50:'NIFTY NEXT 50', SENSEX:'SENSEX'
+};
+// Upstox covers NSE/BSE only — these are Yahoo's alone.
+const DS_YAHOO_ONLY = new Set(['DOW','NASDAQ','SPX','GOLD','SILVER','COPPER','CRUDE','NATGAS']);
+
+function dsUpstoxSym(univKey){
+  if(DS_YAHOO_ONLY.has(univKey)) return null;
+  if(DS_INDEX_SYM[univKey]) return DS_INDEX_SYM[univKey];
+  const u=RE_UNIV[univKey];
+  if(!u || u.kind!=='stock') return null;
+  return univKey;                       // the F&O key IS the NSE tradingsymbol
+}
+function dsCanUpstox(univKey){
+  return !!(window.DS.proxy && window.DS.mode!=='yahoo' && dsUpstoxSym(univKey));
+}
+
+async function dsProxyGet(path, ms){
+  const ac=(typeof AbortController!=='undefined')?new AbortController():null;
+  const kill=setTimeout(()=>{ try{ ac&&ac.abort(); }catch(e){} }, ms||25000);
+  try{
+    const r=await fetch(window.DS.proxy+path,
+      {mode:'cors',credentials:'omit',headers:{'Accept':'application/json'},signal:ac?ac.signal:undefined});
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j||j.status!=='success'){
+      throw new Error((j&&j.message)||('proxy HTTP '+r.status));
+    }
+    return j;
+  } finally { clearTimeout(kill); }
+}
+
+async function dsHealth(){
+  if(!window.DS.proxy){ window.DS.health=false; window.DS.lastErr='no proxy URL set'; return false; }
+  try{ await dsProxyGet('/health', 15000); window.DS.health=true; window.DS.lastErr=''; }
+  catch(e){ window.DS.health=false; window.DS.lastErr=(e&&e.message)||'unreachable'; }
+  return window.DS.health;
+}
+window.dsHealth=dsHealth;
+
+/* Daily/weekly/monthly bars for a universe key, in the engines' own bar shape
+   {date,o,h,l,c}. Falls back to Yahoo on any Upstox failure — a data source
+   being down must never take the engine down with it. */
+async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
+  const wantSplice = window.DS.mode!=='upstox';
+  if(dsCanUpstox(univKey)){
+    try{
+      const sym=dsUpstoxSym(univKey);
+      const q=`/candles?sym=${encodeURIComponent(sym)}&unit=${unit}&interval=${interval}`+
+              `&from=${fromDate}&to=${toDate}`;
+      const j=await dsProxyGet(q, 30000);
+      let rows=(j.data||[]).map(r=>({t:r.t||r.date,date:r.date,o:r.o,h:r.h,l:r.l,c:r.c}));
+      if(rows.length){
+        window.DS.stats.upstox++;
+        // Upstox begins at Jan 2000. If the caller asked for earlier than
+        // Upstox actually returned, take the missing head from Yahoo so the
+        // "1998 or oldest available" rule still holds.
+        if(wantSplice && yahooFallback && fromDate < rows[0].date){
+          try{
+            const head=(await yahooFallback()).filter(b=>b.date<rows[0].date);
+            if(head.length){
+              rows=head.map(b=>({t:b.date,date:b.date,o:b.o,h:b.h,l:b.l,c:b.c})).concat(rows);
+              window.DS.stats.spliced++;
+            }
+          }catch(e){ /* the Upstox span alone is still valid — keep it */ }
+        }
+        return rows;
+      }
+      window.DS.lastErr='upstox returned no bars';
+    }catch(e){
+      window.DS.lastErr=(e&&e.message)||'upstox failed';
+      window.DS.health=false;
+    }
+  }
+  window.DS.stats.yahoo++;
+  return yahooFallback ? yahooFallback() : [];
+}
+window.dsBars=dsBars;
+
+/* Live quote for a universe key. Yahoo has no usable live endpoint from a
+   browser, so this returns null rather than pretending. */
+async function dsQuote(univKeys){
+  const keys=(Array.isArray(univKeys)?univKeys:[univKeys]).filter(k=>dsCanUpstox(k));
+  if(!keys.length) return null;
+  try{
+    const syms=keys.map(dsUpstoxSym).join(',');
+    const j=await dsProxyGet('/quote?syms='+encodeURIComponent(syms), 15000);
+    const byUniv={};
+    const wanted=keys.map(k=>[k, dsUpstoxSym(k).toUpperCase()]);
+    for(const [ik,v] of Object.entries(j.data||{})){
+      const s=String(v.symbol||ik).toUpperCase();
+      const hit=wanted.find(([,us])=> s===us || ik.toUpperCase().endsWith('|'+us));
+      if(hit) byUniv[hit[0]]=v;
+    }
+    window.DS.health=true;
+    return byUniv;
+  }catch(e){
+    window.DS.lastErr=(e&&e.message)||'quote failed';
+    window.DS.health=false;
+    return null;
+  }
+}
+window.dsQuote=dsQuote;
+
+/* ── settings panel, shared by the research tabs ──────────────────────────── */
+function dsPanelHTML(){
+  const D=window.DS;
+  const state = !D.proxy ? ['NOT CONFIGURED','var(--tx3)','var(--bg3)']
+              : D.health===true ? ['CONNECTED','var(--bull)','var(--bull3)']
+              : D.health===false ? ['UNREACHABLE','var(--bear)','var(--bear3)']
+              : ['UNTESTED','var(--neut)','var(--neut3)'];
+  return `
+  <div style="padding:9px 11px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px">
+    <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end">
+      <div class="cg" style="flex:1;min-width:260px">
+        <span class="cl">UPSTOX PROXY URL (NSE data)</span>
+        <input class="ci" style="width:100%" placeholder="https://astral-upstox.<you>.workers.dev"
+               value="${(D.proxy||'').replace(/"/g,'&quot;')}"
+               onchange="dsSetProxy(this.value);dsHealth().then(()=>{if(typeof taPaintAll==='function')taPaintAll();if(typeof rePaintAll==='function')rePaintAll();})">
+      </div>
+      <div class="cg"><span class="cl">SOURCE</span>
+        <select class="ci" style="width:184px" onchange="dsSetMode(this.value)">
+          <option value="auto"   ${D.mode==='auto'?'selected':''}>Auto — Upstox + Yahoo tail</option>
+          <option value="upstox" ${D.mode==='upstox'?'selected':''}>Upstox only (2000+)</option>
+          <option value="yahoo"  ${D.mode==='yahoo'?'selected':''}>Yahoo only</option>
+        </select></div>
+      <button class="ci" style="cursor:pointer;padding:6px 12px"
+        onclick="dsHealth().then(()=>{if(typeof taPaintAll==='function')taPaintAll();if(typeof rePaintAll==='function')rePaintAll();})">Test</button>
+      <span class="pill" style="color:${state[1]};background:${state[2]};border:1px solid ${state[1]}">${state[0]}</span>
+    </div>
+    <div style="font-size:11px;color:var(--tx3);margin-top:7px;line-height:1.65">
+      ${D.proxy
+        ? `NSE indices and stocks route through your Worker (Upstox: daily from Jan 2000, intraday from Jan 2022, live quotes). US indices and commodities always use Yahoo — Upstox does not carry them.
+           ${window.DS.mode==='auto'?'In <b>Auto</b>, anything before 2000 is taken from Yahoo and spliced onto the front, so the 1998 rule still holds.':''}
+           ${D.lastErr?`<br><b style="color:var(--bear)">Last error:</b> ${String(D.lastErr).replace(/</g,'&lt;')}`:''}`
+        : `Upstox cannot be called from this page — it sends no CORS header to a browser and its token needs a secret that must not sit in a public repo. Deploy <b>upstox-worker.js</b> (in the repo) to Cloudflare and paste its URL here. Until then everything uses Yahoo, which is the current behaviour.`}
+    </div>
+  </div>`;
+}
+window.dsPanelHTML=dsPanelHTML;
+
 /* ────────────────────────────────────────────────────────────────────────
    2. PRICE DATA  —  Yahoo Finance daily OHLC through the app's CORS proxies
    ──────────────────────────────────────────────────────────────────────── */
@@ -15402,7 +15607,7 @@ function reDow(ds){ return new Date(reMs(ds)).getUTCDay(); }
 const RE_HISTORY_START = '1998-01-01';
 const RE_HISTORY_START_TS = Math.floor(Date.parse(RE_HISTORY_START+'T00:00:00Z')/1000);
 
-async function reFetchOHLC(sym, years){
+async function reFetchOHLCYahoo(sym, years){
   const p2=Math.floor(Date.now()/1000);
   const p1=(years==='max'||!years) ? RE_HISTORY_START_TS
                                    : Math.max(RE_HISTORY_START_TS, p2-Math.round(years*365.25*86400));
@@ -15441,6 +15646,18 @@ async function reFetchOHLC(sym, years){
     finally{ clearTimeout(kill); }
   }
   throw new Error(lastErr||'all price sources failed');
+}
+
+/* Routing wrapper: NSE goes to Upstox when a proxy is configured, everything
+   else (and every failure) falls through to Yahoo. */
+async function reFetchOHLC(sym, years, univKey){
+  const yahoo=()=>reFetchOHLCYahoo(sym, years);
+  if(!univKey || !dsCanUpstox(univKey)) return yahoo();
+  const from=(years==='max'||!years) ? RE_HISTORY_START
+            : reISO(Date.now()-Math.round(years*365.25*86400000));
+  const to=reISO(Date.now());
+  const rows=await dsBars(univKey,'days','1',from,to,yahoo);
+  return rows.map(r=>({date:r.date,o:r.o,h:r.h,l:r.l,c:r.c}));
 }
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -16036,7 +16253,7 @@ async function reBuildModel(instKey,opts){
   setP(3,`fetching ${u.label} daily history from Yahoo Finance …`);
   const ck=u.sym+'|'+years;
   let bars=window.RE.ohlc[ck];
-  if(!bars){ bars=await reFetchOHLC(u.sym,years); window.RE.ohlc[ck]=bars; }
+  if(!bars){ bars=await reFetchOHLC(u.sym,years,instKey); window.RE.ohlc[ck]=bars; }
   if(bars.length<200) throw new Error(`only ${bars.length} daily bars exist for ${u.sym} (first ${bars.length?bars[0].date:"n/a"}) — too short to research`);
 
   // ── B. swings, per the rule table
@@ -16363,6 +16580,7 @@ function reHeadHTML(){
     ${u.kind==='commodity'?'<i>Commodities follow the index rule, per the PRD.</i>':''}
     <br><b style="color:var(--acc)">HISTORY:</b> <b>Max</b> pulls from ${RE_HISTORY_START} — or from the instrument's first traded day when it listed later, which is most of the F&amp;O universe. Nothing is back-filled; the model reports the true first date it received. A full run over ~28 years computes roughly 10,000 days of ephemeris, so the first one takes a minute or two — every later instrument over the same years is near-instant because the ephemeris cache is global.
   </div>
+  <div style="margin-top:9px">${dsPanelHTML()}</div>
   <div id="re-batch" style="margin-top:8px">${reBatchHTML()}</div>
   <div id="re-prog" style="margin-top:8px">${reProgressHTML()}</div>`;
 }
