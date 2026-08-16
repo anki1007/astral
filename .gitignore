@@ -1,0 +1,16 @@
+# local safety copies made before large edits — not part of the app
+*.bak.html
+index.pre-*.html
+
+# local dev scaffolding
+.claude/
+backtest/
+
+# reference material kept out of the public repo
+Tech_Astro_Analysis.md
+"# Financial Astrology Research Engine.md"
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
