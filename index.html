@@ -9774,19 +9774,6 @@ function btParseYF(data){
   return days;
 }
 
-// ── Normalise FMP historical row → our format ──
-function btNormFMP(r){
-  const dateStr=r.date||r.Date||'';
-  const d=new Date(dateStr+'T00:00:00Z');
-  return {
-    dateStr, y:d.getUTCFullYear(),m:d.getUTCMonth()+1,d:d.getUTCDate(),
-    open:parseFloat(r.open||r.Open||0),
-    high:parseFloat(r.high||r.High||r.open||0),
-    low:parseFloat(r.low||r.Low||r.open||0),
-    close:parseFloat(r.close||r.Close||r.adjClose||0)
-  };
-}
-
 // ── Parse user-supplied CSV (date,open,high,low,close) ──
 function btParseCSV(text){
   const lines=text.trim().split(/\r?\n/);
@@ -9810,46 +9797,60 @@ function btParseCSV(text){
   return days.sort((a,b)=>a.dateStr.localeCompare(b.dateStr));
 }
 
-// ── FMP symbol map ──
-const BT_FMP_SYM={nifty:'^NSEI',bnifty:'^NSEBANK',gold:'GCUSD',silver:'SIUSD',crude:'CLUSD',sensex:'^BSESN',xauusd:'XAUUSD',xagusd:'XAGUSD',xngusd:'NGUSD',usoil:'CLUSD'};
-
-// ── FMP via Anthropic API (works from file:// since Anthropic API is CORS-open) ──
-async function btFetchFMP(instrKey,fromDate,toDate){
-  const sym=BT_FMP_SYM[instrKey]||'^NSEI';
-  const fromY=parseInt(fromDate.slice(0,4)), toY=parseInt(toDate.slice(0,4));
-  const allDays=[];
-  for(let y=fromY;y<=toY;y++){
-    const cf=y===fromY?fromDate:`${y}-01-01`, ct=y===toY?toDate:`${y}-12-31`;
-    window._BT.msg=`FMP: ${sym} ${y} (${y-fromY+1}/${toY-fromY+1})…`; gs({_btTick:Date.now()});
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:16384,
-        system:`Return ONLY a JSON array [{"date":"YYYY-MM-DD","open":N,"high":N,"low":N,"close":N}]. No text.`,
-        messages:[{role:'user',content:`FMP: get daily OHLCV for "${sym}" from ${cf} to ${ct}`}],
-        mcp_servers:[{type:'url',url:'https://financialmodelingprep.com/mcp',name:'fmp'}]})
-    });
-    if(!resp.ok) throw new Error('Anthropic '+resp.status);
-    const data=await resp.json();
-    let rows=null;
-    for(const blk of (data.content||[])){
-      if(blk.type==='mcp_tool_result'){
-        const txt=blk.content?.[0]?.text||'';
-        try{ const j=JSON.parse(txt); rows=j?.historical||j; }catch(e){}
-        if(!rows){ const m=txt.match(/\[[\s\S]{10,}\]/); if(m) try{rows=JSON.parse(m[0]);}catch(e){} }
-        if(Array.isArray(rows)&&rows.length) break;
+// ── Yahoo daily OHLC for an explicit date range, through the CORS-proxy chain ──
+// Shared by the SBC backtest and the monthly-arc overlay. Returns
+//   [{date:'YYYY-MM-DD', open, high, low, close}]
+// sorted ascending, or throws with the last transport error.
+async function yfDailyRange(sym, fromDate, toDate){
+  const p1=Math.floor(Date.parse(fromDate+'T00:00:00Z')/1000)-86400;
+  const p2=Math.floor(Date.parse(toDate  +'T00:00:00Z')/1000)+86400;
+  const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`+
+               `?period1=${p1}&period2=${p2}&interval=1d`;
+  let lastErr='';
+  for(let pi=0; pi<PROXIES.length; pi++){
+    const ac=(typeof AbortController!=='undefined')?new AbortController():null;
+    const kill=setTimeout(()=>{ try{ ac&&ac.abort(); }catch(e){} }, 20000);
+    try{
+      const r=await withTimeout(fetch(PROXIES[pi](target),
+        {mode:'cors',credentials:'omit',headers:{'Accept':'application/json'},signal:ac?ac.signal:undefined}),20000);
+      if(!r.ok){ lastErr='HTTP '+r.status; continue; }
+      let t=await r.text(), j=JSON.parse(t);
+      if(j && typeof j.contents==='string' && !j.chart) j=JSON.parse(j.contents);
+      const res=j&&j.chart&&j.chart.result&&j.chart.result[0];
+      if(!res){ lastErr=(j&&j.chart&&j.chart.error&&j.chart.error.description)||'no result'; continue; }
+      const ts=res.timestamp||[], q=res.indicators.quote[0], out=[];
+      for(let i=0;i<ts.length;i++){
+        const o=q.open[i],h=q.high[i],l=q.low[i],c=q.close[i];
+        if([o,h,l,c].some(v=>v==null||!isFinite(v)||v<=0)) continue;
+        const d=new Date(ts[i]*1000);
+        out.push({date:d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'),
+                  open:o,high:h,low:l,close:c});
       }
-    }
-    if(!rows){ for(const blk of (data.content||[])){
-      if(blk.type==='text'){
-        const m=blk.text.match(/\[[\s\S]{10,}\]/); if(m) try{rows=JSON.parse(m[0]);}catch(e){}
-        if(!rows){ const m2=blk.text.match(/\{[\s\S]*?"historical"[\s\S]*?\}/); if(m2) try{const j=JSON.parse(m2[0]);rows=j?.historical;}catch(e){} }
-        if(Array.isArray(rows)&&rows.length) break;
-      }
-    }}
-    if(Array.isArray(rows)) rows.forEach(r=>{const n=btNormFMP(r);if(n.open&&n.close&&n.dateStr>=cf&&n.dateStr<=ct)allDays.push(n);});
+      if(out.length) return out.sort((a,b)=>a.date.localeCompare(b.date));
+      lastErr='no bars in range';
+    }catch(e){ lastErr=(e&&e.message)?e.message.slice(0,50):'err'; }
+    finally{ clearTimeout(kill); }
   }
-  if(!allDays.length) throw new Error(`FMP: no data for ${sym}`);
-  return allDays.sort((a,b)=>a.dateStr.localeCompare(b.dateStr));
+  throw new Error(lastErr||'all price sources failed');
+}
+
+// ── Last-resort range fetch for the SBC backtest ──────────────────────────────
+// This used to POST to api.anthropic.com from the browser to have a model pull
+// the data via an FMP MCP server. That can never work in a page: there are no
+// credentials to send, and api.anthropic.com returns no CORS headers to a
+// browser origin, so it failed with "NetworkError" every time. It now uses the
+// same proxied Yahoo path as the rest of the terminal.
+async function btFetchFMP(instrKey,fromDate,toDate){
+  const sym=(BT_YF[instrKey]&&BT_YF[instrKey].sym)||'^NSEI';
+  window._BT.msg=`Yahoo: ${sym} ${fromDate} → ${toDate}…`; gs({_btTick:Date.now()});
+  const rows=await yfDailyRange(sym, fromDate, toDate);
+  const allDays=rows
+    .filter(r=>r.date>=fromDate && r.date<=toDate)
+    .map(r=>{ const d=new Date(r.date+'T00:00:00Z');
+      return {dateStr:r.date, y:d.getUTCFullYear(), m:d.getUTCMonth()+1, d:d.getUTCDate(),
+              open:r.open, high:r.high, low:r.low, close:r.close}; });
+  if(!allDays.length) throw new Error(`no data for ${sym} in ${fromDate}→${toDate}`);
+  return allDays;
 }
 
 // ── Master fetch: pre-loaded data first, then network fallbacks ──
@@ -10533,33 +10534,6 @@ async function sbcFetchMonthlyPrice(){
 
   div.innerHTML=`<div style="font-size:10.5px;color:var(--bd2);padding:6px 0">⟳ Fetching NIFTY ${moStr}/${yr}…</div>`;
 
-  // Extract any JSON array from a text blob (aggressive parser)
-  const _extract=(txt)=>{
-    if(!txt) return null;
-    // Try direct JSON parse first
-    try{ const j=JSON.parse(txt);
-      if(Array.isArray(j)&&j.length) return j;
-      if(j?.historical&&Array.isArray(j.historical)) return j.historical;
-      if(j?.data&&Array.isArray(j.data)) return j.data;
-    }catch(e){}
-    // Scan for all JSON arrays in the text
-    let best=null;
-    const rx=/\[[\s\S]*?\]/g; let m;
-    while((m=rx.exec(txt))!==null){
-      try{ const arr=JSON.parse(m[0]);
-        if(Array.isArray(arr)&&arr.length>best?.length){
-          const first=arr[0];
-          if(first&&(first.date||first.Date||first.time||first.t)) best=arr;
-        }
-      }catch(e){}
-    }
-    if(best) return best;
-    // Also look for historical object wrapper
-    const hw=txt.match(/"historical"\s*:\s*(\[[\s\S]*?\])/);
-    if(hw) try{ return JSON.parse(hw[1]); }catch(e){}
-    return null;
-  };
-
   // Normalise a raw row to {d, o, h, l, c, date}
   const _norm=(r)=>{
     const date=r.date||r.Date||r.time||r.t||'';
@@ -10572,39 +10546,11 @@ async function sbcFetchMonthlyPrice(){
   };
 
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6', max_tokens:8192,
-        system:`You are a data extraction assistant. When FMP returns historical price data, output ONLY the raw JSON array of daily OHLCV records — no explanation, no markdown, no code block. Format: [{"date":"YYYY-MM-DD","open":N,"high":N,"low":N,"close":N}]`,
-        messages:[{role:'user',content:`Use FMP to get daily historical prices for NIFTY 50 index from ${fromDate} to ${toDate}. Output only the JSON array.`}],
-        mcp_servers:[{type:'url',url:'https://financialmodelingprep.com/mcp',name:'fmp'}]
-      })
-    });
-    if(!resp.ok) throw new Error(`Anthropic ${resp.status}`);
-    const data=await resp.json();
-
-    // Collect ALL text from ALL blocks and try to extract rows
-    let rows=null;
-    const allTexts=[];
-    for(const blk of (data.content||[])){
-      if(blk.type==='mcp_tool_result'){
-        for(const c of (blk.content||[])) if(c.text) allTexts.push(c.text);
-      }
-      if(blk.type==='text') allTexts.push(blk.text||'');
-    }
-    // Try each text block
-    for(const txt of allTexts){
-      const r=_extract(txt);
-      if(r&&r.length>(rows?.length||0)) rows=r;
-    }
-    // Fallback: join all text and try once more
-    if(!rows||!rows.length){
-      const r=_extract(allTexts.join(' '));
-      if(r&&r.length) rows=r;
-    }
-    if(!rows||!rows.length) throw new Error(`Parse failed — blocks: ${data.content?.map(b=>b.type).join(',')}`);
+    // Yahoo daily bars for this month through the terminal's CORS-proxy chain.
+    // (Previously this POSTed to api.anthropic.com from the browser, which has
+    // no credentials to send and gets no CORS headers back — it failed with
+    // "NetworkError when attempting to fetch resource" on every single load.)
+    const rows=await yfDailyRange('^NSEI', fromDate, toDate);
 
     // Normalise, filter to target month
     const ohlc=rows.map(_norm)
@@ -10658,9 +10604,10 @@ async function sbcFetchMonthlyPrice(){
     div.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;overflow:visible">${grid}${candles}</svg>`;
 
   }catch(err){
-    div.innerHTML=`<div style="font-size:10.5px;color:#3a2020;padding:6px 8px;background:var(--bear3);border-radius:3px;display:flex;align-items:center;gap:8px">
-      <span style="color:#5a4040">Price unavailable (${err.message})</span>
-      <button onclick="sbcFetchMonthlyPrice()" style="background:var(--bear3);border:1px solid #3a2020;color:#5a8090;padding:2px 10px;border-radius:2px;cursor:pointer;font-size:10.5px;flex-shrink:0">↻ Retry</button>
+    div.innerHTML=`<div style="font-size:10.5px;padding:7px 10px;background:var(--bear3);border:1px solid var(--bear2);border-radius:3px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="color:var(--bear);font-weight:700">Price overlay unavailable</span>
+      <span style="color:var(--tx2)">${err.message} — the Vishva arc above is pure ephemeris and is unaffected.</span>
+      <button onclick="sbcFetchMonthlyPrice()" style="margin-left:auto;background:var(--bg3);border:1px solid var(--bd2);color:var(--acc);padding:3px 11px;border-radius:2px;cursor:pointer;font-family:inherit;font-size:10.5px;flex-shrink:0">↻ Retry</button>
     </div>`;
   }
 }
@@ -14770,14 +14717,22 @@ function rEvents(){
 // Google Finance is also attempted via several CORS proxies.
 // ═══════════════════════════════════════════════════════════════════
 
+// Yahoo sends no CORS headers, so every price request is relayed. These are
+// free third-party proxies: any one of them can be down, rate-limited or
+// stripping headers at any moment, so the order matters less than the length
+// of the list. A fetch only fails after ALL of them have been tried.
 const PROXIES = [
-  // allorigins is the most reliable free CORS proxy as of 2026 (allow-origin: *)
-  // It has flaky uptime via Cloudflare so we retry it from multiple angles.
+  // allorigins — usually the best of them, but flaky uptime via Cloudflare,
+  // so it is tried from both of its endpoints.
   u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,  // wrapped JSON
-  u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+  // corsproxy.io requires the `url=` parameter name — passing the target as a
+  // bare query string (its old format) returns a 4xx and burns a retry slot.
+  u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
   u => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
   u => `https://api.cors.lol/?url=${encodeURIComponent(u)}`,
+  u => `https://thingproxy.freeboard.io/fetch/${u}`,
+  u => `https://r.jina.ai/${u}`,          // returns the body as text; JSON parses fine
 ];
 
 const withTimeout = (p, ms=8000) =>
