@@ -6930,18 +6930,29 @@ function taTech(bars, i, tf){
      · MONTHLY
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Daily, weekly and monthly all pull from RE_HISTORY_START (1998, or the
+   instrument's inception, whichever is later). Intraday is the one exception
+   and it is not a choice: Yahoo serves at most ~60 days of 5-minute bars, so
+   `capNote` records why that horizon is short and the UI says so rather than
+   letting it look like an engine limitation. */
 const TA_TF = {
-  intraday:{label:'INTRADAY · 5-min', yInt:'5m',  yRange:'60d', scope:'intraday'},
-  weekly:  {label:'WEEKLY',           yInt:'1wk', yRange:'10y', scope:'weekly'},
-  monthly: {label:'MONTHLY',          yInt:'1mo', yRange:'20y', scope:'monthly'},
-  daily:   {label:'DAILY',            yInt:'1d',  yRange:'10y', scope:'daily'}
+  intraday:{label:'INTRADAY · 5-min', yInt:'5m',  yRange:'60d', scope:'intraday',
+            capNote:'Yahoo serves at most ~60 days of 5-minute bars — a limit of the data source, not of the engine. The forward intraday calendar is pure ephemeris and is unaffected.'},
+  weekly:  {label:'WEEKLY',           yInt:'1wk', scope:'weekly'},
+  monthly: {label:'MONTHLY',          yInt:'1mo', scope:'monthly'},
+  daily:   {label:'DAILY',            yInt:'1d',  scope:'daily'}
 };
 const TA_SESSION_START = 9.25, TA_SESSION_END = 15.5;   // 09:15 → 15:30 IST
 
 async function taFetch(sym, tf){
   const cfg=TA_TF[tf];
-  const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`+
-               `?interval=${cfg.yInt}&range=${cfg.yRange}`;
+  // range= is Yahoo's shorthand and silently caps history; period1/period2
+  // asks for everything from 1998 (or inception) instead. Intraday keeps the
+  // shorthand because its 60-day ceiling is enforced server-side regardless.
+  const q = cfg.yRange
+    ? `interval=${cfg.yInt}&range=${cfg.yRange}`
+    : `interval=${cfg.yInt}&period1=${RE_HISTORY_START_TS}&period2=${Math.floor(Date.now()/1000)}`;
+  const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?${q}`;
   let lastErr='';
   for(let pi=0;pi<PROXIES.length;pi++){
     const ac=(typeof AbortController!=='undefined')?new AbortController():null;
@@ -7241,6 +7252,7 @@ function taBackwardHTML(){
         <td style="text-align:right;color:${x.avg>=0?'var(--bull)':'var(--bear)'}">${x.avg>=0?'+':''}${x.avg.toFixed(3)}%</td>
         <td style="text-align:right">${x.eq.toFixed(3)}×</td></tr>`).join('')}</tbody></table></div>
       <div style="font-size:11px;color:var(--tx3);margin-top:6px">Direction accuracy = the sign of the rulebook's score vs the sign of the bar's own open→close move. ${(m.base*100).toFixed(1)}% of bars in this sample closed up, so that is the number to beat. “Compounded” takes the signed position on every selected bar with no costs — a diagnostic, not a strategy.</div>
+      ${m.cfg.capNote?`<div style="font-size:11px;color:var(--neut);margin-top:6px;padding:7px 10px;background:var(--neut3);border:1px solid var(--neut2);border-radius:3px">⚠ ${m.cfg.capNote}</div>`:''}
     </div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>WHICH SECTIONS OF THE MARKDOWN ACTUALLY WORK — per-section hit rate</div>
@@ -15382,8 +15394,18 @@ function reMs(ds){ return Date.UTC(+ds.slice(0,4), +ds.slice(5,7)-1, +ds.slice(8
 function reShift(ds,n){ return reISO(reMs(ds)+n*86400000); }
 function reDow(ds){ return new Date(reMs(ds)).getUTCDay(); }
 
+/* Oldest date the engines will ever ask for. Yahoo clamps period1 to the
+   instrument's own first traded day, so asking from 1998 transparently means
+   "since inception" for everything listed later — which is most of the F&O
+   universe. Nothing is padded or back-filled: you get exactly the bars that
+   exist, and the model reports the true first date it found. */
+const RE_HISTORY_START = '1998-01-01';
+const RE_HISTORY_START_TS = Math.floor(Date.parse(RE_HISTORY_START+'T00:00:00Z')/1000);
+
 async function reFetchOHLC(sym, years){
-  const p2=Math.floor(Date.now()/1000), p1=p2-Math.round(years*365.25*86400);
+  const p2=Math.floor(Date.now()/1000);
+  const p1=(years==='max'||!years) ? RE_HISTORY_START_TS
+                                   : Math.max(RE_HISTORY_START_TS, p2-Math.round(years*365.25*86400));
   const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`+
                `?period1=${p1}&period2=${p2}&interval=1d&events=div%2Csplit`;
   let lastErr='';
@@ -16006,7 +16028,7 @@ async function reBuildModel(instKey,opts){
   const thr=reThresholds(u.kind);
   const ay=opts.ay||'lahiri';
   const tod=(opts.tod!=null)?opts.tod:9.25;
-  const years=opts.years||15;
+  const years=opts.years||'max';
   const span=(opts.span!=null)?opts.span:2;
   const setP=(p,m)=>{ window.RE.prog=p; window.RE.progMsg=m; rePaintProgress(); };
 
@@ -16015,12 +16037,12 @@ async function reBuildModel(instKey,opts){
   const ck=u.sym+'|'+years;
   let bars=window.RE.ohlc[ck];
   if(!bars){ bars=await reFetchOHLC(u.sym,years); window.RE.ohlc[ck]=bars; }
-  if(bars.length<200) throw new Error(`only ${bars.length} daily bars available for ${u.sym}`);
+  if(bars.length<200) throw new Error(`only ${bars.length} daily bars exist for ${u.sym} (first ${bars.length?bars[0].date:"n/a"}) — too short to research`);
 
   // ── B. swings, per the rule table
   setP(9,'detecting swing highs / lows under the rule …');
   const swings=reDetectSwings(bars,thr.minPct,thr.majPct);
-  if(swings.length<8) throw new Error(`only ${swings.length} qualifying swings found — widen the history window`);
+  if(swings.length<8) throw new Error(`only ${swings.length} qualifying swings in ${dates[0]}→${dates[dates.length-1]} — this instrument does not move enough to research under its rule`);
   const dates=bars.map(b=>b.date);
   const swingSet=new Set(swings.map(s=>s.date));
   const swingInfo=new Map(swings.map(s=>[s.date,s]));
@@ -16181,7 +16203,7 @@ function reForecast(model,fromDs,nDays,opts){
 function reOpts(){
   return {ay:S.reAy||S.ayMode||'lahiri',
           tod:parseFloat(S.reTod!=null?S.reTod:9.25),
-          years:parseInt(S.reYears||15,10),
+          years:(S.reYears&&S.reYears!=='max')?parseInt(S.reYears,10):'max',
           span:parseInt(S.reSpan!=null?S.reSpan:2,10),
           minSup:parseInt(S.reMinSup||5,10), k2:36, k3:60};
 }
@@ -16322,7 +16344,7 @@ function reHeadHTML(){
         <input id="re-filter" class="ci" style="width:92px" placeholder="filter…" oninput="reFilterOpts(this.value)">
         ${reInstSelect('re-inst')}
       </div></div>
-    <div class="cg"><span class="cl">HISTORY</span>${sel('reYears',[[5,'5 yr'],[10,'10 yr'],[15,'15 yr'],[20,'20 yr'],[25,'25 yr']],o.years)}</div>
+    <div class="cg"><span class="cl">HISTORY</span>${sel('reYears',[['max','Max · since 1998 / inception'],[25,'25 yr'],[20,'20 yr'],[15,'15 yr'],[10,'10 yr'],[5,'5 yr']],o.years,214)}</div>
     <div class="cg"><span class="cl">AYANAMSA</span>${sel('reAy',[['lahiri','Lahiri'],['kp','KP New'],['kpold','KP Old'],['raman','Raman'],['sayana','Sayana']],o.ay,104)}</div>
     <div class="cg"><span class="cl">EPHEM HOUR (IST)</span>${sel('reTod',[[9.25,'09:15'],[11,'11:00'],[12,'12:00'],[15.5,'15:30']],o.tod)}</div>
     <div class="cg"><span class="cl">RESEARCH WINDOW</span>${sel('reSpan',[[0,'swing day only'],[1,'±1 day'],[2,'±2 days'],[3,'±3 days']],o.span,128)}</div>
@@ -16339,6 +16361,7 @@ function reHeadHTML(){
     The correction is measured on the leg that <i>follows</i> the pivot (swing high ⇒ the decline into the next swing low; swing low ⇒ the advance into the next swing high).
     Short-term and long-term pivots are found by two independent zig-zags run at ${thr.minPct}% and ${thr.majPct}%, so a big correction is never shredded into small legs and mis-filed.
     ${u.kind==='commodity'?'<i>Commodities follow the index rule, per the PRD.</i>':''}
+    <br><b style="color:var(--acc)">HISTORY:</b> <b>Max</b> pulls from ${RE_HISTORY_START} — or from the instrument's first traded day when it listed later, which is most of the F&amp;O universe. Nothing is back-filled; the model reports the true first date it received. A full run over ~28 years computes roughly 10,000 days of ephemeris, so the first one takes a minute or two — every later instrument over the same years is near-instant because the ephemeris cache is global.
   </div>
   <div id="re-batch" style="margin-top:8px">${reBatchHTML()}</div>
   <div id="re-prog" style="margin-top:8px">${reProgressHTML()}</div>`;
