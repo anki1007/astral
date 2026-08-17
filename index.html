@@ -15587,11 +15587,32 @@ async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
 }
 window.dsBars=dsBars;
 
-/* Live quote for a universe key. Yahoo has no usable live endpoint from a
-   browser, so this returns null rather than pretending. */
+/* scanX already publishes a live NSE quote board and it needs no token from
+   us: GitHub Pages serves it CORS-open. Coverage is 523 names with full OHLC
+   in quotes.json; the wide file carries ~5,500 but only ltp/pct. Both are
+   stocks — no indices — and both are refreshed roughly every 15 minutes
+   during IST market hours, so this is a delayed board, not a tick feed. */
+const DS_SCANX_QUOTES='https://anki1007.github.io/scanX/data/quotes.json';
+let _dsScanX={at:0, data:null, date:''};
+async function dsScanXQuotes(){
+  if(_dsScanX.data && Date.now()-_dsScanX.at < 5*60*1000) return _dsScanX.data;
+  try{
+    const r=await fetch(DS_SCANX_QUOTES,{cache:'no-cache'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    _dsScanX={at:Date.now(), data:j.quotes||{}, date:j.date||'', ist:j.ist||'', src:j.source||''};
+    return _dsScanX.data;
+  }catch(e){ _dsScanX={at:Date.now(), data:null, date:''}; return null; }
+}
+window.dsScanXQuotes=dsScanXQuotes;
+
+/* Live quote for a universe key. Order: your Upstox Worker (indices too, and
+   true real-time), then scanX's published board (stocks only, delayed).
+   Returns null rather than inventing a price when neither can answer. */
 async function dsQuote(univKeys){
-  const keys=(Array.isArray(univKeys)?univKeys:[univKeys]).filter(k=>dsCanUpstox(k));
-  if(!keys.length) return null;
+  const all=(Array.isArray(univKeys)?univKeys:[univKeys]);
+  const keys=all.filter(k=>dsCanUpstox(k));
+  if(!keys.length) return dsQuoteScanX(all);
   try{
     const syms=keys.map(dsUpstoxSym).join(',');
     const j=await dsProxyGet('/quote?syms='+encodeURIComponent(syms), 15000);
@@ -15607,10 +15628,27 @@ async function dsQuote(univKeys){
   }catch(e){
     window.DS.lastErr=(e&&e.message)||'quote failed';
     window.DS.health=false;
-    return null;
+    return dsQuoteScanX(all);        // the Worker is down — scanX may still answer
   }
 }
 window.dsQuote=dsQuote;
+
+async function dsQuoteScanX(univKeys){
+  const q=await dsScanXQuotes();
+  if(!q) return null;
+  const out={};
+  for(const k of (Array.isArray(univKeys)?univKeys:[univKeys])){
+    const row=q[k];                                   // keyed by NSE tradingsymbol
+    if(!row || !isFinite(row.ltp)) continue;
+    out[k]={ symbol:k, last:row.ltp,
+             ohlc:{open:row.open, high:row.high, low:row.low, close:row.prev_close},
+             netChange:row.pct, ts:_dsScanX.date, source:'scanX '+(_dsScanX.src||''),
+             delayed:true };
+  }
+  if(Object.keys(out).length){ window.DS.stats.scanx=(window.DS.stats.scanx||0)+1; return out; }
+  return null;
+}
+window.dsQuoteScanX=dsQuoteScanX;
 
 /* ── settings panel, shared by the research tabs ──────────────────────────── */
 function dsPanelHTML(){
@@ -15648,7 +15686,8 @@ function dsPanelHTML(){
       ${D.proxy
         ? (D.lastErr?`<br><b style="color:var(--bear)">Last proxy error:</b> ${String(D.lastErr).replace(/</g,'&lt;')}`:'')
         : `<br>The Worker is optional — leave the box empty and steps 1 and 3 still work. To add it, deploy <b>upstox-worker.js</b> (in the repo) to Cloudflare and paste its URL here.`}
-      ${(window.DS.stats.baked||window.DS.stats.upstox||window.DS.stats.yahoo)?`<br><span style="color:var(--tx3)">This session — baked: ${window.DS.stats.baked||0} · upstox: ${window.DS.stats.upstox} · yahoo: ${window.DS.stats.yahoo} · spliced: ${window.DS.stats.spliced}</span>`:''}
+      <br><b style="color:var(--acc)">Live quotes:</b> your Worker first (indices too, real-time), then <b>scanX</b>'s published board — 523 NSE stocks with full OHLC, refreshed about every 15 minutes in market hours, served CORS-open from GitHub Pages with no token needed. It carries no indices and is delayed, so it is labelled as such wherever it is shown.
+      ${(window.DS.stats.baked||window.DS.stats.upstox||window.DS.stats.yahoo||window.DS.stats.scanx)?`<br><span style="color:var(--tx3)">This session — baked: ${window.DS.stats.baked||0} · upstox: ${window.DS.stats.upstox} · scanX quotes: ${window.DS.stats.scanx||0} · yahoo: ${window.DS.stats.yahoo} · spliced: ${window.DS.stats.spliced}</span>`:''}
     </div>
   </div>`;
 }
