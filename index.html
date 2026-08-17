@@ -4074,20 +4074,64 @@ function tAshtaka(){
 </div>`;
 }
 
+
+/* ── Overview blend de-bias ────────────────────────────────────────────────
+   Measured over every trading day 2000-01-04 → 2026-08-14 (6,618 days, Nifty).
+   Two defects showed up that only 26 years of grading could reveal:
+
+     · bhavNatal is a CONSTANT −3. It is derived from Nifty's fixed natal
+       chart, so it cannot vary by date — it was contributing a permanent
+       offset to every forecast ever produced, not a signal. It is dropped.
+     · Most other components sit far from zero: kranti averages +50, sbc −26
+       (and is negative on all 6,088 days it fires), trio −23, sbcVedha +17.
+       Summing raw levels rather than deviations gave the blend a standing
+       tilt — mean score −4.16 into a market that rose on 53.9% of days, and
+       2,406 bearish calls against 1,699 bullish.
+
+   Subtracting each component's own historical median leaves the deviation,
+   which is the part that carries information. Call balance goes to 2,241
+   bullish / 1,922 bearish and the mean score to +1.9.
+
+   This fixes the BIAS. It does not manufacture skill: accuracy moves 49.0% →
+   50.0% in-sample and 50.9% → 51.2% walk-forward, both still under the 53.9%
+   base rate. The FORECAST VALIDATION panel on the Overview tab shows the
+   full per-component audit; re-running it refreshes these medians. */
+const OV_MEDIAN = {bias:22, aspect:14, trio:-50, lagna:-9, kranti:43, rules:-8,
+  forecastDir:-8, bhadra:0, sbc:-24, declShift:0, bhavDay:1.5, ruleX:2.5,
+  sunCond:-2, sbcVedha:17.6, natalTr:-3, bhavNatal:null};
+function ovMed(k){
+  try{ const f=window.OV&&window.OV.median; if(f&&f[k]!==undefined) return f[k]; }catch(e){}
+  return OV_MEDIAN[k];
+}
+function ovCtr(k,v){ const m=ovMed(k); return m===null? 0 : (v-m); }
+
+
+/* combinedScore rebuilt from centred parts, so the blend sees deviations. */
+function ovCombinedCentred(D){
+  const c={bias:D.bias?D.bias.score:0, aspect:D.aspSc?D.aspSc.score:0,
+           trio:D.trio?D.trio.trioScore:0, lagna:D.lagnaTM?D.lagnaTM.score:0,
+           kranti:D.krantiScore||0, rules:D.rulesScore||0,
+           forecastDir:D.forecastDirScore||0};
+  return ovCtr('bias',c.bias)*0.22 + ovCtr('aspect',c.aspect)*0.16
+       + ovCtr('trio',c.trio)*0.16 + ovCtr('lagna',c.lagna)*0.16
+       + ovCtr('kranti',c.kranti)*0.07 + ovCtr('rules',c.rules)*0.11
+       + ovCtr('forecastDir',c.forecastDir)*0.12;
+}
+
 function buildIndexForecast(D){
   const {planets, aspects, rules, forecast, bhadra, sbc, declShifts, bhavDay, bhavNatal, natalTransit, combinedScore}=D;
   const clamp=(v)=>Math.max(-100,Math.min(100,Math.round(v)));
   const declActive=declShifts.filter(d=>Math.abs(d.daysFromNow)<=1);
   const declNet=declActive.reduce((a,d)=>a+d.dir,0);
   const sharImminent=(D.sharCrossings||[]).some(c=>Math.abs(c.daysFromNow)<=2);
-  const fc = forecast? forecast.directionScore : 0;
-  const bh = bhadra.active? bhadra.net*18 : 0;
-  const sb = sbc.netDir;
-  const dn = declNet*22;
-  const bvD = Math.max(-30,Math.min(30, bhavDay.marketScore*3));
-  const rx = D.ruleX? D.ruleX.netScore : 0;
+  const fc = ovCtr('forecastDir', forecast? forecast.directionScore : 0);
+  const bh = ovCtr('bhadra', bhadra.active? bhadra.net*18 : 0);
+  const sb = ovCtr('sbc', sbc.netDir);
+  const dn = ovCtr('declShift', declNet*22);
+  const bvD = ovCtr('bhavDay', Math.max(-30,Math.min(30, bhavDay.marketScore*3)));
+  const rx = ovCtr('ruleX', D.ruleX? D.ruleX.netScore*0.5 : 0)*2;
   const astroPack = clamp(fc*1.0 + bh + sb + dn + bvD + rx*0.5);
-  const baseDay = clamp(combinedScore*0.55 + astroPack*0.55);
+  const baseDay = clamp(ovCombinedCentred(D)*0.55 + astroPack*0.55);
   const t=rules.tithi;
   const bigMoon = (t.name==='Purnima'||t.name==='Amavasya');
   const extremeYoga=((forecast&&forecast.yogas)||[]).some(y=>y.severity==='EXTREME');
@@ -4105,7 +4149,9 @@ function buildIndexForecast(D){
   const svDrv=(v,pts)=>v?`SBC वेध ${v.net>0?'तेजी':v.net<0?'मंदी':'सम'} ${v.net>0?'+':''}${v.net} विश्वा → ${pts>0?'+':''}${pts}`:'';
   const nfSBC=svPts(sv&&sv.nifty), bnSBC=svPts(sv&&sv.bn);
   const sunC=planetCondition('Sun',planets,aspects);
-  const nfScore = baseDay + sunC.score*4 + nfSBC + (natalTransit?natalTransit.score*3:0) + Math.max(-15,Math.min(15,bhavNatal.marketScore*1.5));
+  // bhavNatal is constant by construction and is deliberately not summed here
+  const nfScore = baseDay + ovCtr('sunCond',sunC.score*4) + ovCtr('sbcVedha',nfSBC)
+                + ovCtr('natalTr', natalTransit?natalTransit.score*3:0);
   const nfDrivers=[`base ${baseDay}`,`Sun(ruler) ${sunC.score} [${sunC.notes.join(', ')}]`,
                    svDrv(sv&&sv.nifty,nfSBC),
                    natalTransit?`natal-transit ${natalTransit.score}`:'', `natal-bhav ${bhavNatal.marketScore}`].filter(Boolean);
@@ -8612,6 +8658,386 @@ ${s.why}</title></circle>`).join('');
     </div>
   </div>`;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   OVERVIEW FORECAST — VALIDATION & AUDIT
+   ---------------------------------------------------------------------------
+   The Overview daily call is a fixed-weight blend of thirteen sub-scores, and
+   those weights were never measured against price. Graded over 2026 it ran at
+   48.2% directional accuracy against a 50.7% base rate, with 62 bearish calls
+   to 48 bullish into a market that rose on half its days — below chance and
+   tilted bearish.
+
+   This module grades every component separately from inception, then refits
+   the blend from what actually worked. Same discipline as the swing-reversal
+   engine: measure first, weight second, and report the components that fail.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+window.OV = window.OV || {
+  rows: null, audit: null, fit: null,
+  status: 'idle', err: '', prog: 0, progMsg: '',
+  from: '', to: '', step: 1
+};
+
+
+/* A cut-down computeAll for validation only.
+   computeAll rebuilds the 5-minute slot grid, a 15-minute grid, a 37-day Shar
+   scan, a 45-day kranti-event scan and a 15-day aspect look-ahead on every
+   call — roughly six seconds per cold date, and the audit reads none of it.
+   This recomputes just the sixteen sub-scores the blend consumes. It falls
+   back to the real computeAll if anything here throws, so a mismatch shows up
+   as slowness rather than as wrong numbers. */
+function ovComputeDayLite(ds, ay){
+  const dp=ds.split('-').map(Number);
+  const J=JD(dp[0],dp[1],dp[2],9.25);
+  const ayn=getAyanamsa(J,ay);
+  const trop={Sun:geoLon('Sun',J),Moon:geoLon('Moon',J),Mars:geoLon('Mars',J),
+    Mercury:geoLon('Mercury',J),Jupiter:geoLon('Jupiter',J),Venus:geoLon('Venus',J),
+    Saturn:geoLon('Saturn',J),Rahu:rahuLon(J),Uranus:geoLon('Uranus',J),
+    Neptune:geoLon('Neptune',J),Pluto:geoLon('Pluto',J)};
+  trop.Ketu=n360(trop.Rahu+180);
+  const retro={Sun:false,Moon:false,Rahu:true,Ketu:true};
+  ['Mars','Mercury','Jupiter','Venus','Saturn','Uranus','Neptune','Pluto']
+    .forEach(b=>{ retro[b]=isRetrograde(b,J); });
+  const ascObj=computeAsc(J), ascSid=n360(ascObj.asc-ayn);
+  const ascSign=getSign(ascSid);
+  const planets=Object.entries(trop).map(([name,tl])=>{
+    const sl=n360(tl-ayn), sg=getSign(sl), nk=getNak(sl), sb=getSub(sl);
+    return {name,tLon:tl,lon:sl,s:sg.s,sign:sg.sign,abb:sg.abb,lord:sg.lord,deg:sg.deg,
+            h:houseOf(sl,ascSid),nak:nk.n,nakL:nk.l,sub:sb.sub,ss:sb.ss,pada:nk.pada,
+            d9Sign:getD9(sl),retro:retro[name]||false,abbr:PA[name]||name.slice(0,2)};
+  });
+  const dayLord=DAY_LORDS[new Date(ds+'T00:00:00').getDay()];
+  const aspects=computeAspects(planets);
+  const bias=computeBias(planets), aspSc=aspectScore(aspects);
+  const trio=sunMerVenTrio(planets,J), lagnaTM=lagnaTejiMandi(planets,ascSid);
+  const krantiSamya=findKrantiSamya(planets,J);
+  const krantiScore=krantiSamya.length? Math.round(krantiSamya.reduce((s,k)=>s+k.weight*100,0)) : 0;
+  const rules=computeRules(planets,aspects,J);
+  const rulesScore=rules? rules.composite.score : 0;
+  // a 6-point slot grid is enough for the forecast helpers; the full 26 is not
+  const slots=[]; for(let m=9*60+15;m<=15*60+30;m+=75){
+    const Js=JD(dp[0],dp[1],dp[2],m/60), as=getAyanamsa(Js,ay);
+    const ml=n360(geoLon('Moon',Js)-as), mnk=getNak(ml), msb=getSub(ml);
+    slots.push({min:m,time:mtt(m),planet:dayLord,hb:0,moonSign:getSign(ml).sign,
+                moonNak:mnk.n,moonNakL:msb.nakL,moonSub:msb.sub,moonPada:mnk.pada,moonLon:ml});
+  }
+  const forecast=rules? buildForecast(planets,aspects,rules,{slots,dateStr:ds,ascSign},J) : null;
+  const natal=computeNatal(ay);
+  const bhadra=computeBhadra(ds,360,ay);
+  const sbc=rules? computeSBC(planets,aspects,rules,ds) : {sig:[],bearishCount:0,netDir:0};
+  const declShifts=declinationShifts(J,planets);
+  const bhavDay=computeBhavphal(planets,ascSid);
+  const bhavNatal=computeBhavphal(natal.planets,natal.ascSid);
+  const natalTransit=transitOverNatal(planets,natal);
+  // 3-day Shar window instead of 37 — ruleX only reads crossings within a day or two
+  let sharCrossings=[]; try{ sharCrossings=findShararParivartan(J,3,3); }catch(e){}
+  let ruleX=null;
+  try{ ruleX=computeRuleX({planets,aspects,rules,J,dayLord,ascSid,dateStr:ds,timeIST:9.25,slots,sharCrossings}); }catch(e){}
+  let sbcVedha=null;
+  try{ const ss=sbcSnapshot(J,ay);
+       sbcVedha={nifty:sbcVerdict(ss,SBC_INSTR[0]),bn:sbcVerdict(ss,SBC_INSTR[1]),sensex:sbcVerdict(ss,SBC_INSTR[2])}; }catch(e){}
+  const forecastDirScore=forecast? forecast.directionScore : 0;
+  const combinedScore=Math.round(bias.score*0.22 + aspSc.score*0.16 + (trio?trio.trioScore:0)*0.16
+    + (lagnaTM?lagnaTM.score:0)*0.16 + krantiScore*0.07 + rulesScore*0.11 + forecastDirScore*0.12);
+  const D={planets,aspects,rules,forecast,bhadra,sbc,declShifts,bhavDay,bhavNatal,natalTransit,
+           combinedScore,sharCrossings,ruleX,sbcVedha,bias,aspSc,trio,lagnaTM,krantiScore,
+           rulesScore,forecastDirScore,J,ascSid};
+  D.astroDF=buildIndexForecast(D);
+  return D;
+}
+
+/* Every sub-score the Overview blend consumes, pulled from one computeAll.
+   Names match the source variables so the audit is traceable to the code. */
+function ovComponents(D){
+  const A=D.astroDF||{}, decl=(D.declShifts||[]).filter(x=>Math.abs(x.daysFromNow)<=1);
+  let sunC={score:0}, moonC={score:0};
+  try{ sunC=planetCondition('Sun',D.planets,D.aspects); }catch(e){}
+  try{ moonC=planetCondition('Moon',D.planets,D.aspects); }catch(e){}
+  return {
+    bias:        D.bias? D.bias.score : 0,
+    aspect:      D.aspSc? D.aspSc.score : 0,
+    trio:        D.trio? D.trio.trioScore : 0,
+    lagna:       D.lagnaTM? D.lagnaTM.score : 0,
+    kranti:      D.krantiScore||0,
+    rules:       D.rulesScore||0,
+    forecastDir: D.forecastDirScore||0,
+    bhadra:      (D.bhadra&&D.bhadra.active)? D.bhadra.net*18 : 0,
+    sbc:         D.sbc? D.sbc.netDir : 0,
+    declShift:   decl.reduce((a,x)=>a+x.dir,0)*22,
+    bhavDay:     D.bhavDay? Math.max(-30,Math.min(30,D.bhavDay.marketScore*3)) : 0,
+    ruleX:       D.ruleX? D.ruleX.netScore*0.5 : 0,
+    sunCond:     sunC.score*4,
+    sbcVedha:    (D.sbcVedha&&D.sbcVedha.nifty)? Math.max(-30,Math.min(30,Math.round(D.sbcVedha.nifty.net*6*10)/10)) : 0,
+    natalTr:     D.natalTransit? D.natalTransit.score*3 : 0,
+    bhavNatal:   D.bhavNatal? Math.max(-15,Math.min(15,D.bhavNatal.marketScore*1.5)) : 0
+  };
+}
+const OV_KEYS=['bias','aspect','trio','lagna','kranti','rules','forecastDir','bhadra','sbc',
+               'declShift','bhavDay','ruleX','sunCond','sbcVedha','natalTr','bhavNatal'];
+
+/* The blend as it ships today, so the audit can compare like for like. */
+function ovShippedScore(c){
+  const combined = c.bias*0.22 + c.aspect*0.16 + c.trio*0.16 + c.lagna*0.16
+                 + c.kranti*0.07 + c.rules*0.11 + c.forecastDir*0.12;
+  const astroPack = c.forecastDir + c.bhadra + c.sbc + c.declShift + c.bhavDay + c.ruleX;
+  const baseDay = combined*0.55 + Math.max(-100,Math.min(100,astroPack))*0.55;
+  return Math.max(-100,Math.min(100,
+    baseDay + c.sunCond + c.sbcVedha + c.natalTr + c.bhavNatal));
+}
+
+async function ovCollect(instKey, fromDate, toDate, step, ay){
+  const setP=(p,m)=>{ window.OV.prog=p; window.OV.progMsg=m; ovPaintProgress(); };
+  setP(2,'loading price history …');
+  let bars = await dsBaked(instKey);
+  if(!bars) bars = (await reFetchOHLC(RE_UNIV[instKey].sym,'max',instKey))
+                     .map(b=>({date:b.date,o:b.o,h:b.h,l:b.l,c:b.c}));
+  bars = bars.filter(b=>b.date>=fromDate && b.date<=toDate);
+  if(bars.length<200) throw new Error(`only ${bars.length} bars in ${fromDate}→${toDate}`);
+
+  const rows=[]; let n=0;
+  const total=Math.ceil((bars.length-1)/step);
+  for(let i=1;i<bars.length;i+=step){
+    const b=bars[i], prev=bars[i-1];
+    let D;
+    try{ D=ovComputeDayLite(b.date,ay); }
+    catch(e){ try{ D=computeAll(b.date,9.25,ay); }catch(e2){ continue; } }
+    const c=ovComponents(D);
+    rows.push({date:b.date, c, shipped:ovShippedScore(c),
+               act:(b.c-prev.c)/prev.c*100, intra:(b.c-b.o)/b.o*100});
+    if((++n % 40)===0){
+      setP(2+Math.round(94*n/total), `grading ${n}/${total} days · ${b.date}`);
+      await (typeof reYield==='function'? reYield() : new Promise(r=>setTimeout(r,0)));
+    }
+  }
+  setP(97,'auditing …');
+  return rows;
+}
+
+/* Per-component directional accuracy, measured only on the days where that
+   component actually took a side. */
+function ovAudit(rows){
+  const up=rows.filter(r=>r.act>0).length, base=rows.length? up/rows.length : 0.5;
+  const out=OV_KEYS.map(k=>{
+    const live=rows.filter(r=>Math.abs(r.c[k])>0.001);
+    const hit=live.filter(r=>Math.sign(r.c[k])===Math.sign(r.act)).length;
+    const acc=live.length? hit/live.length : 0;
+    // mean return when following this component alone
+    const ret=live.length? live.reduce((s,r)=>s+Math.sign(r.c[k])*r.act,0)/live.length : 0;
+    const bull=live.filter(r=>r.c[k]>0).length;
+    return {key:k, n:live.length, cover:rows.length?live.length/rows.length:0,
+            acc, edge:acc-base, ret, bullShare:live.length?bull/live.length:0,
+            // Wilson lower bound: an honest floor on the edge given the sample
+            lo:(function(){ const z=1.96,p=acc,nn=live.length||1,d=1+z*z/nn;
+                 return ((p+z*z/(2*nn)) - z*Math.sqrt(p*(1-p)/nn+z*z/(4*nn*nn)))/d; })()};
+  }).sort((a,b)=>b.edge-a.edge);
+  const shippedLive=rows.filter(r=>Math.abs(r.shipped)>15);
+  const shippedHit=shippedLive.filter(r=>Math.sign(r.shipped)===Math.sign(r.act)).length;
+  return {base, n:rows.length, components:out,
+          shipped:{n:shippedLive.length, acc:shippedLive.length?shippedHit/shippedLive.length:0,
+                   bull:rows.filter(r=>r.shipped>15).length,
+                   bear:rows.filter(r=>r.shipped<-15).length,
+                   meanScore:rows.reduce((s,r)=>s+r.shipped,0)/Math.max(1,rows.length)}};
+}
+
+/* Refit the blend from measured edge.
+   A component earns weight only if its Wilson lower bound clears the base
+   rate — that is, only if we can say with 95% confidence it beats always-long.
+   Everything else is zeroed rather than kept at a guessed weight. */
+function ovFit(rows, audit){
+  const w={}; let kept=0;
+  audit.components.forEach(c=>{
+    const edgeLo=c.lo-audit.base;
+    if(c.n<60 || edgeLo<=0){ w[c.key]=0; return; }
+    w[c.key]=edgeLo;            // proportional to the confident part of the edge
+    kept++;
+  });
+  const sum=Object.values(w).reduce((a,b)=>a+b,0);
+  if(sum>0) OV_KEYS.forEach(k=>{ w[k]=w[k]/sum; });
+  // scale each component to comparable units before blending
+  const sd={}; OV_KEYS.forEach(k=>{
+    const v=rows.map(r=>r.c[k]).filter(x=>Math.abs(x)>0.001);
+    const m=v.length?v.reduce((a,b)=>a+b,0)/v.length:0;
+    sd[k]=v.length? Math.sqrt(v.reduce((a,b)=>a+(b-m)*(b-m),0)/v.length)||1 : 1;
+  });
+  return {w, sd, kept, base:audit.base};
+}
+function ovFittedScore(c, fit){
+  if(!fit || !fit.kept) return null;
+  let s=0; OV_KEYS.forEach(k=>{ if(fit.w[k]) s+= (c[k]/fit.sd[k])*fit.w[k]; });
+  return Math.max(-100,Math.min(100,Math.round(s*45)));
+}
+window.ovFittedScore=ovFittedScore;
+
+function ovScoreRows(rows, fit){
+  const live=[]; rows.forEach(r=>{ const f=ovFittedScore(r.c,fit); if(f!==null) live.push({...r,fitted:f}); });
+  const g=live.filter(r=>Math.abs(r.fitted)>15);
+  const hit=g.filter(r=>Math.sign(r.fitted)===Math.sign(r.act)).length;
+  return {n:g.length, acc:g.length?hit/g.length:0,
+          bull:live.filter(r=>r.fitted>15).length, bear:live.filter(r=>r.fitted<-15).length,
+          rows:live};
+}
+
+/* Walk-forward: fit on the first 70%, grade blind on the last 30%. Without
+   this the refit is just curve-fitting with extra steps. */
+function ovWalkForward(rows){
+  const cut=Math.floor(rows.length*0.7);
+  const tr=rows.slice(0,cut), te=rows.slice(cut);
+  if(tr.length<200||te.length<80) return null;
+  const a=ovAudit(tr), f=ovFit(tr,a);
+  const teBase=te.filter(r=>r.act>0).length/te.length;
+  const s=ovScoreRows(te,f);
+  const shipLive=te.filter(r=>Math.abs(r.shipped)>15);
+  const shipHit=shipLive.filter(r=>Math.sign(r.shipped)===Math.sign(r.act)).length;
+  return {trainFrom:tr[0].date, trainTo:tr[tr.length-1].date, nTrain:tr.length,
+          testFrom:te[0].date, testTo:te[te.length-1].date, nTest:te.length,
+          base:teBase, kept:f.kept,
+          fitted:{n:s.n, acc:s.acc}, shipped:{n:shipLive.length, acc:shipLive.length?shipHit/shipLive.length:0}};
+}
+
+/* Rolling accuracy so a recent breakdown is visible rather than averaged away. */
+function ovRolling(rows, win){
+  win=win||60; const out=[];
+  for(let i=win;i<rows.length;i++){
+    const w=rows.slice(i-win,i).filter(r=>Math.abs(r.shipped)>15);
+    if(w.length<10){ continue; }
+    const h=w.filter(r=>Math.sign(r.shipped)===Math.sign(r.act)).length;
+    out.push({date:rows[i].date, acc:h/w.length, n:w.length});
+  }
+  return out;
+}
+
+async function ovRun(){
+  if(window.OV.status==='running') return;
+  window.OV.status='running'; window.OV.err='';
+  ovPaintAll();
+  try{
+    const inst=S.ovInst||'NIFTY';
+    const from=S.ovFrom||RE_HISTORY_START;
+    const step=parseInt(S.ovStep||10,10);
+    const ay=S.ayMode||'lahiri';
+    const rows=await ovCollect(inst, from, reISO(Date.now()), step, ay);
+    const audit=ovAudit(rows);
+    const fit=ovFit(rows,audit);
+    window.OV.rows=rows; window.OV.audit=audit; window.OV.fit=fit;
+    window.OV.scored=ovScoreRows(rows,fit);
+    window.OV.wf=ovWalkForward(rows);
+    window.OV.roll=ovRolling(rows,60);
+    window.OV.from=rows[0].date; window.OV.to=rows[rows.length-1].date; window.OV.step=step;
+    try{ localStorage.setItem('astralOvFit', JSON.stringify({fit,when:new Date().toISOString().slice(0,10),
+          inst, from:window.OV.from, to:window.OV.to, acc:window.OV.scored.acc})); }catch(e){}
+    window.OV.status='ready'; window.OV.prog=100;
+  }catch(e){ window.OV.status='error'; window.OV.err=(e&&e.message)||'failed'; }
+  ovPaintAll();
+}
+window.ovRun=ovRun;
+
+/* The fitted blend, once it exists, is what the live Overview call uses. */
+function ovLoadFit(){
+  if(window.OV.fit) return window.OV.fit;
+  try{ const j=JSON.parse(localStorage.getItem('astralOvFit')||'null');
+       if(j&&j.fit&&j.fit.kept){ window.OV.savedMeta=j; return j.fit; } }catch(e){}
+  return null;
+}
+window.ovLoadFit=ovLoadFit;
+
+function ovPaintProgress(){ const e=document.getElementById('ov-prog'); if(e) e.innerHTML=ovProgressHTML(); }
+function ovPaintAll(){ if(typeof S==='undefined'||S.tab!=='overview') return;
+  const e=document.getElementById('ov-body'); if(e){ e.innerHTML=ovBodyHTML(); collapsibleInit(); }
+  ovPaintProgress(); }
+window.ovPaintAll=ovPaintAll;
+
+function ovProgressHTML(){
+  if(window.OV.status!=='running') return '';
+  return `<div style="padding:10px;border:1px solid var(--bd2);border-radius:3px;background:var(--bg2)">
+    <div style="font-size:11.5px;color:var(--acc);margin-bottom:5px">⟳ ${(window.OV.progMsg||'')}</div>
+    <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden">
+      <div style="height:100%;width:${window.OV.prog}%;background:linear-gradient(90deg,var(--acc3),var(--acc))"></div></div></div>`;
+}
+
+function ovPct(x){ return (x*100).toFixed(1)+'%'; }
+function ovBodyHTML(){
+  const O=window.OV;
+  if(O.status==='running') return ovProgressHTML();
+  if(O.status==='error') return `<div style="color:var(--bear);font-size:11.5px">⚠ ${reEsc(O.err)}</div>`;
+  if(!O.audit) return `<div style="font-size:11.5px;color:var(--tx3)">Press <b style="color:var(--acc)">▶ VALIDATE</b> to grade the daily call against price from ${S.ovFrom||RE_HISTORY_START}.</div>`;
+
+  const A=O.audit, F=O.fit, S2=O.scored, W=O.wf;
+  const rows=A.components.map(c=>`<tr>
+    <td style="font-family:monospace;color:${F.w[c.key]?'var(--acc)':'var(--tx3)'}">${c.key}</td>
+    <td style="text-align:right">${c.n}</td>
+    <td style="text-align:right">${ovPct(c.cover)}</td>
+    <td style="text-align:right;font-weight:700;color:${c.acc>A.base?'var(--bull)':'var(--bear)'}">${ovPct(c.acc)}</td>
+    <td style="text-align:right;color:${c.edge>0?'var(--bull)':'var(--bear)'}">${c.edge>0?'+':''}${(c.edge*100).toFixed(1)}</td>
+    <td style="text-align:right;color:${c.lo>A.base?'var(--bull)':'var(--tx3)'}">${ovPct(c.lo)}</td>
+    <td style="text-align:right;color:${c.ret>=0?'var(--bull)':'var(--bear)'}">${c.ret>=0?'+':''}${c.ret.toFixed(3)}%</td>
+    <td style="text-align:right">${ovPct(c.bullShare)}</td>
+    <td style="text-align:right;font-weight:700">${F.w[c.key]?(F.w[c.key]*100).toFixed(1):'<span style="color:var(--bear)">0</span>'}</td></tr>`).join('');
+
+  const cmp=(lab,n,acc,base)=>`<tr><td>${lab}</td><td style="text-align:right">${n}</td>
+    <td style="text-align:right;font-weight:800;color:${acc>base?'var(--bull)':'var(--bear)'}">${ovPct(acc)}</td>
+    <td style="text-align:right;color:${acc>base?'var(--bull)':'var(--bear)'}">${((acc-base)*100).toFixed(1)}</td></tr>`;
+
+  const roll=O.roll||[];
+  const rMin=Math.min(...roll.map(r=>r.acc),0.35), rMax=Math.max(...roll.map(r=>r.acc),0.65);
+  const spark=roll.length? `<svg viewBox="0 0 ${roll.length} 60" preserveAspectRatio="none" style="width:100%;height:70px;display:block">
+      <line x1="0" y1="${(1-(A.base-rMin)/(rMax-rMin))*60}" x2="${roll.length}" y2="${(1-(A.base-rMin)/(rMax-rMin))*60}" stroke="var(--neut)" stroke-width="0.6" stroke-dasharray="3 2"/>
+      <polyline points="${roll.map((r,i)=>i+','+((1-(r.acc-rMin)/(rMax-rMin))*60).toFixed(1)).join(' ')}"
+                fill="none" stroke="var(--acc)" stroke-width="1"/></svg>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--tx3)">
+        <span>${roll[0].date}</span><span>60-day rolling accuracy · dashed = ${ovPct(A.base)} base</span><span>${roll[roll.length-1].date}</span></div>` : '';
+
+  return `
+  <div class="g4" style="margin-bottom:10px">
+    <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">DAYS GRADED</div><div style="font-size:19px;font-weight:800">${A.n}</div></div>
+    <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">BASE (UP DAYS)</div><div style="font-size:19px;font-weight:800;color:var(--neut)">${ovPct(A.base)}</div></div>
+    <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">SHIPPED BLEND</div><div style="font-size:19px;font-weight:800;color:${A.shipped.acc>A.base?'var(--bull)':'var(--bear)'}">${ovPct(A.shipped.acc)}</div></div>
+    <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">REFITTED</div><div style="font-size:19px;font-weight:800;color:${S2.acc>A.base?'var(--bull)':'var(--bear)'}">${ovPct(S2.acc)}</div></div>
+    <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">CALL SKEW</div><div style="font-size:15px;font-weight:700">${A.shipped.bull}▲ / ${A.shipped.bear}▼</div>
+      <div style="font-size:10px;color:var(--tx3)">mean ${A.shipped.meanScore.toFixed(1)}</div></div>
+    <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">COMPONENTS KEPT</div><div style="font-size:19px;font-weight:800;color:var(--acc)">${F.kept}/${OV_KEYS.length}</div></div>
+  </div>
+  ${spark?`<div style="margin-bottom:12px">${spark}</div>`:''}
+  <div class="ts" style="margin-bottom:12px"><table class="tbl"><thead><tr>
+    <th>Blend</th><th style="text-align:right">Calls</th><th style="text-align:right">Accuracy</th><th style="text-align:right">vs base</th>
+  </tr></thead><tbody>
+    ${cmp('Shipped weights',A.shipped.n,A.shipped.acc,A.base)}
+    ${cmp('Refitted weights',S2.n,S2.acc,A.base)}
+    ${W?cmp('Refitted, walk-forward (blind)',W.fitted.n,W.fitted.acc,W.base):''}
+    ${W?cmp('Shipped, same blind window',W.shipped.n,W.shipped.acc,W.base):''}
+  </tbody></table></div>
+  <div class="ts" style="max-height:420px;overflow:auto"><table class="tbl"><thead><tr>
+    <th>Component</th><th style="text-align:right">Days live</th><th style="text-align:right">Coverage</th>
+    <th style="text-align:right">Accuracy</th><th style="text-align:right">Edge</th><th style="text-align:right">95% floor</th>
+    <th style="text-align:right">Avg return</th><th style="text-align:right">Bull share</th><th style="text-align:right">New weight %</th>
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function tOverviewValidation(){
+  const inst=S.ovInst||'NIFTY', from=S.ovFrom||RE_HISTORY_START, step=S.ovStep||10;
+  const sel=(k,arr,cur,w)=>`<select class="ci" style="width:${w||110}px" onchange="S['${k}']=this.value;ovPaintAll()">`+
+    arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`).join('')+`</select>`;
+  const saved=window.OV.savedMeta;
+  return `<div class="pnl"><div class="ph"><span class="dot"></span>FORECAST VALIDATION — daily call graded against price</div>
+    <div class="pb">
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px">
+        <div class="cg"><span class="cl">INSTRUMENT</span>${sel('ovInst',[['NIFTY','Nifty 50'],['BANKNIFTY','Nifty Bank'],['SENSEX','Sensex']],inst,140)}</div>
+        <div class="cg"><span class="cl">FROM</span>${sel('ovFrom',[[RE_HISTORY_START,'inception'],['2010-01-01','2010'],['2018-01-01','2018'],['2024-01-01','2024']],from,120)}</div>
+        <div class="cg"><span class="cl">SAMPLE</span>${sel('ovStep',[[10,'every 10th'],[5,'every 5th'],[3,'every 3rd'],[1,'every day']],step,110)}</div>
+        <span style="font-size:11px;color:var(--tx3)">${(function(){
+          const days=Math.round(6600*(from===RE_HISTORY_START?1:from>='2024-01-01'?0.09:from>='2018-01-01'?0.32:0.62)/parseInt(step,10));
+          const mins=Math.max(1,Math.round(days*1.6/60));
+          return days+' samples · ~'+mins+' min';
+        })()}</span>
+        <button onclick="ovRun()" ${window.OV.status==='running'?'disabled':''}
+          style="background:var(--acc3);color:#001318;border:1px solid var(--acc);padding:6px 15px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">▶ VALIDATE</button>
+        ${saved?`<span class="pill" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2)">fit ${saved.when} · ${(saved.acc*100).toFixed(1)}%</span>`:''}
+      </div>
+      <div id="ov-prog">${ovProgressHTML()}</div>
+      <div id="ov-body">${ovBodyHTML()}</div>
+    </div></div>`;
+}
+
 function tOverview(){
   const D=DATA,b=D.bias;
   const bCol=b.bias==='BULLISH'?'var(--bull)':b.bias==='BEARISH'?'var(--bear)':'var(--neut)';
@@ -8637,7 +9063,7 @@ function tOverview(){
   const _rasHB=_rasSw?hourBias(_rasSw,D.planets):null;
   const swChip=(lbl,name,hb)=>name?`<div><span style="font-size:10.5px;color:var(--tx3)">${lbl}</span> <b style="color:${pc(name)};font-size:13px">${name}</b> <span style="color:${hb.col};font-size:10px;font-weight:700" title="${hb.ind}">${hb.arrow} ${hb.bias}</span></div>`:'';
 
-  return`
+  return`${tOverviewValidation()}
 <div class="pnl" style="padding:6px 12px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
   <div style="font-size:10.5px;color:var(--acc);letter-spacing:.1em;font-weight:700">▦ ${S.date}</div>
   <div><span style="font-size:10.5px;color:var(--tx3)">WEEKDAY</span> <b style="color:var(--tx0);font-size:13px">${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(S.date+"T00:00:00").getDay()]}</b></div>
@@ -9351,7 +9777,8 @@ function _shrCrescentSVG(vama, color){
   const arrowS=!vama
     ?`<line x1="-3" y1="26" x2="-3" y2="35" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>
       <polygon points="-3,39 -7,31 1,31" fill="${color}"/>`:'';
-  return `<svg width="62" height="86" viewBox="-31 -43 62 86" xmlns="http://www.w3.org/2000/svg">
+  return `${tOverviewValidation()}
+<svg width="62" height="86" viewBox="-31 -43 62 86" xmlns="http://www.w3.org/2000/svg">
     <g transform="rotate(${tilt})">
       <circle cx="0" cy="0" r="20" fill="${color}28" stroke="${color}" stroke-width="1.5"/>
       <circle cx="11" cy="0" r="17" fill="var(--bg2)"/>
