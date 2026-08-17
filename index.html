@@ -4504,6 +4504,8 @@ function render(){
   document.getElementById('iSPO')&&(document.getElementById('iSPO').value=S.spxOpen);
   document.getElementById('iSPC')&&(document.getElementById('iSPC').value=S.spxPC);
   rNav();rMain();rEvents();
+  // Volatility regime needs baked history, so it fills itself in after paint.
+  if(S.tab==='overview' && typeof ovvEnsure==='function') ovvEnsure();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -8626,7 +8628,7 @@ ${s.why}</title></circle>`).join('');
   return`
   <div class="pnl">
     <div class="ph" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
-      <span><span class="dot" style="background:${dayCol}"></span>◈ BIAS CHART — ${ovInstKey()} · ${SR.label} · <span style="color:${dayCol};font-weight:800">DAY: ${D.combinedLabel} ${D.combinedScore>0?'+':''}${D.combinedScore}</span>${hitSummary?' · '+hitSummary:''}</span>
+      <span><span class="dot" style="background:${dayCol}"></span>◈ BIAS CHART — ${ovInstKey()} · ${SR.label} · <span style="color:${dayCol};font-weight:800">DAY: ${D.combinedLabel} ${D.combinedScore>0?'+':''}${D.combinedScore}</span>${hitSummary?' · '+hitSummary:''}<span class="pill" title="Graded on 6,618 sessions since 2000-01-04: this call is right 49.0% of the time against a 53.9% base rate, and no component of it beats always-long at 95% confidence. Treat it as the rulebook's reading, not as a probability." style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);margin-left:8px;font-weight:700">rulebook · 49.0% measured, no edge</span></span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <select class="ci" style="font-size:11px;padding:2px 4px;max-width:160px" onchange="ovSelInst(this.value)">${instSel}</select>
         <select class="ci" style="font-size:11px;padding:2px 4px" onchange="gs({ovInt:this.value})">${ivSel}</select>
@@ -9080,6 +9082,168 @@ function tOverviewValidation(){
     </div></div>`;
 }
 
+/* ── VOLATILITY REGIME ───────────────────────────────────────────────────
+   The one forecast in this terminal with a measured, replicated edge.
+
+   Mining 3,523 astro tokens over 6,618 sessions found nothing that predicts
+   direction: single-token voting, 2.04M mined conjunctions, per-family splits
+   and every alternative target all land inside their block-shuffled nulls. The
+   one candidate that cleared its base rate (fast-cycle tokens -> range, top 1%,
+   70.0%, p=0.007) replicated on Sensex — which correlates 0.98 with Nifty, so
+   it is the same data — and died on Bank Nifty (-1.9) and Fin Nifty (-12.3). A
+   planetary effect cannot know which index you trade, so that is an artefact.
+
+   Range, unlike direction, is strongly autocorrelated, and a causal EWMA of
+   recent range against its 60-day median calls tomorrow's regime correctly
+   64-83% of the time depending on conviction — on all four indices, which is
+   exactly the test the astro candidate failed.
+
+   Honesty requirement baked into the UI: in the top band the majority class is
+   already ~77-83%, so the model's SKILL there is near zero even though its
+   accuracy is high. Real skill sits in HIGH (+12 to +17pp) and MODERATE (+4 to
+   +8pp), and there is none in LOW, where this abstains. */
+
+const OVV_LAMBDA = 0.80, OVV_MEDWIN = 60, OVV_TRAILWIN = 250;
+
+/* Measured on baked Upstox history, 2010-01-01 .. 2026-08-14, per instrument.
+   acc = how often the call was right; base = how often always-calling the
+   majority class would have been right. The gap between them is the skill. */
+const OVV_STATS = {
+  NIFTY:{'VERY HIGH':{n:395,acc:0.7747,lo:0.7309,hi:0.8131,base:0.7722},HIGH:{n:776,acc:0.6443,lo:0.6100,hi:0.6772,base:0.5245},MODERATE:{n:1261,acc:0.6519,lo:0.6251,hi:0.6777,base:0.5773},LOW:{n:1691,acc:0.5441,lo:0.5202,hi:0.5677,base:0.5517}},
+  BANKNIFTY:{'VERY HIGH':{n:405,acc:0.8148,lo:0.7741,hi:0.8496,base:0.8074},HIGH:{n:785,acc:0.7057,lo:0.6729,hi:0.7365,base:0.5363},MODERATE:{n:1228,acc:0.6279,lo:0.6005,hi:0.6544,base:0.5635},LOW:{n:1705,acc:0.5443,lo:0.5206,hi:0.5678,base:0.5736}},
+  SENSEX:{'VERY HIGH':{n:422,acc:0.7583,lo:0.7152,hi:0.7967,base:0.7583},HIGH:{n:757,acc:0.6499,lo:0.6153,hi:0.6831,base:0.5416},MODERATE:{n:1261,acc:0.6146,lo:0.5874,hi:0.6411,base:0.5797},LOW:{n:1683,acc:0.5330,lo:0.5091,hi:0.5567,base:0.5550}},
+  FINNIFTY:{'VERY HIGH':{n:367,acc:0.8311,lo:0.7893,hi:0.8659,base:0.8311},HIGH:{n:730,acc:0.6877,lo:0.6531,hi:0.7202,base:0.5260},MODERATE:{n:1103,acc:0.6337,lo:0.6049,hi:0.6616,base:0.5775},LOW:{n:1922,acc:0.6681,lo:0.6467,hi:0.6888,base:0.6904}}
+};
+
+function ovvBand(pct){
+  if(pct==null) return null;
+  return pct>=90?'VERY HIGH' : pct>=70?'HIGH' : pct>=40?'MODERATE' : 'LOW';
+}
+
+/* Signal for bar i uses only bars 0..i-1 — never bar i's own high/low, which is
+   the number being predicted. */
+function ovvSeries(bars){
+  const n=bars.length, rg=new Float64Array(n), ew=new Float64Array(n);
+  for(let i=1;i<n;i++) rg[i]=(bars[i].h-bars[i].l)/bars[i-1].c*100;
+  let acc=rg[0];
+  for(let i=0;i<n;i++){ acc=OVV_LAMBDA*acc+(1-OVV_LAMBDA)*rg[i]; ew[i]=acc; }
+
+  const med=new Float64Array(n).fill(NaN), sig=new Float64Array(n).fill(NaN);
+  const buf=[];
+  for(let i=OVV_MEDWIN;i<n;i++){
+    buf.length=0;
+    for(let k=i-OVV_MEDWIN;k<i;k++) buf.push(rg[k]);
+    buf.sort((a,b)=>a-b);
+    // Even window, so take the mean of the two central values — the same
+    // convention numpy.median used when the shipped accuracy table was
+    // measured. Picking one side instead shifts the signal enough to move
+    // days across conviction bands.
+    const h=buf.length>>1;
+    med[i]=(buf.length&1)?buf[h]:(buf[h-1]+buf[h])/2;
+    sig[i]=ew[i-1]-med[i];
+  }
+
+  const pct=new Float64Array(n).fill(NaN);
+  for(let i=OVV_MEDWIN+OVV_TRAILWIN;i<n;i++){
+    let lt=0,tot=0; const a=Math.abs(sig[i]);
+    for(let k=i-OVV_TRAILWIN;k<i;k++){ if(!isNaN(sig[k])){ tot++; if(Math.abs(sig[k])<a) lt++; } }
+    if(tot>50) pct[i]=lt/tot*100;
+  }
+  return {rg, med, sig, pct};
+}
+
+/* The live call for `dateISO`. Returns null when the date is not a session or
+   there is not yet enough history behind it to rank conviction. */
+function ovvCall(bars, dateISO, instKey){
+  if(!bars || bars.length<OVV_MEDWIN+OVV_TRAILWIN+5) return null;
+  const s=ovvSeries(bars);
+  let i=-1;
+  for(let k=bars.length-1;k>=0;k--){ if(bars[k].date<=dateISO){ i=k; break; } }
+  if(i<0 || isNaN(s.sig[i]) || isNaN(s.pct[i])) return null;
+
+  const band=ovvBand(s.pct[i]);
+  const st=(OVV_STATS[instKey]||OVV_STATS.NIFTY)[band];
+  const expand=s.sig[i]>0;
+  return {
+    date:bars[i].date, forDate:dateISO, sig:s.sig[i], pct:s.pct[i], band,
+    call: expand?'EXPANSION':'COMPRESSION',
+    label: expand?'VOLATILE — range likely above its 60-day median'
+                 :'QUIET — range likely below its 60-day median',
+    acc:st.acc, lo:st.lo, hi:st.hi, base:st.base, n:st.n,
+    skill: st.acc-st.base,
+    // Below the 40th percentile of conviction the measured accuracy does not
+    // beat the majority class, so the honest output is no output.
+    abstain: band==='LOW',
+    medRange:s.med[i], ewRange:s.sig[i]+s.med[i]
+  };
+}
+
+/* The Overview picker speaks PLAN_INST labels; the baked store speaks RE_UNIV
+   keys. Only the four indices with a measured stats table are eligible — for
+   anything else the panel stays absent rather than quoting Nifty's numbers at
+   an instrument they were not measured on. */
+const OVV_MAP = {'NIFTY 50':'NIFTY','BANK NIFTY':'BANKNIFTY','SENSEX':'SENSEX','FINNIFTY':'FINNIFTY'};
+
+/* Fired after render: the Overview builds synchronously but bars arrive async,
+   so the panel paints itself in once the history is there. */
+async function ovvEnsure(){
+  const inst=OVV_MAP[(typeof ovInstKey==='function')?ovInstKey():''];
+  const want=inst?inst+'|'+S.date:'';
+  if(window._OVV_KEY===want) return;
+  window._OVV_KEY=want;
+  window._OVV_LAST = inst ? await ovvFor(inst, S.date) : null;
+  const el=document.getElementById('ovv-panel');
+  if(el) el.innerHTML=ovvPanelHTML(window._OVV_LAST);
+}
+window.ovvEnsure=ovvEnsure;
+
+let OVV_CACHE={};
+async function ovvFor(instKey, dateISO){
+  const key=instKey+'|'+dateISO;
+  if(OVV_CACHE[key]!==undefined) return OVV_CACHE[key];
+  let out=null;
+  try{
+    const bars=await dsBaked(instKey);
+    if(bars) out=ovvCall(bars, dateISO, instKey);
+  }catch(e){ out=null; }
+  OVV_CACHE[key]=out;
+  return out;
+}
+
+function ovvPanelHTML(v){
+  if(!v) return '';
+  const pc=x=>(x*100).toFixed(1)+'%';
+  const col=v.abstain?'var(--tx3)':v.call==='EXPANSION'?'var(--bear)':'var(--bull)';
+  const skillCol=v.skill>0.04?'var(--bull)':v.skill>0.01?'var(--acc)':'var(--tx3)';
+  return `<div class="pnl"><div class="ph"><span class="dot" style="background:${col}"></span>
+    ◈ VOLATILITY REGIME — ${v.forDate}</div><div class="pb">
+    ${v.abstain
+      ? `<div style="font-size:13px;font-weight:800;color:var(--tx3);margin-bottom:6px">NO CALL</div>
+         <div style="font-size:11.5px;color:var(--tx3)">Conviction is in the bottom ${Math.round(v.pct)}th percentile.
+         Measured accuracy in this band is ${pc(v.acc)} against a ${pc(v.base)} majority class — no edge, so no call.</div>`
+      : `<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px">
+           <span style="font-size:20px;font-weight:800;color:${col}">${v.call}</span>
+           <span style="font-size:12px;color:var(--tx2)">${v.label}</span>
+         </div>
+         <div style="display:flex;gap:9px;flex-wrap:wrap">
+           <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">CONVICTION</div>
+             <div style="font-size:17px;font-weight:800;color:var(--acc)">${v.band}</div>
+             <div style="font-size:10px;color:var(--tx3)">${Math.round(v.pct)}th pctile</div></div>
+           <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">MEASURED ACCURACY</div>
+             <div style="font-size:17px;font-weight:800;color:${col}">${pc(v.acc)}</div>
+             <div style="font-size:10px;color:var(--tx3)">95% CI ${pc(v.lo)}–${pc(v.hi)} · n=${v.n}</div></div>
+           <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">vs MAJORITY CLASS</div>
+             <div style="font-size:17px;font-weight:800;color:${skillCol}">${(v.skill*100>=0?'+':'')}${(v.skill*100).toFixed(1)} pts</div>
+             <div style="font-size:10px;color:var(--tx3)">always-${v.call==='EXPANSION'?'volatile':'quiet'} = ${pc(v.base)}</div></div>
+         </div>`}
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:9px;line-height:1.5">
+      Driven by realised-range persistence, not by planetary aspects. The astro rulebook was
+      tested against this same target and added nothing (−0.5 to −3.2 points), so it is
+      deliberately not part of this call.</div>
+  </div></div>`;
+}
+
+
 function tOverview(){
   const D=DATA,b=D.bias;
   const bCol=b.bias==='BULLISH'?'var(--bull)':b.bias==='BEARISH'?'var(--bear)':'var(--neut)';
@@ -9106,6 +9270,7 @@ function tOverview(){
   const swChip=(lbl,name,hb)=>name?`<div><span style="font-size:10.5px;color:var(--tx3)">${lbl}</span> <b style="color:${pc(name)};font-size:13px">${name}</b> <span style="color:${hb.col};font-size:10px;font-weight:700" title="${hb.ind}">${hb.arrow} ${hb.bias}</span></div>`:'';
 
   return`${tOverviewValidation()}
+<div id="ovv-panel">${ovvPanelHTML(window._OVV_LAST)}</div>
 <div class="pnl" style="padding:6px 12px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
   <div style="font-size:10.5px;color:var(--acc);letter-spacing:.1em;font-weight:700">▦ ${S.date}</div>
   <div><span style="font-size:10.5px;color:var(--tx3)">WEEKDAY</span> <b style="color:var(--tx0);font-size:13px">${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(S.date+"T00:00:00").getDay()]}</b></div>
