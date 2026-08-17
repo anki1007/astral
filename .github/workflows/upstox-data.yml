@@ -21,6 +21,10 @@ on:
         description: "Extra NSE symbols to bake, comma separated (indices are always baked)"
         required: false
         default: ""
+      intraday:
+        description: "Symbols to bake as 5-minute year shards"
+        required: false
+        default: "NIFTY,BANKNIFTY"
 
 permissions:
   contents: write
@@ -53,7 +57,7 @@ jobs:
       - name: Bake candles
         env:
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
-        run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks }}"
+        run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks }}" --intraday "${{ inputs.intraday || 'NIFTY,BANKNIFTY' }}"
 
       - name: Summarise
         run: |

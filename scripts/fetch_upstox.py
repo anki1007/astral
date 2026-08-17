@@ -159,10 +159,68 @@ def candles(key: str, unit: str, interval: str, start: str, tok: str):
     return asc
 
 
+
+def bake_intraday(sym, tok, start_year=2022):
+    """5-minute candles, one file per calendar year.
+
+    Sharded deliberately: a single 4-year file would be several MB and git
+    would store a fresh copy of the whole thing on every weekly run. With year
+    shards only the current year's file ever changes, so history stays small.
+    Upstox serves minute data from Jan 2022 and caps a minute request at one
+    month, so each year is walked month by month.
+    """
+    key = resolve(sym)
+    this_year = date.today().year
+    written = []
+    for yr in range(start_year, this_year + 1):
+        rows, m = [], 1
+        while m <= 12:
+            frm = f"{yr}-{m:02d}-01"
+            nxt = date(yr + 1, 1, 1) if m == 12 else date(yr, m + 1, 1)
+            to = (nxt - timedelta(days=1)).isoformat()
+            if frm > date.today().isoformat():
+                break
+            url = (f"{UPSTOX}/v3/historical-candle/{quote(key, safe='')}"
+                   f"/minutes/5/{min(to, date.today().isoformat())}/{frm}")
+            try:
+                body = get(url, tok)
+                for c in ((body or {}).get("data") or {}).get("candles") or []:
+                    t = str(c[0])
+                    try:
+                        o, h, l, cl = float(c[1]), float(c[2]), float(c[3]), float(c[4])
+                    except (TypeError, ValueError):
+                        continue
+                    if cl > 0:
+                        # keep date + HH:MM only; the offset is always IST
+                        rows.append([t[:10] + " " + t[11:16],
+                                     round(o, 2), round(h, 2), round(l, 2), round(cl, 2)])
+            except Exception as e:
+                print(f"  {sym} {yr}-{m:02d} skipped: {e}", file=sys.stderr)
+            m += 1
+            time.sleep(0.3)
+        if len(rows) < 200:
+            print(f"  {sym} 5m {yr}: only {len(rows)} bars, skipped", file=sys.stderr)
+            continue
+        rows.sort(key=lambda r: r[0])
+        seen, uniq = set(), []
+        for r in rows:
+            if r[0] in seen:
+                continue
+            seen.add(r[0]); uniq.append(r)
+        path = os.path.join(OUT_DIR, f"{sym}_5m_{yr}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"symbol": sym, "instrument_key": key, "interval": "5m", "year": yr,
+                       "source": "upstox", "from": uniq[0][0], "to": uniq[-1][0],
+                       "count": len(uniq), "bars": uniq}, f, separators=(",", ":"))
+        written.append({"year": yr, "count": len(uniq), "from": uniq[0][0], "to": uniq[-1][0]})
+        print(f"{sym} 5m {yr:<6} {len(uniq):>7} bars  {uniq[0][0]} -> {uniq[-1][0]}")
+    return written
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stocks", default="", help="comma-separated NSE symbols to bake as well")
     ap.add_argument("--start", default=START)
+    ap.add_argument("--intraday", default="", help="comma-separated symbols to also bake as 5-minute year shards")
     args = ap.parse_args()
 
     tok = token()
@@ -190,13 +248,24 @@ def main():
             print(f"{sym:<12} FAILED: {e}", file=sys.stderr)
         time.sleep(0.35)                           # stay well inside Upstox rate limits
 
+    intraday = {}
+    for sym in [x.strip().upper() for x in args.intraday.split(",") if x.strip()]:
+        try:
+            got = bake_intraday(sym, tok)
+            if got:
+                intraday[sym] = got
+        except Exception as e:                 # intraday is a bonus, never fatal
+            print(f"{sym} 5m FAILED: {e}", file=sys.stderr)
+            failures.append(f"{sym} 5m: {e}")
+
     if not manifest:
         sys.exit("nothing baked — every symbol failed")
 
     with open(os.path.join(OUT_DIR, "_index.json"), "w", encoding="utf-8") as f:
         json.dump({"generated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
                    "source": "upstox v3 historical-candle",
-                   "instruments": manifest, "failures": failures}, f, indent=1)
+                   "instruments": manifest, "intraday": intraday,
+                   "failures": failures}, f, indent=1)
 
     print(f"\nbaked {len(manifest)} instruments into {OUT_DIR}/")
     if failures:

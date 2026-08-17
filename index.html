@@ -7009,7 +7009,8 @@ async function taBacktest(instKey, tf, ay, opts){
   const u=RE_UNIV[instKey]; if(!u) throw new Error('unknown instrument '+instKey);
   const cfg=TA_TF[tf];
   const setP=(v,m)=>{ window.TA.prog=v; window.TA.progMsg=m; taPaintProgress(); };
-  setP(5,`fetching ${u.label} ${cfg.label} history from Yahoo Finance …`);
+  setP(5,`loading ${u.label} ${cfg.label} history …`);
+  const _s0=JSON.stringify(window.DS?window.DS.stats:{});
   const ck=u.sym+'|'+tf;
   let bars=window.TA.ohlc[ck];
   if(!bars){ bars=await taFetch(u.sym,tf,instKey); window.TA.ohlc[ck]=bars; }
@@ -7070,7 +7071,7 @@ async function taBacktest(instKey, tf, ay, opts){
     .filter(s=>s.n>=8).sort((a,b)=>b.acc-a.acc);
   const infoSections=Object.values(infoSec).filter(s=>s.n>=8).sort((a,b)=>b.n-a.n);
 
-  const model={key:instKey,label:u.label,sym:u.sym,tf,ay,cfg,bars,rows,tiers,base,sections,infoSections,
+  const model={key:instKey,label:u.label,sym:u.sym,tf,ay,cfg,bars,rows,tiers,base,sections,infoSections, src:dsUsedSince(_s0),
     from:rows.length?rows[0].date:'', to:rows.length?rows[rows.length-1].date:'',
     built:new Date().toISOString().slice(0,19).replace('T',' ')};
   window.TA.models[instKey+'|'+tf]=model;
@@ -7260,7 +7261,7 @@ function taBackwardHTML(){
       <td style="width:130px">${taBar(s.acc-0.5,0.25,s.acc>=0.5?'var(--bull2)':'var(--bear2)')}</td>
       <td style="text-align:right;color:${s.avg>=0?'var(--bull)':'var(--bear)'}">${s.avg>=0?'+':''}${s.avg.toFixed(3)}%</td></tr>`).join('');
   return `
-  <div class="pnl"><div class="ph"><span class="dot"></span>BACKWARD TEST — ${taEsc(m.label)} · ${m.cfg.label} · ${m.from} → ${m.to} · ${m.rows.length} bars</div>
+  <div class="pnl"><div class="ph"><span class="dot"></span>BACKWARD TEST — ${taEsc(m.label)} · ${m.cfg.label} · ${m.from} → ${m.to} · ${m.rows.length} bars · src ${m.src||'—'}</div>
     <div class="pb">
       <div class="ts"><table class="tbl"><thead><tr>
         <th>Conviction filter</th><th style="text-align:right">Bars</th><th style="text-align:right">Direction accuracy</th>
@@ -15527,8 +15528,48 @@ async function dsBaked(univKey){
 }
 window.dsBaked=dsBaked;
 
+
+/* Baked 5-minute shards, one file per calendar year. Same reasoning as the
+   daily files: same-origin, no credential, no proxy. Sharding keeps the repo
+   small — only the current year's file changes when the bake re-runs. */
+const DS_INTRA = {};                 // univKey -> bars | null
+async function dsBakedIntraday(univKey, fromYear){
+  if(DS_INTRA[univKey]!==undefined) return DS_INTRA[univKey];
+  const nowY=new Date().getUTCFullYear();
+  const years=[]; for(let y=(fromYear||2022); y<=nowY; y++) years.push(y);
+  const all=[];
+  for(const src of DS_BAKED_SOURCES){
+    all.length=0;
+    for(const y of years){
+      try{
+        const url=src.url(univKey).replace(/\.json$/, '_5m_'+y+'.json');
+        const r=await fetch(url,{cache:'no-cache'});
+        if(!r.ok) continue;
+        const j=await r.json();
+        for(const b of (j.bars||[])){
+          // "YYYY-MM-DD HH:MM" — the stamp is already IST wall clock
+          const d=b[0].slice(0,10), hh=+b[0].slice(11,13)+(+b[0].slice(14,16))/60;
+          all.push({t:b[0], date:d, hour:hh, ts:Date.parse(d+'T'+b[0].slice(11,16)+':00Z'),
+                    o:b[1],h:b[2],l:b[3],c:b[4]});
+        }
+      }catch(e){ /* try the next year */ }
+    }
+    if(all.length>500){ window.DS.bakedFrom=src.name; DS_INTRA[univKey]=all.slice(); return DS_INTRA[univKey]; }
+  }
+  DS_INTRA[univKey]=null;
+  return null;
+}
+window.dsBakedIntraday=dsBakedIntraday;
+
 async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
   const wantSplice = window.DS.mode!=='upstox';
+  if(unit==='minutes' && String(interval)==='5' && window.DS.mode!=='yahoo'){
+    const intra=await dsBakedIntraday(univKey);
+    if(intra && intra.length){
+      const rows=intra.filter(b=>b.date>=fromDate && b.date<=toDate);
+      if(rows.length>500){ window.DS.stats.baked=(window.DS.stats.baked||0)+1; return rows; }
+    }
+  }
   // Baked file first — daily only, and only when the caller has not opted out.
   if(unit==='days' && interval==='1' && window.DS.mode!=='yahoo'){
     const baked=await dsBaked(univKey);
@@ -15680,6 +15721,17 @@ function reDow(ds){ return new Date(reMs(ds)).getUTCDay(); }
    exist, and the model reports the true first date it found. */
 const RE_HISTORY_START = '1998-01-01';
 const RE_HISTORY_START_TS = Math.floor(Date.parse(RE_HISTORY_START+'T00:00:00Z')/1000);
+
+/* Which tier actually served the bars, for honest reporting in the UI. */
+function dsUsedSince(snapJSON){
+  try{
+    const a=JSON.parse(snapJSON||'{}'), b=window.DS.stats;
+    for(const k of ['baked','upstox','scanx','yahoo'])
+      if((b[k]||0)>(a[k]||0)) return k==='baked' ? ('baked · '+(window.DS.bakedFrom||'repo')) : k;
+  }catch(e){}
+  return 'cache';
+}
+window.dsUsedSince=dsUsedSince;
 
 async function reFetchOHLCYahoo(sym, years){
   const p2=Math.floor(Date.now()/1000);
@@ -16324,7 +16376,8 @@ async function reBuildModel(instKey,opts){
   const setP=(p,m)=>{ window.RE.prog=p; window.RE.progMsg=m; rePaintProgress(); };
 
   // ── A. prices
-  setP(3,`fetching ${u.label} daily history from Yahoo Finance …`);
+  setP(3,`loading ${u.label} daily history …`);
+  const _s0=JSON.stringify(window.DS?window.DS.stats:{});
   const ck=u.sym+'|'+years;
   let bars=window.RE.ohlc[ck];
   if(!bars){ bars=await reFetchOHLC(u.sym,years,instKey); window.RE.ohlc[ck]=bars; }
@@ -16431,6 +16484,7 @@ async function reBuildModel(instKey,opts){
   setP(99,'finalising …'); await reYield();
 
   const model={key:instKey, label:u.label, sym:u.sym, kind:u.kind, thr,
+    src:dsUsedSince(_s0),
     ay, tod, years, span, orbMul:(window.RE.orbMul||1),
     from:dates[0], to:dates[dates.length-1], nBars:dates.length,
     bars, dates, swings, swingSet, swingInfo, dayWin,
@@ -16949,6 +17003,7 @@ function reBacktestBodyHTML(){
       <div>Research window: <b>±${m.span} days</b></div>
       <div>Orb: <b>${m.orbMul}×</b> book table</div>
       <div>Events tested: <b>${m.nEvents}</b></div>
+      <div>Source: <b style="color:var(--acc)">${m.src||'—'}</b></div>
       <div>Built: <b>${m.built}</b></div></div></div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>② SWING TABLE — every qualifying reversal under the rule</div>
