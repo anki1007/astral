@@ -7018,6 +7018,17 @@ async function taBacktest(instKey, tf, ay, opts){
 
   const rows=[]; let n=0;
   const useTech = opts.tech!==false;
+  // Every intraday slot is a distinct instant, so nothing is reused between
+  // days and cost scales linearly with span. Grade the most recent window
+  // by default; the whole baked history stays available behind the control.
+  if(tf==='intraday'){
+    const days=parseInt(S.taIntraDays||120,10);
+    if(days>0){
+      const cut=reISO(Date.now()-days*86400000);
+      const i0=bars.findIndex(b=>b.date>=cut);
+      if(i0>1) bars=bars.slice(i0);
+    }
+  }
   for(let i=1;i<bars.length;i++){
     const b=bars[i];
     if(tf==='intraday' && (b.hour<TA_SESSION_START-0.001 || b.hour>TA_SESSION_END+0.001)) continue;
@@ -7484,6 +7495,7 @@ function tAstral(){
         <div class="cg"><span class="cl">INSTRUMENT (backward test)</span>${instSel}</div>
         <div class="cg"><span class="cl">AYANAMSA</span><select class="ci" style="width:110px" onchange="taSet('taAy',this.value)">
           ${[['lahiri','Lahiri'],['kp','KP New'],['kpold','KP Old'],['raman','Raman'],['sayana','Sayana']].map(([v,l])=>`<option value="${v}" ${taAy()===v?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="cg" style="${tf==='intraday'?'':'display:none'}"><span class="cl">INTRADAY SPAN</span><select class="ci" style="width:120px" onchange="taSet('taIntraDays',this.value)">${[[30,'30 days'],[120,'120 days'],[365,'1 year'],[0,'all baked']].map(([v,l])=>`<option value="${v}" ${String(S.taIntraDays||120)===String(v)?'selected':''}>${l}</option>`).join('')}</select></div>
         <div class="cg"><span class="cl">CHAPTER 2 TECHNICALS</span><select class="ci" style="width:110px" onchange="taSet('taTech',this.value)">
           <option value="1" ${S.taTech!=='0'?'selected':''}>included</option><option value="0" ${S.taTech==='0'?'selected':''}>astro only</option></select></div>
         <button onclick="taRun()" ${window.TA.status==='running'?'disabled':''}
