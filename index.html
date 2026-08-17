@@ -15514,6 +15514,7 @@ const DS_BAKED_SOURCES = [
   {name:'scanX',  url:k=>'https://anki1007.github.io/scanX/data/nse/'+encodeURIComponent(k)+'.json'}
 ];
 const DS_BAKED = {};                 // univKey -> bars | null (null = known absent everywhere)
+const DS_SPLICED = {};               // univKey -> pending | done:N | none | failed
 async function dsBaked(univKey){
   if(DS_BAKED[univKey]!==undefined) return DS_BAKED[univKey];
   for(const src of DS_BAKED_SOURCES){
@@ -15543,16 +15544,27 @@ async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
       let rows=baked.filter(b=>b.date>=fromDate && b.date<=toDate);
       if(rows.length>100){
         window.DS.stats.baked=(window.DS.stats.baked||0)+1;
-        // Baked data starts at Upstox's Jan-2000 floor; take any earlier tail
-        // from Yahoo so the "1998 or oldest available" rule still holds.
-        if(wantSplice && yahooFallback && fromDate < rows[0].date){
-          try{
-            const head=(await yahooFallback()).filter(b=>b.date<rows[0].date);
-            if(head.length){
-              rows=head.map(b=>({t:b.date,date:b.date,o:b.o,h:b.h,l:b.l,c:b.c})).concat(rows);
+        // Baked data starts at Upstox's Jan-2000 floor. Any earlier tail comes
+        // from Yahoo — but that fetch runs through the public proxies and can
+        // take 30s+, and for an index like NIFTY (Yahoo starts 2007) it returns
+        // nothing usable at all. So the splice is OPPORTUNISTIC: hand back the
+        // baked rows now, fetch the head in the background, and fold it into
+        // the cache so the next request for this instrument gets the longer
+        // series. The fast path is never held hostage to the slow one.
+        if(wantSplice && yahooFallback && fromDate < rows[0].date && !DS_SPLICED[univKey]){
+          DS_SPLICED[univKey]='pending';
+          Promise.resolve().then(yahooFallback).then(head=>{
+            const cut=rows[0].date;
+            const pre=(head||[]).filter(b=>b.date<cut);
+            if(pre.length && DS_BAKED[univKey]){
+              DS_BAKED[univKey]=pre.map(b=>({t:b.date,date:b.date,o:b.o,h:b.h,l:b.l,c:b.c}))
+                                   .concat(DS_BAKED[univKey]);
               window.DS.stats.spliced++;
+              DS_SPLICED[univKey]='done:'+pre.length;
+            } else {
+              DS_SPLICED[univKey]='none';   // Yahoo has nothing before the baked start
             }
-          }catch(e){ /* the baked span alone is still valid */ }
+          }).catch(()=>{ DS_SPLICED[univKey]='failed'; });
         }
         return rows;
       }
