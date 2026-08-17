@@ -6987,7 +6987,7 @@ async function taFetchYahoo(sym, tf){
 const TA_UPSTOX_UNIT={intraday:['minutes','5'], weekly:['weeks','1'], monthly:['months','1'], daily:['days','1']};
 async function taFetch(sym, tf, univKey){
   const yahoo=()=>taFetchYahoo(sym, tf);
-  if(!univKey || !dsCanUpstox(univKey) || !TA_UPSTOX_UNIT[tf]) return yahoo();
+  if(!univKey || !dsIsNSE(univKey) || !TA_UPSTOX_UNIT[tf]) return yahoo();
   const [unit,intv]=TA_UPSTOX_UNIT[tf];
   const from = tf==='intraday' ? '2022-01-01' : RE_HISTORY_START;
   const to   = reISO(Date.now());
@@ -15462,6 +15462,11 @@ function dsUpstoxSym(univKey){
   if(!u || u.kind!=='stock') return null;
   return univKey;                       // the F&O key IS the NSE tradingsymbol
 }
+/* Is this instrument NSE at all? This is the gate for entering the router —
+   NOT dsCanUpstox, which additionally requires a Worker. Baked JSON needs no
+   Worker, so gating the router on dsCanUpstox silently sent every NSE request
+   to Yahoo whenever no proxy was configured, which is the default. */
+function dsIsNSE(univKey){ return !!dsUpstoxSym(univKey); }
 function dsCanUpstox(univKey){
   return !!(window.DS.proxy && window.DS.mode!=='yahoo' && dsUpstoxSym(univKey));
 }
@@ -15756,7 +15761,7 @@ async function reFetchOHLCYahoo(sym, years){
    else (and every failure) falls through to Yahoo. */
 async function reFetchOHLC(sym, years, univKey){
   const yahoo=()=>reFetchOHLCYahoo(sym, years);
-  if(!univKey || !dsCanUpstox(univKey)) return yahoo();
+  if(!univKey || !dsIsNSE(univKey)) return yahoo();
   const from=(years==='max'||!years) ? RE_HISTORY_START
             : reISO(Date.now()-Math.round(years*365.25*86400000));
   const to=reISO(Date.now());
