@@ -28,8 +28,15 @@ import os
 import sys
 import time
 from datetime import date, datetime, timedelta
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
+
+# Upstox sits behind Cloudflare, which rejects the stdlib's default
+# "Python-urllib/3.x" agent with error 1010 (browser integrity check) before
+# the request ever reaches the API. A normal agent string is required.
+UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/126.0 Safari/537.36")
 
 UPSTOX = "https://api.upstox.com"
 INSTRUMENTS_URL = "https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz"
@@ -58,7 +65,9 @@ def token() -> str:
 def get(url: str, tok: str, tries: int = 3):
     """GET with the bearer token. Retries transient failures; 401 is fatal and
     said plainly, because it always means the daily token lapsed."""
-    req = Request(url, headers={"Authorization": f"Bearer {tok}", "Accept": "application/json"})
+    req = Request(url, headers={"Authorization": f"Bearer {tok}",
+                                "Accept": "application/json",
+                                "User-Agent": UA})
     for attempt in range(tries):
         try:
             with urlopen(req, timeout=45) as r:
@@ -89,7 +98,7 @@ def resolve(sym: str) -> str:
         return INDICES[s]
     if _master is None:
         sys.stderr.write("fetching instrument master ... ")
-        with urlopen(INSTRUMENTS_URL, timeout=120) as r:
+        with urlopen(Request(INSTRUMENTS_URL, headers={"User-Agent": UA}), timeout=120) as r:
             raw = r.read()
         rows = json.loads(gzip.GzipFile(fileobj=io.BytesIO(raw)).read().decode("utf-8"))
         _master = {}
@@ -118,7 +127,10 @@ def candles(key: str, unit: str, interval: str, start: str, tok: str):
         chunk_from = start
         if unit == "days" and to_y - int(start[:4]) > 9:
             chunk_from = f"{to_y - 9}{cursor_to[4:]}"
-        url = f"{UPSTOX}/v3/historical-candle/{key}/{unit}/{interval}/{cursor_to}/{chunk_from}"
+        # instrument keys carry a pipe and often a space ("NSE_INDEX|Nifty 50"),
+        # neither of which is legal unescaped in a URL path
+        url = (f"{UPSTOX}/v3/historical-candle/{quote(key, safe='')}"
+               f"/{unit}/{interval}/{cursor_to}/{chunk_from}")
         body = get(url, tok)
         rows = ((body or {}).get("data") or {}).get("candles") or []
         if not rows:
