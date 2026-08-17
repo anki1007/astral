@@ -8976,7 +8976,13 @@ function ovBodyHTML(){
     <td style="text-align:right">${ovPct(c.bullShare)}</td>
     <td style="text-align:right;font-weight:700">${F.w[c.key]?(F.w[c.key]*100).toFixed(1):'<span style="color:var(--bear)">0</span>'}</td></tr>`).join('');
 
-  const cmp=(lab,n,acc,base)=>`<tr><td>${lab}</td><td style="text-align:right">${n}</td>
+  // A blend that never crosses its call threshold has no accuracy to report.
+  // Printing 0.0% there reads as "it was wrong every time" rather than
+  // "it never spoke", so those rows say so instead.
+  const cmp=(lab,n,acc,base)=>n<10
+    ? `<tr><td>${lab}</td><td style="text-align:right">${n}</td>
+       <td colspan="2" style="text-align:right;color:var(--tx3)">too few calls to grade</td></tr>`
+    : `<tr><td>${lab}</td><td style="text-align:right">${n}</td>
     <td style="text-align:right;font-weight:800;color:${acc>base?'var(--bull)':'var(--bear)'}">${ovPct(acc)}</td>
     <td style="text-align:right;color:${acc>base?'var(--bull)':'var(--bear)'}">${((acc-base)*100).toFixed(1)}</td></tr>`;
 
@@ -9008,6 +9014,9 @@ function ovBodyHTML(){
     ${W?cmp('Refitted, walk-forward (blind)',W.fitted.n,W.fitted.acc,W.base):''}
     ${W?cmp('Shipped, same blind window',W.shipped.n,W.shipped.acc,W.base):''}
   </tbody></table></div>
+  ${parseInt(step,10)>1?`<div style="font-size:11px;color:var(--tx3);margin:-6px 0 12px">
+    Sampled every ${step}th day. A thinner sample widens every confidence interval, so a component
+    can clear the base rate here and fail on the full series — run <b>every day</b> before trusting a refit.</div>`:''}
   <div class="ts" style="max-height:420px;overflow:auto"><table class="tbl"><thead><tr>
     <th>Component</th><th style="text-align:right">Days live</th><th style="text-align:right">Coverage</th>
     <th style="text-align:right">Accuracy</th><th style="text-align:right">Edge</th><th style="text-align:right">95% floor</th>
