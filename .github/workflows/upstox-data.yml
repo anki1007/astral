@@ -18,9 +18,9 @@ on:
   workflow_dispatch:
     inputs:
       stocks:
-        description: "Extra NSE symbols to bake, comma separated (indices are always baked)"
+        description: "NSE symbols to bake, or 'all' for the whole F&O universe"
         required: false
-        default: ""
+        default: "all"
       intraday:
         description: "Symbols to bake as 5-minute year shards"
         required: false
@@ -36,7 +36,7 @@ concurrency:
 jobs:
   bake:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +57,7 @@ jobs:
       - name: Bake candles
         env:
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
-        run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks }}" --intraday "${{ inputs.intraday || 'NIFTY,BANKNIFTY' }}"
+        run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks || 'all' }}" --intraday "${{ inputs.intraday || 'NIFTY,BANKNIFTY' }}"
 
       - name: Summarise
         run: |

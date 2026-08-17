@@ -216,6 +216,45 @@ def bake_intraday(sym, tok, start_year=2022):
         print(f"{sym} 5m {yr:<6} {len(uniq):>7} bars  {uniq[0][0]} -> {uniq[-1][0]}")
     return written
 
+
+def fno_symbols():
+    """Every tradable symbol in F&o.csv, minus the index rows which are baked
+    separately under their Upstox index names."""
+    out = []
+    try:
+        with open("F&o.csv", encoding="utf-8") as f:
+            next(f, None)
+            for line in f:
+                sym = line.split(",")[0].strip().upper()
+                if sym and sym not in INDICES:
+                    out.append(sym)
+    except OSError as e:
+        print(f"F&o.csv unreadable: {e}", file=sys.stderr)
+    return out
+
+
+def split_write(sym, key, rows):
+    """Write a stock as a frozen base plus a small current-year file.
+
+    Daily history never changes, but its tail grows every week. Writing one
+    file per stock would make git store a fresh copy of all ~215 of them on
+    every run — tens of MB a week. Splitting at the year boundary means the
+    base is rewritten once a year and only the small recent file churns.
+    """
+    cut = f"{date.today().year}-01-01"
+    base = [r for r in rows if r[0] < cut]
+    recent = [r for r in rows if r[0] >= cut]
+    if base:
+        with open(os.path.join(OUT_DIR, f"{sym}.json"), "w", encoding="utf-8") as f:
+            json.dump({"symbol": sym, "instrument_key": key, "interval": "1d",
+                       "source": "upstox", "from": base[0][0], "to": base[-1][0],
+                       "count": len(base), "bars": base}, f, separators=(",", ":"))
+    if recent:
+        with open(os.path.join(OUT_DIR, f"{sym}_recent.json"), "w", encoding="utf-8") as f:
+            json.dump({"symbol": sym, "instrument_key": key, "interval": "1d",
+                       "source": "upstox", "from": recent[0][0], "to": recent[-1][0],
+                       "count": len(recent), "bars": recent}, f, separators=(",", ":"))
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stocks", default="", help="comma-separated NSE symbols to bake as well")
@@ -227,7 +266,10 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
 
     targets = list(INDICES.keys())
-    targets += [s.strip().upper() for s in args.stocks.split(",") if s.strip()]
+    if args.stocks.strip().lower() == "all":
+        targets += fno_symbols()
+    else:
+        targets += [s.strip().upper() for s in args.stocks.split(",") if s.strip()]
 
     manifest, failures = {}, []
     for sym in targets:
@@ -236,11 +278,13 @@ def main():
             rows = candles(key, "days", "1", args.start, tok)
             if len(rows) < 100:
                 raise RuntimeError(f"only {len(rows)} bars")
-            path = os.path.join(OUT_DIR, f"{sym}.json")
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump({"symbol": sym, "instrument_key": key, "interval": "1d",
-                           "source": "upstox", "from": rows[0][0], "to": rows[-1][0],
-                           "count": len(rows), "bars": rows}, f, separators=(",", ":"))
+            if sym in INDICES:
+                with open(os.path.join(OUT_DIR, f"{sym}.json"), "w", encoding="utf-8") as f:
+                    json.dump({"symbol": sym, "instrument_key": key, "interval": "1d",
+                               "source": "upstox", "from": rows[0][0], "to": rows[-1][0],
+                               "count": len(rows), "bars": rows}, f, separators=(",", ":"))
+            else:
+                split_write(sym, key, rows)
             manifest[sym] = {"from": rows[0][0], "to": rows[-1][0], "count": len(rows)}
             print(f"{sym:<12} {len(rows):>6} bars  {rows[0][0]} -> {rows[-1][0]}")
         except Exception as e:                     # one bad symbol must not kill the run
