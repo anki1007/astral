@@ -9187,11 +9187,16 @@ const OVV_MAP = {'NIFTY 50':'NIFTY','BANK NIFTY':'BANKNIFTY','SENSEX':'SENSEX','
 /* Fired after render: the Overview builds synchronously but bars arrive async,
    so the panel paints itself in once the history is there. */
 async function ovvEnsure(){
-  const inst=OVV_MAP[(typeof ovInstKey==='function')?ovInstKey():''];
-  const want=inst?inst+'|'+S.date:'';
+  const label=(typeof ovInstKey==='function')?ovInstKey():'';
+  const inst=OVV_MAP[label];
+  const want=(inst||'?'+label)+'|'+S.date;
   if(window._OVV_KEY===want) return;
   window._OVV_KEY=want;
-  window._OVV_LAST = inst ? await ovvFor(inst, S.date) : null;
+  // The accuracy table was measured per instrument. Quoting Nifty's numbers on
+  // the Dow would be exactly the sin this whole exercise exists to avoid, so
+  // unsupported instruments get a reason rather than a silently missing panel.
+  window._OVV_LAST = inst ? (await ovvFor(inst, S.date) || {unavailable:label})
+                          : {unsupported:label};
   const el=document.getElementById('ovv-panel');
   if(el) el.innerHTML=ovvPanelHTML(window._OVV_LAST);
 }
@@ -9212,6 +9217,12 @@ async function ovvFor(instKey, dateISO){
 
 function ovvPanelHTML(v){
   if(!v) return '';
+  const note=(msg)=>`<div class="pnl"><div class="ph"><span class="dot" style="background:var(--tx3)"></span>
+    ◈ VOLATILITY REGIME</div><div class="pb"><div style="font-size:11.5px;color:var(--tx3)">${msg}</div></div></div>`;
+  if(v.unsupported) return note(`Measured on Nifty 50, Bank Nifty, Sensex and Fin Nifty only —
+    the accuracy table is per-instrument and has not been established for ${reEsc(v.unsupported)}.`);
+  if(v.unavailable) return note(`Not enough baked history behind ${reEsc(v.unavailable)} yet —
+    the call needs ${OVV_MEDWIN+OVV_TRAILWIN} prior sessions to rank its own conviction.`);
   const pc=x=>(x*100).toFixed(1)+'%';
   const col=v.abstain?'var(--tx3)':v.call==='EXPANSION'?'var(--bear)':'var(--bull)';
   const skillCol=v.skill>0.04?'var(--bull)':v.skill>0.01?'var(--acc)':'var(--tx3)';
