@@ -83,4 +83,15 @@ jobs:
             echo "no changes"; exit 0
           fi
           git commit -m "Refresh NSE history from Upstox [skip ci]"
-          git push
+          # A long bake can run for half an hour, so main may well have moved
+          # under it. Rebase and retry rather than throwing the whole run away
+          # — only this job writes data/nse, so a rebase applies cleanly.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "pushed on attempt $attempt"; exit 0
+            fi
+            echo "push rejected — rebasing onto origin/main (attempt $attempt)"
+            git pull --rebase --autostash origin main || {
+              echo "::error::rebase failed"; exit 1; }
+          done
+          echo "::error::could not push after 5 attempts"; exit 1
