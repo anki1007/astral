@@ -15491,8 +15491,48 @@ window.dsHealth=dsHealth;
 /* Daily/weekly/monthly bars for a universe key, in the engines' own bar shape
    {date,o,h,l,c}. Falls back to Yahoo on any Upstox failure — a data source
    being down must never take the engine down with it. */
+/* Baked Upstox history committed by the repo's own GitHub Action. Fetched
+   SAME-ORIGIN, so there is no CORS, no proxy and no credential in the browser
+   — and it is instant. This is the first choice for NSE daily bars; the
+   Worker and Yahoo remain behind it. */
+const DS_BAKED = {};                 // univKey -> bars | null (null = known absent)
+async function dsBaked(univKey){
+  if(DS_BAKED[univKey]!==undefined) return DS_BAKED[univKey];
+  try{
+    const r=await fetch('data/nse/'+encodeURIComponent(univKey)+'.json',{cache:'no-cache'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const rows=(j.bars||[]).map(b=>({t:b[0],date:b[0],o:b[1],h:b[2],l:b[3],c:b[4]}));
+    DS_BAKED[univKey]= rows.length>100 ? rows : null;
+  }catch(e){ DS_BAKED[univKey]=null; }
+  return DS_BAKED[univKey];
+}
+window.dsBaked=dsBaked;
+
 async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
   const wantSplice = window.DS.mode!=='upstox';
+  // Baked file first — daily only, and only when the caller has not opted out.
+  if(unit==='days' && interval==='1' && window.DS.mode!=='yahoo'){
+    const baked=await dsBaked(univKey);
+    if(baked && baked.length){
+      let rows=baked.filter(b=>b.date>=fromDate && b.date<=toDate);
+      if(rows.length>100){
+        window.DS.stats.baked=(window.DS.stats.baked||0)+1;
+        // Baked data starts at Upstox's Jan-2000 floor; take any earlier tail
+        // from Yahoo so the "1998 or oldest available" rule still holds.
+        if(wantSplice && yahooFallback && fromDate < rows[0].date){
+          try{
+            const head=(await yahooFallback()).filter(b=>b.date<rows[0].date);
+            if(head.length){
+              rows=head.map(b=>({t:b.date,date:b.date,o:b.o,h:b.h,l:b.l,c:b.c})).concat(rows);
+              window.DS.stats.spliced++;
+            }
+          }catch(e){ /* the baked span alone is still valid */ }
+        }
+        return rows;
+      }
+    }
+  }
   if(dsCanUpstox(univKey)){
     try{
       const sym=dsUpstoxSym(univKey);
@@ -15579,11 +15619,16 @@ function dsPanelHTML(){
       <span class="pill" style="color:${state[1]};background:${state[2]};border:1px solid ${state[1]}">${state[0]}</span>
     </div>
     <div style="font-size:11px;color:var(--tx3);margin-top:7px;line-height:1.65">
+      <b style="color:var(--acc)">Order of preference for NSE daily bars:</b>
+      <b>1.</b> baked <span style="font-family:monospace">data/nse/*.json</span> — committed by this repo's own GitHub Action, fetched same-origin, so no CORS, no proxy and no credential in the browser. Instant.
+      <b>2.</b> your Upstox Worker, if a URL is set below (adds intraday from Jan 2022 and live quotes).
+      <b>3.</b> Yahoo.
+      Any failure falls to the next one automatically. US indices and commodities always use Yahoo — Upstox does not carry them.
+      ${window.DS.mode==='auto'?' In <b>Auto</b>, anything before Upstox\'s Jan-2000 floor is taken from Yahoo and spliced onto the front, so the “1998 or oldest available” rule still holds.':''}
       ${D.proxy
-        ? `NSE indices and stocks route through your Worker (Upstox: daily from Jan 2000, intraday from Jan 2022, live quotes). US indices and commodities always use Yahoo — Upstox does not carry them.
-           ${window.DS.mode==='auto'?'In <b>Auto</b>, anything before 2000 is taken from Yahoo and spliced onto the front, so the 1998 rule still holds.':''}
-           ${D.lastErr?`<br><b style="color:var(--bear)">Last error:</b> ${String(D.lastErr).replace(/</g,'&lt;')}`:''}`
-        : `Upstox cannot be called from this page — it sends no CORS header to a browser and its token needs a secret that must not sit in a public repo. Deploy <b>upstox-worker.js</b> (in the repo) to Cloudflare and paste its URL here. Until then everything uses Yahoo, which is the current behaviour.`}
+        ? (D.lastErr?`<br><b style="color:var(--bear)">Last proxy error:</b> ${String(D.lastErr).replace(/</g,'&lt;')}`:'')
+        : `<br>The Worker is optional — leave the box empty and steps 1 and 3 still work. To add it, deploy <b>upstox-worker.js</b> (in the repo) to Cloudflare and paste its URL here.`}
+      ${(window.DS.stats.baked||window.DS.stats.upstox||window.DS.stats.yahoo)?`<br><span style="color:var(--tx3)">This session — baked: ${window.DS.stats.baked||0} · upstox: ${window.DS.stats.upstox} · yahoo: ${window.DS.stats.yahoo} · spliced: ${window.DS.stats.spliced}</span>`:''}
     </div>
   </div>`;
 }

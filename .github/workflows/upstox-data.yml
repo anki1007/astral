@@ -1,0 +1,82 @@
+# Bake NSE history from Upstox into data/nse/*.json.
+#
+# The terminal is a static page, so it cannot call Upstox itself: Upstox sends
+# no CORS header to a browser and its token must never ship in client code.
+# The token stays here as a repository secret; this job turns it into static
+# JSON that the page fetches same-origin. Same shape as the scanX quotes job.
+#
+# Weekly is deliberate: this is *history*, and history does not change. The
+# only thing that moves is the tail, which a weekly run picks up fine.
+
+name: Upstox NSE history
+
+on:
+  schedule:
+    # Sunday 02:20 UTC = 07:50 IST Monday. Offset minutes off :00 because
+    # GitHub's shared cron drops a lot of on-the-hour firings.
+    - cron: "20 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      stocks:
+        description: "Extra NSE symbols to bake, comma separated (indices are always baked)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: astral-upstox-data
+  cancel-in-progress: false      # never cancel between commit and push
+
+jobs:
+  bake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the token is present
+        env:
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$UPSTOX_ACCESS_TOKEN" ]; then
+            echo "::error::UPSTOX_ACCESS_TOKEN is not set. Add it under Settings → Secrets and variables → Actions."
+            echo "The app keeps working without this — it falls back to Yahoo." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Bake candles
+        env:
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+        run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks }}"
+
+      - name: Summarise
+        run: |
+          echo "### Upstox bake" >> "$GITHUB_STEP_SUMMARY"
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          m = json.load(open("data/nse/_index.json"))
+          print(f"Generated `{m['generated']}` from `{m['source']}`\n")
+          print("| Instrument | From | To | Bars |")
+          print("|---|---|---|---|")
+          for k, v in sorted(m["instruments"].items()):
+              print(f"| {k} | {v['from']} | {v['to']} | {v['count']} |")
+          if m.get("failures"):
+              print(f"\n**Failed:** {'; '.join(m['failures'])}")
+          PY
+
+      - name: Commit & push
+        run: |
+          git config user.name  "astral-bot"
+          git config user.email "astral@users.noreply.github.com"
+          git add data/nse
+          if git diff --cached --quiet; then
+            echo "no changes"; exit 0
+          fi
+          git commit -m "Refresh NSE history from Upstox [skip ci]"
+          git push
