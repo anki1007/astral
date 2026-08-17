@@ -4508,6 +4508,13 @@ function render(){
   if(S.tab==='overview' && typeof ovvEnsure==='function') ovvEnsure();
 }
 
+/* Follow the open market. Checked on load and every minute, so a terminal left
+   running through the NSE close moves itself to New York rather than sitting
+   on a dead Indian session all evening. mktAutoFollow re-renders only when it
+   actually changes something. */
+setTimeout(()=>{ try{ mktAutoFollow(); }catch(e){} }, 400);
+setInterval(()=>{ try{ mktAutoFollow(); }catch(e){} }, 60000);
+
 // ═══════════════════════════════════════════════════════════════════
 // HEADER
 // ═══════════════════════════════════════════════════════════════════
@@ -7527,8 +7534,12 @@ function tAstral(){
   const tf=taTf(), view=S.taView||'forward';
   const tb=(k,l)=>`<button onclick="taSet('taTf','${k}')" class="nb${tf===k?' on':''}" style="padding:5px 14px;border:1px solid ${tf===k?'var(--acc)':'#104858'};border-radius:3px">${l}</button>`;
   const vb=(k,l)=>`<button onclick="taSet('taView','${k}')" class="nb${view===k?' on':''}" style="padding:5px 14px;border:1px solid ${view===k?'var(--acc)':'#104858'};border-radius:3px">${l}</button>`;
-  const instSel=`<select class="ci" style="width:230px" onchange="taSet('taInst',this.value)">`+
-    ['index','commodity','stock'].map(kind=>`<optgroup label="${kind.toUpperCase()}">`+
+  // taSelInst, not taSet: picking a US instrument has to move the venue too,
+  // or the engine forecasts an Indian session for a market that opens at 19:00 IST.
+  const GRP=[['index','INDEX'],['commodity','COMMODITY'],['stock','NSE F&O STOCKS'],
+             ['usstock','US STOCKS · NASDAQ 100 / MAG-7 / S&P 500']];
+  const instSel=`<select class="ci" style="width:230px" onchange="taSelInst(this.value)">`+
+    GRP.map(([kind,lbl])=>`<optgroup label="${lbl}">`+
       Object.values(RE_UNIV).filter(o=>o.kind===kind).map(o=>
         `<option value="${o.key}" ${o.key===taInst()?'selected':''}>${taEsc(o.label)}</option>`).join('')+`</optgroup>`).join('')+`</select>`;
   return `
@@ -8154,8 +8165,12 @@ const OV_US_MKT={
   'GOLD · LONDON':ds=>({tz:ukTzFor(ds),open:8,close:16.5,label:'LSE MARKET HOURS (UK)',venue:'London'}),
 };
 function ovMkt(){
-  const us=OV_US_MKT[ovInstKey()];
+  const k=ovInstKey();
+  const us=OV_US_MKT[k];
   if(us) return us(S.date);
+  // US single stocks keep NYSE/Nasdaq hours on the ET clock, same as the indices.
+  if(typeof RE_UNIV!=='undefined' && RE_UNIV[k] && RE_UNIV[k].kind==='usstock')
+    return {tz:usEtTz(S.date),open:9.5,close:16,label:k+' MARKET HOURS (ET)',venue:'New York'};
   const L=LOCATIONS[S.loc]||LOCATIONS['Mumbai'];
   return {tz:L.tz,open:L.open,close:L.close,label:L.mkt+' MARKET HOURS'};
 }
@@ -8164,21 +8179,15 @@ const OV_CMDTY=new Set(['XAUUSD · GOLD','XAGUSD · SILVER','XNGUSD · NAT GAS',
 // commodity switches location to New York and session to 24H (US tz);
 // picking an NSE instrument while parked on a US city switches back to
 // Mumbai market hours.
-window.ovSelInst=function(v){
-  const upd={ovInst:v};
-  const mkFn=OV_US_MKT[v];
-  if(mkFn||OV_CMDTY.has(v)){
-    const mk=mkFn?mkFn(S.date):null;
-    const venue=(mk&&mk.venue)||'New York';
-    const L=LOCATIONS[venue]; LAT=L.lat; LON=L.lon; IST=locTzFor(venue,S.date);
-    upd.loc=venue;
-    // exchange-listed instruments (London gold ETC) follow their exchange
-    // hours; US indices & 24h commodities go round-the-clock
-    upd.session=(venue==='London')?'mkt':'24h';
-    if(S.loc!==venue) upd.time=String(mk?mk.open:9.5); // snap picker to the venue's open
-  }else if(S.loc==='New York'||S.loc==='Chicago'||S.loc==='London'){
-    const L=LOCATIONS['Mumbai']; LAT=L.lat; LON=L.lon; IST=locTzFor('Mumbai',S.date);
-    upd.loc='Mumbai'; upd.session='mkt'; upd.time='9.25';
+window.ovSelInst=function(v,auto){
+  // Resolves through the shared venue map so the Overview and Astral tabs
+  // cannot drift apart again. `auto` marks a switch made by the follow-the-
+  // open-market timer, which must not pin the user's choice.
+  if(!auto && typeof mktPin==='function') mktPin();
+  const upd=mktVenuePatch(v);
+  upd.ovInst=v;
+  if(typeof mktVenueOf==='function'){
+    if(mktVenueOf(v)) upd.mktUsPref=v; else upd.mktInPref=v;
   }
   gs(upd);
 };
@@ -8621,7 +8630,32 @@ ${s.why}</title></circle>`).join('');
     ${slots.filter((s,i)=>i%Math.max(1,Math.round(slots.length/24))===0).map(s=>`<circle cx="${x(s.m).toFixed(1)}" cy="${yC(s.comp||0).toFixed(1)}" r="2.4" fill="var(--moon)"><title>${mtt(s.m)} · composite ${s.comp>0?'+':''}${s.comp}</title></circle>`).join('')}
     <text x="${x(lastSlot.m).toFixed(1)}" y="${(yC(lastSlot.comp||0)-8).toFixed(1)}" fill="var(--moon)" font-size="12" font-weight="700" text-anchor="end">${lastSlot.comp>0?'+':''}${lastSlot.comp}</text>`:'';
   const dayCol=D.combinedLabel==='BULLISH'?'var(--bull)':D.combinedLabel==='BEARISH'?'var(--bear)':'var(--neut)';
-  const instSel=Object.keys(PLAN_INST).map(k=>`<option value="${k}" ${ovInstKey()===k?'selected':''}>${k}</option>`).join('');
+  // Grouped, and extended with the US single stocks — the Overview previously
+  // stopped at indices and commodities, so there was no way to look at AAPL
+  // or NVDA here at all.
+  const _og=(lbl,keys)=>keys.length?`<optgroup label="${lbl}">`+keys.map(k=>
+      `<option value="${k}" ${ovInstKey()===k?'selected':''}>${reEsc(k)}</option>`).join('')+`</optgroup>`:'';
+  // PLAN_INST keys are display names ("Reliance Industries"), not tickers, so
+  // grouping has to go by the resolved Yahoo symbol: ^ prefixes are indices,
+  // .NS is NSE cash, =F / .L are the commodity contracts, and a bare ticker is
+  // a US listing.
+  const _grp=k=>{
+    if((RE_UNIV[k]||{}).kind==='usstock') return 'usstk';
+    const s=PLAN_INST[k]||'';
+    if(/^\^(DJI|IXIC|GSPC)$/.test(s)) return 'usidx';
+    if(/=F$/.test(s)||/\.L$/.test(s)||OV_CMDTY.has(k)) return 'cmdty';
+    if(/^\^/.test(s)||/^NIFTY[_A-Z0-9]*\.NS$/i.test(s)) return 'inidx';
+    if(/\.NS$/.test(s)) return 'instk';
+    return 'inidx';
+  };
+  const _all=Object.keys(PLAN_INST);
+  const _of=g=>_all.filter(k=>_grp(k)===g);
+  const instSel=
+      _og('INDIA · INDEX', _of('inidx'))
+    + _og('US INDEX', _of('usidx'))
+    + _og('COMMODITY', _of('cmdty'))
+    + _og('INDIA · NSE F&O STOCKS', _of('instk'))
+    + _og('US STOCKS · NASDAQ 100 / MAG-7 / S&P 500', _of('usstk'));
   const ivSel=[1,5,15,30,60].map(o=>`<option value="${o}" ${iv===o?'selected':''}>${o} min</option>`).join('');
   const legend=[['BULLISH','var(--bull)'],['BEARISH','var(--bear)'],['VOLATILE','var(--sun)'],['NEUTRAL','var(--tx3)']]
     .map(([l,c])=>`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:${c};opacity:.55;border-radius:2px;display:inline-block"></span>${l}</span>`).join(' ');
@@ -8631,6 +8665,11 @@ ${s.why}</title></circle>`).join('');
       <span><span class="dot" style="background:${dayCol}"></span>◈ BIAS CHART — ${ovInstKey()} · ${SR.label} · <span style="color:${dayCol};font-weight:800">DAY: ${D.combinedLabel} ${D.combinedScore>0?'+':''}${D.combinedScore}</span>${hitSummary?' · '+hitSummary:''}<span class="pill" title="Graded on 6,618 sessions since 2000-01-04: this call is right 49.0% of the time against a 53.9% base rate, and no component of it beats always-long at 95% confidence. Treat it as the rulebook's reading, not as a probability." style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);margin-left:8px;font-weight:700">rulebook · 49.0% measured, no edge</span></span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <select class="ci" style="font-size:11px;padding:2px 4px;max-width:160px" onchange="ovSelInst(this.value)">${instSel}</select>
+        <label title="After 16:00 IST the terminal follows New York, and returns to the NSE before 09:15. Picking an instrument by hand holds it for the rest of that block."
+          style="font-size:10.5px;color:var(--tx3);display:inline-flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="checkbox" ${S.mktAuto===false?'':'checked'}
+            onchange="S.mktAuto=this.checked; S.mktPinBlock=null; S.mktLastBlock=null; if(this.checked) mktAutoFollow(); else render()">
+          auto ${(function(){ try{ return mktBlockNow().block==='us'?'· US live':'· NSE live'; }catch(e){ return ''; } })()}</label>
         <select class="ci" style="font-size:11px;padding:2px 4px" onchange="gs({ovInt:this.value})">${ivSel}</select>
         <button class="ci" style="font-size:11px;padding:2px 8px;cursor:pointer;color:${showKp?'var(--acc)':'var(--tx3)'};font-weight:700" onclick="ovToggleKp()" title="Pure KP ASTRO SIGNAL (/±100) re-evaluated at each slot's own lagna — at the TIME-picker slot this equals the Overview panel score exactly">✦ KP ${showKp?'ON':'OFF'}</button>
         <button class="ci" style="font-size:11px;padding:2px 8px;cursor:pointer;color:${showComp?'var(--moon)':'var(--tx3)'};font-weight:700" onclick="ovToggleComp()" title="Composite line: per-slot KP signal blended 50/50 with the day's combined score">◈ COMP ${showComp?'ON':'OFF'}</button>
@@ -9081,6 +9120,107 @@ function tOverviewValidation(){
       <div id="ov-body">${ovBodyHTML()}</div>
     </div></div>`;
 }
+
+/* ── VENUE ROUTING ───────────────────────────────────────────────────────
+   One place that answers "where does this instrument trade, and when".
+
+   The Overview grew its own version of this (ovSelInst) while the Astral tab
+   had none at all, which is why picking Dow Jones there left the whole engine
+   on IST market hours and produced a 09:15-15:30 forecast for an instrument
+   that opens at 19:00 IST. Both tabs now resolve through here, so a US
+   instrument moves the chart location, the timezone and the session together
+   or not at all.
+
+   Keys are matched loosely because the two dropdowns speak different
+   dialects: the Overview uses PLAN_INST labels ('NASDAQ', 'BANK NIFTY') and
+   Astral uses RE_UNIV keys ('NASDAQ', 'AAPL'). */
+
+const MKT_US_KEYS = new Set(['DOW','NASDAQ','SPX']);
+const MKT_LONDON  = new Set(['GOLD · LONDON']);
+
+function mktVenueOf(key){
+  if(!key) return null;
+  if(MKT_LONDON.has(key)) return {venue:'London', open:8, close:16.5, session:'mkt',
+                                  label:'LSE MARKET HOURS (UK)'};
+  if(MKT_US_KEYS.has(key)) return {venue:'New York', open:9.5, close:16, session:'24h',
+                                   label:key+' MARKET HOURS (ET)'};
+  const u=(typeof RE_UNIV!=='undefined')?RE_UNIV[key]:null;
+  if(u && u.kind==='usstock') return {venue:'New York', open:9.5, close:16, session:'24h',
+                                      label:'US MARKET HOURS (ET)'};
+  if(u && u.kind==='commodity') return {venue:'New York', open:9.5, close:16, session:'24h',
+                                        label:'COMEX / NYMEX (ET)'};
+  if(typeof OV_CMDTY!=='undefined' && OV_CMDTY.has(key))
+    return {venue:'New York', open:9.5, close:16, session:'24h', label:'COMMODITY 24H'};
+  return null;                                   // NSE / default
+}
+
+/* Move location, timezone and session to wherever `key` trades. Returns the
+   state patch rather than applying it, so callers can fold in their own keys
+   and issue a single update. */
+function mktVenuePatch(key){
+  const v=mktVenueOf(key);
+  const upd={};
+  if(v){
+    const L=LOCATIONS[v.venue];
+    if(L){ LAT=L.lat; LON=L.lon; IST=locTzFor(v.venue,S.date);
+           upd.loc=v.venue; upd.session=v.session;
+           if(S.loc!==v.venue) upd.time=String(v.open); }
+  }else if(S.loc==='New York'||S.loc==='Chicago'||S.loc==='London'){
+    const L=LOCATIONS['Mumbai'];
+    LAT=L.lat; LON=L.lon; IST=locTzFor('Mumbai',S.date);
+    upd.loc='Mumbai'; upd.session='mkt'; upd.time='9.25';
+  }
+  return upd;
+}
+
+/* Astral's instrument picker. taSet only ever wrote S.taInst, so the engine
+   kept computing an Indian session for a US index. */
+window.taSelInst=function(v){
+  mktPin();
+  const upd=mktVenuePatch(v);
+  upd.taInst=v;
+  gs(upd);
+};
+
+/* ── AUTO-FOLLOW THE OPEN MARKET ─────────────────────────────────────────
+   After the NSE close the Indian panels are static until the next morning
+   while New York is about to open, so past 16:00 IST the terminal moves
+   itself to the US session and back again before 09:15.
+
+   It yields to the user: any manual pick sets a pin for the rest of that
+   session block, so an explicit choice is never overridden mid-analysis. The
+   pin clears when the block changes, so tomorrow morning starts fresh. */
+const MKT_AUTOSWITCH_ON = 16.0, MKT_AUTOSWITCH_OFF = 9.25;
+
+function mktBlockNow(){
+  const now=new Date();
+  // IST wall clock regardless of where the machine is
+  const ist=new Date(now.getTime()+(330+now.getTimezoneOffset())*60000);
+  const h=ist.getHours()+ist.getMinutes()/60;
+  const day=ist.getDay();
+  if(day===0||day===6) return {block:'us', h, ist};      // weekend: US is the live one
+  return {block:(h>=MKT_AUTOSWITCH_ON||h<MKT_AUTOSWITCH_OFF)?'us':'in', h, ist};
+}
+
+function mktAutoFollow(){
+  if(S.mktAuto===false) return false;
+  const {block}=mktBlockNow();
+  if(S.mktPinBlock===block) return false;         // user chose something in this block
+  if(S.mktLastBlock===block) return false;        // already switched for this block
+  const want = block==='us' ? (S.mktUsPref||'DOW') : (S.mktInPref||'NIFTY 50');
+  const cur  = (typeof ovInstKey==='function')?ovInstKey():null;
+  const curIsUs = !!mktVenueOf(cur);
+  if((block==='us') === curIsUs){ S.mktLastBlock=block; return false; }  // already right side
+  S.mktLastBlock=block;
+  if(typeof ovSelInst==='function') ovSelInst(want, true);
+  return true;
+}
+window.mktAutoFollow=mktAutoFollow;
+
+/* Called whenever the user picks an instrument by hand. */
+function mktPin(){ S.mktPinBlock=mktBlockNow().block; }
+window.mktPin=mktPin;
+
 
 /* ── EVIDENCE: what each astro condition actually did ────────────────────
    Every condition on today's chart, with its measured record over 6618 sessions
@@ -16121,6 +16261,35 @@ const RE_GLOBAL_ROWS = [
   ['CRUDE',  'Crude Oil WTI',   'CL=F',  'commodity'],
   ['NATGAS', 'Natural Gas',     'NG=F',  'commodity']
 ];
+/* US single stocks — the Mag-7 / MAFANG core, then the rest of the Nasdaq-100
+   and S&P-500 large caps by weight. Kept as their own kind so the router sends
+   them to Yahoo (dsUpstoxSym only ever matches NSE) and so the dropdowns can
+   group them apart from the F&O names. Tickers are Yahoo's own spelling —
+   BRK-B, not BRK.B. */
+const RE_US_ROWS = [
+  ['AAPL','Apple'],['MSFT','Microsoft'],['NVDA','NVIDIA'],['AMZN','Amazon'],
+  ['GOOGL','Alphabet'],['META','Meta Platforms'],['TSLA','Tesla'],['NFLX','Netflix'],
+  ['AVGO','Broadcom'],['AMD','Advanced Micro Devices'],['INTC','Intel'],['QCOM','Qualcomm'],
+  ['TXN','Texas Instruments'],['MU','Micron'],['AMAT','Applied Materials'],['LRCX','Lam Research'],
+  ['KLAC','KLA'],['MRVL','Marvell'],['NXPI','NXP Semiconductors'],['ADBE','Adobe'],
+  ['CRM','Salesforce'],['ORCL','Oracle'],['CSCO','Cisco'],['IBM','IBM'],
+  ['NOW','ServiceNow'],['INTU','Intuit'],['PANW','Palo Alto Networks'],['CRWD','CrowdStrike'],
+  ['SNPS','Synopsys'],['CDNS','Cadence'],['WDAY','Workday'],['ADSK','Autodesk'],
+  ['FTNT','Fortinet'],['PYPL','PayPal'],['ABNB','Airbnb'],['BKNG','Booking'],
+  ['MELI','MercadoLibre'],['PDD','PDD Holdings'],['SBUX','Starbucks'],['COST','Costco'],
+  ['PEP','PepsiCo'],['MNST','Monster Beverage'],['MDLZ','Mondelez'],['TMUS','T-Mobile'],
+  ['CMCSA','Comcast'],['CHTR','Charter'],['ISRG','Intuitive Surgical'],['VRTX','Vertex'],
+  ['REGN','Regeneron'],['GILD','Gilead'],['AMGN','Amgen'],['BIIB','Biogen'],
+  ['BRK-B','Berkshire Hathaway B'],['JPM','JPMorgan Chase'],['V','Visa'],['MA','Mastercard'],
+  ['BAC','Bank of America'],['WFC','Wells Fargo'],['GS','Goldman Sachs'],['AXP','American Express'],
+  ['UNH','UnitedHealth'],['JNJ','Johnson & Johnson'],['LLY','Eli Lilly'],['MRK','Merck'],
+  ['ABBV','AbbVie'],['PFE','Pfizer'],['TMO','Thermo Fisher'],['XOM','Exxon Mobil'],
+  ['CVX','Chevron'],['WMT','Walmart'],['PG','Procter & Gamble'],['KO','Coca-Cola'],
+  ['MCD','McDonald’s'],['HD','Home Depot'],['NKE','Nike'],['DIS','Walt Disney'],
+  ['CAT','Caterpillar'],['BA','Boeing'],['HON','Honeywell'],['GE','GE Aerospace'],
+  ['LIN','Linde'],['ACN','Accenture'],['UBER','Uber'],['PLTR','Palantir']
+];
+
 // Every stock symbol in F&o.csv, in file order.
 const RE_STOCK_SYMS = ('GOLDSTAR,360ONE,ABB,ABCAPITAL,ADANIENSOL,ADANIENT,ADANIGREEN,ADANIPORTS,ADANIPOWER,ALKEM,'+
 'AMBER,AMBUJACEM,ANGELONE,APLAPOLLO,APOLLOHOSP,ASHOKLEY,ASIANPAINT,ASTRAL,AUBANK,AUROPHARMA,'+
@@ -16151,7 +16320,11 @@ const RE_UNIV = (function(){
   const u={};
   RE_IDX_ROWS.forEach(([k,label,sym])=>{ u[k]={key:k,label,sym,kind:'index'}; });
   RE_GLOBAL_ROWS.forEach(([k,label,sym,kind])=>{ u[k]={key:k,label,sym,kind}; });
-  RE_STOCK_SYMS.forEach(s=>{ if(u[s])return;
+  // US names go in before the F&O list so a ticker clash (none today, but the
+  // F&O universe changes every quarter) resolves to NSE, which is the primary
+  // universe here and the one with baked history.
+  RE_US_ROWS.forEach(([k,label])=>{ u[k]={key:k,label:label+' · '+k,sym:k,kind:'usstock'}; });
+  RE_STOCK_SYMS.forEach(s=>{ if(u[s]){ if(u[s].kind==='usstock') delete u[s]; else return; }
     u[s]={key:s,label:s,sym:RE_TICKER_FIX[s]||(s+'.NS'),kind:'stock'}; });
   // borrow the friendly company names already mapped for the planet charts
   try{
@@ -16161,9 +16334,14 @@ const RE_UNIV = (function(){
   return u;
 })();
 
+/* The Overview, Gann and Panchak tabs all resolve tickers through PLAN_INST,
+   so the US names have to appear there too or those tabs cannot price them.
+   Key is the ticker, which is also the Yahoo symbol. */
+try{ RE_US_ROWS.forEach(([k])=>{ if(!PLAN_INST[k]) PLAN_INST[k]=k; }); }catch(e){}
+
 // THE RULE TABLE — single source of truth, surfaced verbatim in the UI.
 function reThresholds(kind){
-  return (kind==='stock')
+  return (kind==='stock'||kind==='usstock')
     ? {minPct:5, majPct:15, label:'F&O STOCK',
        rule:'short-term correction &gt;5% and &lt;15% &nbsp;·&nbsp; long-term correction ≥15%'}
     : {minPct:3, majPct:10, label:(kind==='commodity'?'COMMODITY':'INDEX'),
