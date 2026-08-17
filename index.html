@@ -7594,6 +7594,12 @@ function planFmtIST(ms){ const d=new Date(ms+5.5*3600000); const MON=['Jan','Feb
   return MON[d.getUTCMonth()]+' '+String(d.getUTCDate()).padStart(2,'0')+' '+d.getUTCFullYear()+'  '+String(d.getUTCHours()).padStart(2,'0')+':'+String(d.getUTCMinutes()).padStart(2,'0'); }
 
 async function planFetchOHLC(sym, range){
+  {  // NSE goes to the baked Upstox history first
+    const yrs=parseInt(String(range))||25;
+    const from=reISO(Date.now()-yrs*365.25*86400000);
+    const nse=await dsNseDaily(sym, from, reISO(Date.now()));
+    if(nse) return nse.map(r=>({date:r.date, ms:planMs(r.date), o:r.o, h:r.h, l:r.l, c:r.c}));
+  }
   const yrs=PLAN_YEARS[range]||3; const p2=Math.floor(Date.now()/1000); const p1=p2-Math.round(yrs*365.25*86400);
   const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?period1=${p1}&period2=${p2}&interval=1d`;
   let lastErr='';
@@ -9840,6 +9846,10 @@ function btParseCSV(text){
 //   [{date:'YYYY-MM-DD', open, high, low, close}]
 // sorted ascending, or throws with the last transport error.
 async function yfDailyRange(sym, fromDate, toDate){
+  {  // NSE goes to the baked Upstox history first
+    const nse=await dsNseDaily(sym, fromDate, toDate);
+    if(nse) return nse.map(r=>({date:r.date, open:r.o, high:r.h, low:r.l, close:r.c}));
+  }
   const p1=Math.floor(Date.parse(fromDate+'T00:00:00Z')/1000)-86400;
   const p2=Math.floor(Date.parse(toDate  +'T00:00:00Z')/1000)+86400;
   const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}`+
@@ -9909,6 +9919,12 @@ function btUsePreloaded(instrKey,fromDate,toDate){
 }
 
 async function btFetchOHLCV(instrKey,yfSymbol,fromDate,toDate){
+  {  // NSE goes to the baked Upstox history first
+    const nse=await dsNseDaily(yfSymbol, fromDate, toDate);
+    if(nse && nse.length>5) return nse.map(r=>{ const d=new Date(r.date+'T00:00:00Z');
+      return {dateStr:r.date, y:d.getUTCFullYear(), m:d.getUTCMonth()+1, d:d.getUTCDate(),
+              open:r.o, high:r.h, low:r.l, close:r.c}; });
+  }
   // Priority 1: pre-loaded embedded data (instant, works from file://)
   const preloaded=btUsePreloaded(instrKey,fromDate,toDate);
   if(preloaded){
@@ -15528,6 +15544,16 @@ async function dsBaked(univKey){
       if(!r.ok) continue;
       const j=await r.json();
       const rows=(j.bars||[]).map(b=>({t:b[0],date:b[0],o:b[1],h:b[2],l:b[3],c:b[4]}));
+      // Stocks are written as a frozen base plus a small current-year file, so
+      // git only churns the tail. Stitch the two back together here.
+      try{
+        const rr=await fetch(src.url(univKey).replace(/\.json$/,'_recent.json'),{cache:'no-cache'});
+        if(rr.ok){
+          const rj=await rr.json();
+          const cut=rows.length?rows[rows.length-1].date:'';
+          for(const b of (rj.bars||[])) if(b[0]>cut) rows.push({t:b[0],date:b[0],o:b[1],h:b[2],l:b[3],c:b[4]});
+        }
+      }catch(e){ /* base alone is still valid */ }
       if(rows.length>100){
         window.DS.bakedFrom=src.name;
         DS_BAKED[univKey]=rows;
@@ -15744,6 +15770,34 @@ function dsUsedSince(snapJSON){
   return 'cache';
 }
 window.dsUsedSince=dsUsedSince;
+
+
+/* ── Universal NSE routing for every fetcher in the terminal ────────────────
+   The research tabs route through dsBars() directly, but the older tabs
+   (planet charts, Gann anchors, the SBC backtest and its monthly overlay) each
+   build their own Yahoo URL. Rather than rewrite them all, they now ask this
+   first: it maps a Yahoo ticker back to a universe key and, when that key is
+   NSE, serves the baked Upstox history instead. Anything not NSE — US indices,
+   commodities — falls straight through to the caller's own Yahoo path. */
+const DS_BY_YSYM = (function(){
+  const m={};
+  try{ Object.values(RE_UNIV).forEach(u=>{ m[String(u.sym).toUpperCase()]=u.key; }); }catch(e){}
+  return m;
+})();
+function dsKeyForYahooSym(sym){ return DS_BY_YSYM[String(sym||'').toUpperCase()]||null; }
+window.dsKeyForYahooSym=dsKeyForYahooSym;
+
+/* Daily NSE bars for a YAHOO ticker, or null when this instrument is not NSE
+   or nothing is baked for it. Callers map the rows into their own shape. */
+async function dsNseDaily(yahooSym, fromDate, toDate){
+  const k=dsKeyForYahooSym(yahooSym);
+  if(!k || !dsIsNSE(k) || window.DS.mode==='yahoo') return null;
+  try{
+    const rows=await dsBars(k,'days','1',fromDate||RE_HISTORY_START,toDate||reISO(Date.now()),null);
+    return (rows && rows.length) ? rows : null;
+  }catch(e){ return null; }
+}
+window.dsNseDaily=dsNseDaily;
 
 async function reFetchOHLCYahoo(sym, years){
   const p2=Math.floor(Date.now()/1000);
