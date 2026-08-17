@@ -8777,13 +8777,32 @@ const OV_KEYS=['bias','aspect','trio','lagna','kranti','rules','forecastDir','bh
                'declShift','bhavDay','ruleX','sunCond','sbcVedha','natalTr','bhavNatal'];
 
 /* The blend as it ships today, so the audit can compare like for like. */
-function ovShippedScore(c){
+// The blend as it stood before the de-bias pass — kept only so the panel can
+// show what the centring bought. Not what the app emits today.
+function ovRawScore(c){
   const combined = c.bias*0.22 + c.aspect*0.16 + c.trio*0.16 + c.lagna*0.16
                  + c.kranti*0.07 + c.rules*0.11 + c.forecastDir*0.12;
   const astroPack = c.forecastDir + c.bhadra + c.sbc + c.declShift + c.bhavDay + c.ruleX;
   const baseDay = combined*0.55 + Math.max(-100,Math.min(100,astroPack))*0.55;
   return Math.max(-100,Math.min(100,
     baseDay + c.sunCond + c.sbcVedha + c.natalTr + c.bhavNatal));
+}
+
+// Mirrors buildIndexForecast's nfScore. The audit has to grade the arithmetic
+// the Overview actually performs, or "shipped accuracy" measures nothing that
+// ships — bhavNatal is excluded here exactly as it is there.
+function ovShippedScore(c){
+  const combined = ovCtr('bias',c.bias)*0.22 + ovCtr('aspect',c.aspect)*0.16
+                 + ovCtr('trio',c.trio)*0.16 + ovCtr('lagna',c.lagna)*0.16
+                 + ovCtr('kranti',c.kranti)*0.07 + ovCtr('rules',c.rules)*0.11
+                 + ovCtr('forecastDir',c.forecastDir)*0.12;
+  const rx = ovCtr('ruleX',c.ruleX)*2;
+  const astroPack = Math.max(-100,Math.min(100,
+      ovCtr('forecastDir',c.forecastDir) + ovCtr('bhadra',c.bhadra) + ovCtr('sbc',c.sbc)
+    + ovCtr('declShift',c.declShift) + ovCtr('bhavDay',c.bhavDay) + rx*0.5));
+  const baseDay = Math.max(-100,Math.min(100, combined*0.55 + astroPack*0.55));
+  return Math.max(-100,Math.min(100,
+    baseDay + ovCtr('sunCond',c.sunCond) + ovCtr('sbcVedha',c.sbcVedha) + ovCtr('natalTr',c.natalTr)));
 }
 
 async function ovCollect(instKey, fromDate, toDate, step, ay){
@@ -8805,7 +8824,7 @@ async function ovCollect(instKey, fromDate, toDate, step, ay){
     try{ D=ovComputeDayLite(b.date,ay); }
     catch(e){ try{ D=computeAll(b.date,9.25,ay); }catch(e2){ continue; } }
     const c=ovComponents(D);
-    rows.push({date:b.date, c, shipped:ovShippedScore(c),
+    rows.push({date:b.date, c, shipped:ovShippedScore(c), raw:ovRawScore(c),
                act:(b.c-prev.c)/prev.c*100, intra:(b.c-b.o)/b.o*100});
     if((++n % 40)===0){
       setP(2+Math.round(94*n/total), `grading ${n}/${total} days · ${b.date}`);
@@ -8833,13 +8852,13 @@ function ovAudit(rows){
             lo:(function(){ const z=1.96,p=acc,nn=live.length||1,d=1+z*z/nn;
                  return ((p+z*z/(2*nn)) - z*Math.sqrt(p*(1-p)/nn+z*z/(4*nn*nn)))/d; })()};
   }).sort((a,b)=>b.edge-a.edge);
-  const shippedLive=rows.filter(r=>Math.abs(r.shipped)>15);
-  const shippedHit=shippedLive.filter(r=>Math.sign(r.shipped)===Math.sign(r.act)).length;
+  const grade=(f)=>{ const live=rows.filter(r=>Math.abs(f(r))>15);
+    const hit=live.filter(r=>Math.sign(f(r))===Math.sign(r.act)).length;
+    return {n:live.length, acc:live.length?hit/live.length:0,
+            bull:rows.filter(r=>f(r)>15).length, bear:rows.filter(r=>f(r)<-15).length,
+            meanScore:rows.reduce((s,r)=>s+f(r),0)/Math.max(1,rows.length)}; };
   return {base, n:rows.length, components:out,
-          shipped:{n:shippedLive.length, acc:shippedLive.length?shippedHit/shippedLive.length:0,
-                   bull:rows.filter(r=>r.shipped>15).length,
-                   bear:rows.filter(r=>r.shipped<-15).length,
-                   meanScore:rows.reduce((s,r)=>s+r.shipped,0)/Math.max(1,rows.length)}};
+          shipped:grade(r=>r.shipped), raw:grade(r=>r.raw)};
 }
 
 /* Refit the blend from measured edge.
@@ -8918,7 +8937,13 @@ async function ovRun(){
     const from=S.ovFrom||RE_HISTORY_START;
     const step=parseInt(S.ovStep||10,10);
     const ay=S.ayMode||'lahiri';
+    const t0=performance.now();
     const rows=await ovCollect(inst, from, reISO(Date.now()), step, ay);
+    // Feeds the next run's estimate. Blended with the stored value so one
+    // throttled run does not poison the figure for every later one.
+    try{ const prev=+(localStorage.getItem('ovMsPerSample')||0);
+         const now=(performance.now()-t0)/Math.max(1,rows.length);
+         localStorage.setItem('ovMsPerSample', Math.round(prev?prev*0.4+now*0.6:now)); }catch(e){}
     const audit=ovAudit(rows);
     const fit=ovFit(rows,audit);
     window.OV.rows=rows; window.OV.audit=audit; window.OV.fit=fit;
@@ -9009,13 +9034,14 @@ function ovBodyHTML(){
   <div class="ts" style="margin-bottom:12px"><table class="tbl"><thead><tr>
     <th>Blend</th><th style="text-align:right">Calls</th><th style="text-align:right">Accuracy</th><th style="text-align:right">vs base</th>
   </tr></thead><tbody>
-    ${cmp('Shipped weights',A.shipped.n,A.shipped.acc,A.base)}
+    ${cmp('Shipped weights (live, centred)',A.shipped.n,A.shipped.acc,A.base)}
+    ${A.raw?cmp('Same weights, before de-bias',A.raw.n,A.raw.acc,A.base):''}
     ${cmp('Refitted weights',S2.n,S2.acc,A.base)}
     ${W?cmp('Refitted, walk-forward (blind)',W.fitted.n,W.fitted.acc,W.base):''}
     ${W?cmp('Shipped, same blind window',W.shipped.n,W.shipped.acc,W.base):''}
   </tbody></table></div>
-  ${parseInt(step,10)>1?`<div style="font-size:11px;color:var(--tx3);margin:-6px 0 12px">
-    Sampled every ${step}th day. A thinner sample widens every confidence interval, so a component
+  ${(O.step||1)>1?`<div style="font-size:11px;color:var(--tx3);margin:-6px 0 12px">
+    Sampled every ${O.step}th day. A thinner sample widens every confidence interval, so a component
     can clear the base rate here and fail on the full series — run <b>every day</b> before trusting a refit.</div>`:''}
   <div class="ts" style="max-height:420px;overflow:auto"><table class="tbl"><thead><tr>
     <th>Component</th><th style="text-align:right">Days live</th><th style="text-align:right">Coverage</th>
@@ -9037,8 +9063,12 @@ function tOverviewValidation(){
         <div class="cg"><span class="cl">SAMPLE</span>${sel('ovStep',[[10,'every 10th'],[5,'every 5th'],[3,'every 3rd'],[1,'every day']],step,110)}</div>
         <span style="font-size:11px;color:var(--tx3)">${(function(){
           const days=Math.round(6600*(from===RE_HISTORY_START?1:from>='2024-01-01'?0.09:from>='2018-01-01'?0.32:0.62)/parseInt(step,10));
-          // ~11 ms/sample measured on the lite day-engine (6,618 days ≈ 70 s).
-          const secs=Math.round(days*0.011);
+          // Grading rate swings by an order of magnitude with tab throttling
+          // (a backgrounded tab throttles the yield channel hard), so the
+          // estimate calibrates off this machine's last completed run rather
+          // than a constant. 40 ms is a mid-range first guess.
+          const ms=+(localStorage.getItem('ovMsPerSample')||40);
+          const secs=Math.round(days*ms/1000);
           return days+' samples · ~'+(secs<90?Math.max(2,secs)+' s':Math.round(secs/60)+' min');
         })()}</span>
         <button onclick="ovRun()" ${window.OV.status==='running'?'disabled':''}
