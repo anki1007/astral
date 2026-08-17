@@ -8789,8 +8789,10 @@ function ovShippedScore(c){
 async function ovCollect(instKey, fromDate, toDate, step, ay){
   const setP=(p,m)=>{ window.OV.prog=p; window.OV.progMsg=m; ovPaintProgress(); };
   setP(2,'loading price history …');
+  const u=RE_UNIV[instKey];
+  if(!u) throw new Error(`unknown instrument "${instKey}" — expected one of ${Object.keys(RE_UNIV).slice(0,3).join(', ')}…`);
   let bars = await dsBaked(instKey);
-  if(!bars) bars = (await reFetchOHLC(RE_UNIV[instKey].sym,'max',instKey))
+  if(!bars) bars = (await reFetchOHLC(u.sym,'max',instKey))
                      .map(b=>({date:b.date,o:b.o,h:b.h,l:b.l,c:b.c}));
   bars = bars.filter(b=>b.date>=fromDate && b.date<=toDate);
   if(bars.length<200) throw new Error(`only ${bars.length} bars in ${fromDate}→${toDate}`);
@@ -8912,7 +8914,7 @@ async function ovRun(){
   window.OV.status='running'; window.OV.err='';
   ovPaintAll();
   try{
-    const inst=S.ovInst||'NIFTY';
+    const inst=S.ovvInst||'NIFTY';
     const from=S.ovFrom||RE_HISTORY_START;
     const step=parseInt(S.ovStep||10,10);
     const ay=S.ayMode||'lahiri';
@@ -9014,20 +9016,21 @@ function ovBodyHTML(){
 }
 
 function tOverviewValidation(){
-  const inst=S.ovInst||'NIFTY', from=S.ovFrom||RE_HISTORY_START, step=S.ovStep||10;
+  const inst=S.ovvInst||'NIFTY', from=S.ovFrom||RE_HISTORY_START, step=S.ovStep||10;
   const sel=(k,arr,cur,w)=>`<select class="ci" style="width:${w||110}px" onchange="S['${k}']=this.value;ovPaintAll()">`+
     arr.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?'selected':''}>${l}</option>`).join('')+`</select>`;
   const saved=window.OV.savedMeta;
   return `<div class="pnl"><div class="ph"><span class="dot"></span>FORECAST VALIDATION — daily call graded against price</div>
     <div class="pb">
       <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px">
-        <div class="cg"><span class="cl">INSTRUMENT</span>${sel('ovInst',[['NIFTY','Nifty 50'],['BANKNIFTY','Nifty Bank'],['SENSEX','Sensex']],inst,140)}</div>
+        <div class="cg"><span class="cl">INSTRUMENT</span>${sel('ovvInst',[['NIFTY','Nifty 50'],['BANKNIFTY','Nifty Bank'],['SENSEX','Sensex']],inst,140)}</div>
         <div class="cg"><span class="cl">FROM</span>${sel('ovFrom',[[RE_HISTORY_START,'inception'],['2010-01-01','2010'],['2018-01-01','2018'],['2024-01-01','2024']],from,120)}</div>
         <div class="cg"><span class="cl">SAMPLE</span>${sel('ovStep',[[10,'every 10th'],[5,'every 5th'],[3,'every 3rd'],[1,'every day']],step,110)}</div>
         <span style="font-size:11px;color:var(--tx3)">${(function(){
           const days=Math.round(6600*(from===RE_HISTORY_START?1:from>='2024-01-01'?0.09:from>='2018-01-01'?0.32:0.62)/parseInt(step,10));
-          const mins=Math.max(1,Math.round(days*1.6/60));
-          return days+' samples · ~'+mins+' min';
+          // ~11 ms/sample measured on the lite day-engine (6,618 days ≈ 70 s).
+          const secs=Math.round(days*0.011);
+          return days+' samples · ~'+(secs<90?Math.max(2,secs)+' s':Math.round(secs/60)+' min');
         })()}</span>
         <button onclick="ovRun()" ${window.OV.status==='running'?'disabled':''}
           style="background:var(--acc3);color:#001318;border:1px solid var(--acc);padding:6px 15px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">▶ VALIDATE</button>
