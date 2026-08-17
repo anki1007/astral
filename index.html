@@ -9099,7 +9099,10 @@ function tOverviewValidation(){
   return `<div class="pnl"><div class="ph"><span class="dot"></span>FORECAST VALIDATION — daily call graded against price</div>
     <div class="pb">
       <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;margin-bottom:9px">
-        <div class="cg"><span class="cl">INSTRUMENT</span>${sel('ovvInst',[['NIFTY','Nifty 50'],['BANKNIFTY','Nifty Bank'],['SENSEX','Sensex']],inst,140)}</div>
+        <div class="cg"><span class="cl">INSTRUMENT</span>${sel('ovvInst',[
+          ['NIFTY','Nifty 50'],['BANKNIFTY','Nifty Bank'],['FINNIFTY','Nifty Fin Services'],
+          ['SENSEX','Sensex'],['DOW','Dow Jones'],['NASDAQ','Nasdaq Composite'],['SPX','S&P 500']
+        ],inst,150)}</div>
         <div class="cg"><span class="cl">FROM</span>${sel('ovFrom',[[RE_HISTORY_START,'inception'],['2010-01-01','2010'],['2018-01-01','2018'],['2024-01-01','2024']],from,120)}</div>
         <div class="cg"><span class="cl">SAMPLE</span>${sel('ovStep',[[10,'every 10th'],[5,'every 5th'],[3,'every 3rd'],[1,'every day']],step,110)}</div>
         <span style="font-size:11px;color:var(--tx3)">${(function(){
@@ -9518,9 +9521,11 @@ function tOverview(){
   const _rasHB=_rasSw?hourBias(_rasSw,D.planets):null;
   const swChip=(lbl,name,hb)=>name?`<div><span style="font-size:10.5px;color:var(--tx3)">${lbl}</span> <b style="color:${pc(name)};font-size:13px">${name}</b> <span style="color:${hb.col};font-size:10px;font-weight:700" title="${hb.ind}">${hb.arrow} ${hb.bias}</span></div>`:'';
 
-  return`${tOverviewValidation()}
-<div id="ovv-panel">${ovvPanelHTML(window._OVV_LAST)}</div>
-${ovePanelHTML()}
+  // Volatility leads because it is a live call; Evidence and Validation are
+  // research tools and belong at the end. Stacking all three on top pushed the
+  // bias chart — and the only instrument picker that carries the US names —
+  // about 1,000px below the fold.
+  return`<div id="ovv-panel">${ovvPanelHTML(window._OVV_LAST)}</div>
 <div class="pnl" style="padding:6px 12px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
   <div style="font-size:10.5px;color:var(--acc);letter-spacing:.1em;font-weight:700">▦ ${S.date}</div>
   <div><span style="font-size:10.5px;color:var(--tx3)">WEEKDAY</span> <b style="color:var(--tx0);font-size:13px">${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date(S.date+"T00:00:00").getDay()]}</b></div>
@@ -9646,7 +9651,9 @@ ${ovePanelHTML()}
     </div>
   </div>
 </div>
-</div>`;
+</div>
+${ovePanelHTML()}
+${tOverviewValidation()}`;
 }
 
 
