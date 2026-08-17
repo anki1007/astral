@@ -7225,8 +7225,7 @@ function taForwardHTML(tf){
   <div class="pnl"><div class="ph"><span class="dot"></span>${tf==='weekly'?'WEEKLY':'MONTHLY'} FORWARD FORECAST — next ${n} ${tf==='weekly'?'weeks':'months'} from ${taDate()}</div>
     <div class="pb"><div class="ts" style="max-height:520px;overflow:auto"><table class="tbl"><thead><tr>
       <th>${tf==='weekly'?'Week':'Month'}</th><th style="text-align:right">Score</th><th></th><th>Band</th><th style="text-align:right">Flags</th><th>Top drivers</th>
-    </tr></thead><tbody>${body}</tbody></table></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px">${tf==='weekly'?'Weekly':'Monthly'} scoring re-weights the same rulebook toward the slow bodies — Jupiter, Saturn, Herschel, Neptune, Pluto and the nodes carry the trend over this horizon, so their pair aspects and the Strong Bullish/Bearish permutations dominate, while the Moon is damped down.</div></div></div>
+    </tr></thead><tbody>${body}</tbody></table></div></div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>LEDGER — ${pick.date} · score ${pick.score>0?'+':''}${pick.score} · <span style="color:${pick.band.c}">${pick.band.t}</span></div>
     <div class="pb">${taLedgerHTML(pick.ev,null,70)}</div></div>`;
@@ -7271,16 +7270,13 @@ function taBackwardHTML(){
         <td style="text-align:right;font-weight:800;color:${x.acc>=0.55?'var(--bull)':x.acc>=0.5?'var(--tx1)':'var(--bear)'}">${(x.acc*100).toFixed(2)}%</td>
         <td style="text-align:right;color:${x.avg>=0?'var(--bull)':'var(--bear)'}">${x.avg>=0?'+':''}${x.avg.toFixed(3)}%</td>
         <td style="text-align:right">${x.eq.toFixed(3)}×</td></tr>`).join('')}</tbody></table></div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:6px">Direction accuracy = the sign of the rulebook's score vs the sign of the bar's own open→close move. ${(m.base*100).toFixed(1)}% of bars in this sample closed up, so that is the number to beat. “Compounded” takes the signed position on every selected bar with no costs — a diagnostic, not a strategy.</div>
       ${m.cfg.capNote?`<div style="font-size:11px;color:var(--neut);margin-top:6px;padding:7px 10px;background:var(--neut3);border:1px solid var(--neut2);border-radius:3px">⚠ ${m.cfg.capNote}</div>`:''}
     </div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>WHICH SECTIONS OF THE MARKDOWN ACTUALLY WORK — per-section hit rate</div>
     <div class="pb"><div class="ts" style="max-height:460px;overflow:auto"><table class="tbl"><thead><tr>
       <th>Source section</th><th style="text-align:right">Bars it fired on</th><th style="text-align:right">Accuracy</th><th></th><th style="text-align:right">Avg move</th>
-    </tr></thead><tbody>${secRows}</tbody></table></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.65">Every section of Tech_Astro_Analysis.md that made a <b>directional</b> claim on at least 8 bars, ranked by how often that direction matched price. Orange rows are Chapter 2 (technical) rules. This is the honest audit: sections below ${(m.base*100).toFixed(1)}% (the share of bars that simply closed up) are being carried by the rest of the book, not adding to it.
-      ${m.infoSections&&m.infoSections.length?`<br><b>Non-directional sections</b> — the source states these without a direction ("Major Turning", "Volatile", "support and resistance"), so they are reported but not scored: ${m.infoSections.map(s=>taEsc(s.sec)+' ('+s.n+')').join(' · ')}.`:''}</div></div></div>
+    </tr></thead><tbody>${secRows}</tbody></table></div></div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>BAR-BY-BAR (latest 200)</div>
     <div class="pb"><div class="ts" style="max-height:560px;overflow:auto"><table class="tbl"><thead><tr>
@@ -7492,12 +7488,8 @@ function tAstral(){
         <button onclick="taRun()" ${window.TA.status==='running'?'disabled':''}
           style="background:var(--acc3);color:#001318;border:1px solid var(--acc);padding:7px 16px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">▶ RUN BACKWARD TEST</button>
       </div>
-      <div style="margin-top:9px;padding:7px 10px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px;font-size:11.5px;color:var(--tx2);line-height:1.7">
-        Every score on this tab comes from <b>Tech_Astro_Analysis.md</b> and nothing else — the pair matrix, the sign and degree tables, placement, speed (Mand / Atichari), Shar, the Strong Bullish &amp; Bearish permutations, Dwidwadash and Shadashtak by sign, day×nakshatra, Vargottam, Gandanta, Panchak, Sankranti, Khappar, Bhadra, D9 conjunctions, the combustion and rise rules, the SBC Vedh table and all 137 numbered observations, plus Chapter 2's technical rules.
-        Open <b>☑ Rule audit</b> to see every section of the source and whether it is firing right now; every fired rule shows its own § citation and the source's own words.
-      </div>
-      <div style="margin-top:9px">${dsPanelHTML()}</div>
-      <div id="ta-prog" style="margin-top:8px">${taProgressHTML()}</div>
+
+          <div id="ta-prog" style="margin-top:8px">${taProgressHTML()}</div>
     </div></div>
   <div id="ta-body">${taBodyHTML()}</div>`;
 }
@@ -15668,46 +15660,7 @@ async function dsQuoteScanX(univKeys){
 window.dsQuoteScanX=dsQuoteScanX;
 
 /* ── settings panel, shared by the research tabs ──────────────────────────── */
-function dsPanelHTML(){
-  const D=window.DS;
-  const state = !D.proxy ? ['NOT CONFIGURED','var(--tx3)','var(--bg3)']
-              : D.health===true ? ['CONNECTED','var(--bull)','var(--bull3)']
-              : D.health===false ? ['UNREACHABLE','var(--bear)','var(--bear3)']
-              : ['UNTESTED','var(--neut)','var(--neut3)'];
-  return `
-  <div style="padding:9px 11px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px">
-    <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end">
-      <div class="cg" style="flex:1;min-width:260px">
-        <span class="cl">UPSTOX PROXY URL (NSE data)</span>
-        <input class="ci" style="width:100%" placeholder="https://astral-upstox.<you>.workers.dev"
-               value="${(D.proxy||'').replace(/"/g,'&quot;')}"
-               onchange="dsSetProxy(this.value);dsHealth().then(()=>{if(typeof taPaintAll==='function')taPaintAll();if(typeof rePaintAll==='function')rePaintAll();})">
-      </div>
-      <div class="cg"><span class="cl">SOURCE</span>
-        <select class="ci" style="width:184px" onchange="dsSetMode(this.value)">
-          <option value="auto"   ${D.mode==='auto'?'selected':''}>Auto — Upstox + Yahoo tail</option>
-          <option value="upstox" ${D.mode==='upstox'?'selected':''}>Upstox only (2000+)</option>
-          <option value="yahoo"  ${D.mode==='yahoo'?'selected':''}>Yahoo only</option>
-        </select></div>
-      <button class="ci" style="cursor:pointer;padding:6px 12px"
-        onclick="dsHealth().then(()=>{if(typeof taPaintAll==='function')taPaintAll();if(typeof rePaintAll==='function')rePaintAll();})">Test</button>
-      <span class="pill" style="color:${state[1]};background:${state[2]};border:1px solid ${state[1]}">${state[0]}</span>
-    </div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:7px;line-height:1.65">
-      <b style="color:var(--acc)">Order of preference for NSE daily bars:</b>
-      <b>1.</b> baked JSON — this repo's own <span style="font-family:monospace">data/nse/</span>, else <span style="font-family:monospace">scanX</span>'s published copy${window.DS.bakedFrom?` <span style="color:var(--bull)">(currently serving from ${window.DS.bakedFrom})</span>`:''}. No credential in the browser, and instant. The Upstox token lives in scanX's Actions secrets, which are write-only and cannot be shared between repos — so the baking job stays there and this app reads what it publishes.
-      <b>2.</b> your Upstox Worker, if a URL is set below (adds intraday from Jan 2022 and live quotes).
-      <b>3.</b> Yahoo.
-      Any failure falls to the next one automatically. US indices and commodities always use Yahoo — Upstox does not carry them.
-      ${window.DS.mode==='auto'?' In <b>Auto</b>, anything before Upstox\'s Jan-2000 floor is taken from Yahoo and spliced onto the front, so the “1998 or oldest available” rule still holds.':''}
-      ${D.proxy
-        ? (D.lastErr?`<br><b style="color:var(--bear)">Last proxy error:</b> ${String(D.lastErr).replace(/</g,'&lt;')}`:'')
-        : `<br>The Worker is optional — leave the box empty and steps 1 and 3 still work. To add it, deploy <b>upstox-worker.js</b> (in the repo) to Cloudflare and paste its URL here.`}
-      <br><b style="color:var(--acc)">Live quotes:</b> your Worker first (indices too, real-time), then <b>scanX</b>'s published board — 523 NSE stocks with full OHLC, refreshed about every 15 minutes in market hours, served CORS-open from GitHub Pages with no token needed. It carries no indices and is delayed, so it is labelled as such wherever it is shown.
-      ${(window.DS.stats.baked||window.DS.stats.upstox||window.DS.stats.yahoo||window.DS.stats.scanx)?`<br><span style="color:var(--tx3)">This session — baked: ${window.DS.stats.baked||0} · upstox: ${window.DS.stats.upstox} · scanX quotes: ${window.DS.stats.scanx||0} · yahoo: ${window.DS.stats.yahoo} · spliced: ${window.DS.stats.spliced}</span>`:''}
-    </div>
-  </div>`;
-}
+function dsPanelHTML(){ return ''; }   // configuration is not content — routing is silent
 window.dsPanelHTML=dsPanelHTML;
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -16694,14 +16647,14 @@ function reHeadHTML(){
     <button onclick="reRunBatch()" class="ci" style="cursor:pointer;padding:7px 10px" ${R.status==='running'?'disabled':''}>▶▶ Run queue</button>
     <button onclick="reRunIndices()" class="ci" style="cursor:pointer;padding:7px 10px" ${R.status==='running'?'disabled':''}>▶ All 6 indices</button>
   </div>
-  <div style="margin-top:8px;padding:7px 10px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px;font-size:11.5px;color:var(--tx2);line-height:1.7">
-    <b style="color:var(--acc)">SWING RULE IN FORCE — ${thr.label}:</b> ${thr.rule}.
-    The correction is measured on the leg that <i>follows</i> the pivot (swing high ⇒ the decline into the next swing low; swing low ⇒ the advance into the next swing high).
-    Short-term and long-term pivots are found by two independent zig-zags run at ${thr.minPct}% and ${thr.majPct}%, so a big correction is never shredded into small legs and mis-filed.
-    ${u.kind==='commodity'?'<i>Commodities follow the index rule, per the PRD.</i>':''}
-    <br><b style="color:var(--acc)">HISTORY:</b> <b>Max</b> pulls from ${RE_HISTORY_START} — or from the instrument's first traded day when it listed later, which is most of the F&amp;O universe. Nothing is back-filled; the model reports the true first date it received. A full run over ~28 years computes roughly 10,000 days of ephemeris, so the first one takes a minute or two — every later instrument over the same years is near-instant because the ephemeris cache is global.
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11.5px">
+    <span class="pill" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2)">${thr.label}</span>
+    <span style="color:var(--tx2)">minor <b>&gt;${thr.minPct}%</b> to <b>&lt;${thr.majPct}%</b></span>
+    <span style="color:var(--tx3)">·</span>
+    <span style="color:var(--tx2)">major <b>≥${thr.majPct}%</b></span>
+    <span style="color:var(--tx3)">·</span>
+    <span style="color:var(--tx2)">from <b>${o.years==='max'?RE_HISTORY_START:o.years+' yr'}</b></span>
   </div>
-  <div style="margin-top:9px">${dsPanelHTML()}</div>
   <div id="re-batch" style="margin-top:8px">${reBatchHTML()}</div>
   <div id="re-prog" style="margin-top:8px">${reProgressHTML()}</div>`;
 }
@@ -16763,11 +16716,7 @@ function reValidationHTML(m){
       <td style="text-align:right;color:${rc};font-weight:800;font-size:15px">${rps}</td>
       <td style="min-width:360px">${evt||'<span style="color:var(--tx3)">no qualifying event</span>'}</td></tr>`;
   }).join('');
-  return `<div style="font-size:11.5px;color:var(--tx2);margin-bottom:7px;line-height:1.7">
-      Every swing with the highest-lift astro events that were live anywhere in its ±${m.span}-day research window.
-      The block map <span style="font-family:monospace">[${reOffBlocks([-1,0],m.span)}]</span> shows <b>when</b> the event ran relative to the pivot — leftmost is −${m.span} days, the cyan block is the swing day itself.
-      That is the PRD's real question: did the signature appear <i>before</i> the reversal, or only on the day?
-      RPS = this day's Reversal Probability Score (percentile of the model score across all ${m.nBars} historical days).</div>
+  return `
     <div class="ts" style="max-height:560px;overflow:auto"><table class="tbl"><thead><tr>
       <th>Swing date</th><th>Pivot</th><th style="text-align:right">RPS</th>
       <th>Detected astro events &nbsp;<i style="font-weight:400;color:var(--tx3)">[−${m.span}…+${m.span}] · lift</i></th>
@@ -16841,11 +16790,7 @@ function rePatternHTML(m){
       <th style="text-align:right">Precision<br><i style="font-weight:400;color:var(--tx3)">95% CI</i></th>
       <th style="text-align:right">Lift</th><th style="text-align:right">Recall</th><th style="text-align:right">p-value</th>
       <th style="text-align:right">Cohen h</th><th>Bias</th><th>−${m.span}…+${m.span}</th><th>Verdict</th>
-    </tr></thead><tbody>${rows}</tbody></table></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.65">
-      <b>Precision</b> = P(this trading day is a qualifying ${m.thr.label} swing | event live in its ±${m.span}-day window). <b>Lift</b> = precision ÷ baseline (${(m.base*100).toFixed(2)}%). <b>Cohen h</b> = effect size. <b>Recall</b> = share of all ${m.nSw} swings this event covers. The bar chart is the offset histogram (how many swings had the event live at −${m.span}…+${m.span}); “pre-only” counts swings where it fired <i>strictly before</i> the pivot.<br>
-      <b>Episodes</b> is the honest sample size: astro events are heavily autocorrelated, so a conjunction live on 31 consecutive days is <i>one</i> observation, not 31. The <b>p-value</b> is therefore computed on episodes, not on day counts.<br>
-      <b style="color:var(--neut)">LOW-N</b> = under-sampled (&lt;12 days or &lt;4 swings) · <b style="color:var(--neut)">ONE-OFF</b> = fewer than ${RE_MIN_EP} independent episodes or ${RE_MIN_SWEP} episodes that hit · <b style="color:var(--tx3)">TOO COMMON</b> = live on more than ${(RE_COMMON*100).toFixed(0)}% of all days, so it cannot time anything · <b style="color:var(--tx3)">NOT SIG</b> = p &gt; 0.05. None of these are promoted as predictive signals, exactly as the PRD requires.</div>`;
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function rePaintPattern(){ const e=document.getElementById('re-pattern'), m=reAct(); if(e&&m) e.innerHTML=rePatternHTML(m); }
 window.rePaintPattern=rePaintPattern;
@@ -16895,9 +16840,7 @@ function reComboHTML(m){
       <th style="text-align:right">Episodes<br><i style="font-weight:400;color:var(--tx3)">independent</i></th>
       <th style="text-align:right">Win rate<br><i style="font-weight:400;color:var(--tx3)">95% CI</i></th>
       <th style="text-align:right">Lift</th><th style="text-align:right">Recall</th><th style="text-align:right">p</th>
-      <th>Bias</th><th>Verdict</th></tr></thead><tbody>${rows||'<tr><td colspan="11" style="color:var(--tx3);padding:12px">No combination cleared the minimum-support bar. Lower MIN SUPPORT or lengthen the history.</td></tr>'}</tbody></table></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.65">Single events rarely produce reliable reversals — this is the PRD's combination engine. “Occurred” counts every trading day where all the listed events shared one ±${m.span}-day window; “At swings” is how many of those were genuine ${m.thr.label} pivots.
-      <b>Read the Episodes column before believing any row</b>: a combination that occurred on 31 days but in only 1 episode is a single historical coincidence dressed up as 31 observations, and is marked WEAK for exactly that reason.</div>`;
+      <th>Bias</th><th>Verdict</th></tr></thead><tbody>${rows||'<tr><td colspan="11" style="color:var(--tx3);padding:12px">No combination cleared the minimum-support bar. Lower MIN SUPPORT or lengthen the history.</td></tr>'}</tbody></table></div>`;
 }
 function rePaintCombo(){ const e=document.getElementById('re-combo'), m=reAct(); if(e&&m) e.innerHTML=reComboHTML(m); }
 window.rePaintCombo=rePaintCombo;
@@ -16922,12 +16865,10 @@ function reWeightHTML(m){
     <div><div style="font-size:11.5px;color:var(--acc);font-weight:700;margin-bottom:5px">EVENT WEIGHTS — the Reversal Probability Score components</div>
       <div class="ts" style="max-height:430px;overflow:auto"><table class="tbl"><thead><tr>
         <th>Event</th><th style="text-align:right">Weight</th><th></th><th style="text-align:right">n</th><th style="text-align:right">Lift</th>
-      </tr></thead><tbody>${rows}</tbody></table></div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:5px;line-height:1.65">Weight = log-lift shrunk toward the baseline (Bayesian, α=${RE_SHRINK}) and rescaled to ±30 points, so an event only earns weight if it beats the baseline on a sample big enough to trust. The shrinkage counts <b>independent episodes</b>, not days — otherwise one fortnight-long conjunction would look like 14 confirmations. Events with fewer than 3 episodes, or live on more than ${(RE_COMMON*100).toFixed(0)}% of days, are excluded from scoring entirely. Contributions are rank-damped by 1/(1+0.11·rank) so a cluster of correlated events (an aspect plus its “exact”/“applying” twins) cannot run away with the score. Green weights push toward a reversal, red weights push against one.</div></div>
+      </tr></thead><tbody>${rows}</tbody></table></div></div>
     <div><div style="font-size:11.5px;color:var(--acc);font-weight:700;margin-bottom:5px">CALIBRATION — what each RPS band actually delivered in-sample</div>
       <div class="ts"><table class="tbl"><thead><tr><th>RPS band</th><th style="text-align:right">Days</th><th style="text-align:right">Swings</th>
-        <th style="text-align:right">Hit rate</th><th style="text-align:right">Lift</th><th></th></tr></thead><tbody>${cal}</tbody></table></div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:5px">Baseline: ${(m.base*100).toFixed(2)}% of all trading days are qualifying swing pivots. A hit rate that rises monotonically down this table is what a working model looks like; a flat table means the astro load carries no information for this instrument and the forecast should be ignored.</div></div>
+        <th style="text-align:right">Hit rate</th><th style="text-align:right">Lift</th><th></th></tr></thead><tbody>${cal}</tbody></table></div></div>
   </div>`;
 }
 
@@ -16952,25 +16893,23 @@ function reValidationStatsHTML(m){
       `<div class="pc"><div style="font-size:10.5px;color:var(--tx3);letter-spacing:.08em">${l}</div>
         <div style="font-size:19px;font-weight:800;color:${c}">${v}</div></div>`).join('')}</div>
     <div style="font-size:11.5px;color:var(--acc);font-weight:700;margin-bottom:5px">WALK-FORWARD OUT-OF-SAMPLE TEST — the only number that matters</div>
-    <div style="font-size:11.5px;color:var(--tx2);margin-bottom:7px;line-height:1.7">
-      Every weight is re-fitted using <b>only</b> ${w.trainFrom} → ${w.trainTo} (${w.nTrain} days, ${w.nTrainSw} swings) and then applied blind to
-      <b>${w.testFrom} → ${w.testTo}</b> (${w.nTest} days, ${w.nTestSw} swings, base rate ${(w.base*100).toFixed(2)}%).
-      Nothing from the test window touches the fit — this is the honest measure of whether the discovered signatures generalise or were curve-fitted.</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--tx2);margin-bottom:8px">
+      <span>train <b>${w.trainFrom} → ${w.trainTo}</b> · ${w.nTrain}d · ${w.nTrainSw} sw</span>
+      <span>test <b style="color:var(--acc)">${w.testFrom} → ${w.testTo}</b> · ${w.nTest}d · ${w.nTestSw} sw</span>
+      <span>base <b>${(w.base*100).toFixed(2)}%</b></span>
+    </div>
     <div class="ts"><table class="tbl"><thead><tr>
       <th>Selection</th><th style="text-align:right">Days picked</th><th style="text-align:right">Precision (exact day)</th>
       <th style="text-align:right">Lift vs random</th><th style="text-align:right">Precision (±2 days)</th>
       <th style="text-align:right">Recall</th><th style="text-align:right">Direction accuracy</th>
     </tr></thead><tbody>${w.tiers.map(tierRow).join('')}</tbody></table></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.65">
-      Lift &gt; 1 means the astro model beat picking days at random out-of-sample. Lift ≈ 1 means it did not, and the forecast tab should be read as a curiosity for this instrument, not a signal.
-      <b>Timing and direction are validated separately, and they usually do not agree.</b> Direction accuracy is measured only on the flagged days that turned out to be genuine pivots — so its denominator (shown under each figure) is small, and a model can be good at spotting <i>that</i> a reversal is due while being no better than a coin flip about <i>which way</i>.
-      ${dirWeak?`<b style="color:var(--bear)"> ⚠ Direction accuracy is at or below 50% on ${dirWeak} of the three tiers here: treat the top-vs-bottom call on the forecast tab as unvalidated for this instrument and use the dates for timing only.</b>`:''}
-      ${w.nTestSw<10?'<b style="color:var(--neut)"> ⚠ Fewer than 10 out-of-sample swings — this test is itself under-powered; lengthen the history.</b>':''}</div>`;
+    ${dirWeak?`<div style="font-size:11px;color:var(--bear);margin-top:6px">⚠ Direction accuracy at or below 50% on ${dirWeak} of three tiers — top-vs-bottom unvalidated; use the dates for timing only.</div>`:''}
+    ${w.nTestSw<10?`<div style="font-size:11px;color:var(--neut);margin-top:4px">⚠ Fewer than 10 out-of-sample swings — under-powered.</div>`:''}`;
 }
 
 function reCrossHTML(){
   const ms=Object.values(window.RE.models);
-  if(ms.length<2) return `<div style="font-size:11.5px;color:var(--tx3);padding:6px;line-height:1.7">Build two or more instruments (use <b>＋ Queue</b> or <b>▶ All 6 indices</b>) to unlock this table. Models are never merged — the PRD requires each instrument to carry its own statistical model, so this only places them side by side.</div>`;
+  if(ms.length<2) return ``;
   const score=new Map();
   ms.forEach(m=>{ [...m.stats.values()].filter(s=>s.reliable).forEach(s=>{
     score.set(s.tok,(score.get(s.tok)||0)+reRank(s)); }); });
@@ -16987,8 +16926,7 @@ function reCrossHTML(){
   }).join('');
   return `<div class="ts" style="max-height:560px;overflow:auto"><table class="tbl"><thead><tr><th>Astro event</th>
       ${ms.map(m=>`<th style="text-align:right;cursor:pointer" onclick="reSetActive('${m.key}')" title="Click to make this the active model">${reEsc(m.key)}<div style="font-size:9.5px;font-weight:400;color:var(--tx3)">base ${(m.base*100).toFixed(1)}%</div></th>`).join('')}
-    </tr></thead><tbody>${rows}</tbody></table></div>
-    <div style="font-size:11px;color:var(--tx3);margin-top:6px">Each cell is the precision of that event for THAT instrument, with its lift underneath. A dash means the event never reached the minimum sample there. Click a column header to switch the active model.</div>`;
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function reBacktestBodyHTML(){
@@ -16999,17 +16937,7 @@ function reBacktestBodyHTML(){
       <div style="font-size:11.5px;color:var(--tx2);margin-top:6px;line-height:1.7">Yahoo Finance is reached through public CORS proxies, which are occasionally down or rate-limited; a recently listed stock may also simply not have enough history for the requested window. Try a shorter history, another instrument, or press RUN again.</div></div></div>`;
   const m=reAct();
   if(!m) return `<div class="pnl"><div class="pb">
-      <div style="font-size:12.5px;color:var(--acc);font-weight:700;margin-bottom:6px">No research has been run yet.</div>
-      <div style="font-size:11.5px;color:var(--tx2);line-height:1.85">
-        Pick an instrument above and press <b>▶ RUN RESEARCH</b>. The engine will:<br>
-        ① pull the daily OHLC history from Yahoo Finance ·
-        ② mark every swing high and low that satisfies the rule shown above ·
-        ③ compute several hundred astro features (positions, Shar, Kranti, speed, retrograde/combust/cazimi states, the full aspect matrix, Graha &amp; Rashi Drishti, Graha Yuddha, nakshatra events and panchanga) for every calendar day in the sample ·
-        ④ research each swing over its ±2-day window ·
-        ⑤ measure every single event and every 2- and 3-event combination against the full-sample baseline with precision, recall, lift, Wilson CI, binomial p and Cohen's h ·
-        ⑥ walk-forward validate the result out-of-sample ·
-        ⑦ hand the surviving model to the <b>◎ Forecasting</b> tab.<br>
-        The ephemeris cache is global, so the first run is the slow one and every later instrument over the same years is near-instant.</div></div></div>`;
+      <div style="font-size:12.5px;color:var(--tx3)">Pick an instrument and press <b style="color:var(--acc)">▶ RUN RESEARCH</b>.</div></div></div>`;
 
   const hh=String(Math.floor(m.tod)).padStart(2,'0'), mm=String(Math.round((m.tod%1)*60)).padStart(2,'0');
   return `
@@ -17102,7 +17030,6 @@ function reExplain(ds){
         <th style="text-align:right">Swings/Days<br><i style="font-weight:400;color:var(--tx3)">episodes</i></th><th style="text-align:right">Precision</th><th style="text-align:right">Lift</th>
         <th style="text-align:right">p</th><th style="text-align:right">Weight</th><th style="text-align:right">Bias</th>
       </tr></thead><tbody>${rows||'<tr><td colspan="9" style="color:var(--tx3);padding:12px">No measured event is active on this date.</td></tr>'}</tbody></table></div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.65">The block map shows which of the ${2*m.span+1} research days each event is live on (cyan = the forecast day itself). Weight is that event's shrunk log-lift; the RPS is the rank-damped sum of these weights expressed as a percentile against all ${m.nBars} days in the fitted history. Nothing here is a black box — every number traces back to a count in the swing table above.</div>
       <button class="ci" style="cursor:pointer;margin-top:8px" onclick="document.getElementById('rf-explain').innerHTML=''">close</button>
     </div></div>`;
   el.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -17155,8 +17082,7 @@ function reForecastBodyHTML(){
   const m=reAct();
   if(!m) return `<div class="pnl"><div class="ph" data-noco><span class="dot"></span>◎ FORECASTING — future reversal calendar</div><div class="pb">
       <div style="font-size:12.5px;color:var(--acc);font-weight:700;margin-bottom:6px">No validated model loaded.</div>
-      <div style="font-size:11.5px;color:var(--tx2);line-height:1.8">The forecast is <b>not</b> a fresh opinion — it is this instrument's own history replayed forward.
-        Build a model first (here or in the <b>⟲ Backtesting</b> tab): the calendar is produced by scoring every future trading day against the very same event weights that were fitted on that instrument's own swing record, using the same ±2-day research window.</div>
+      <div style="font-size:11.5px;color:var(--tx3)">Build a model in <b style="color:var(--acc)">⟲ Backtesting</b> first.</div>
       <div style="margin-top:10px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
         <div class="cg"><span class="cl">INSTRUMENT</span><div style="display:flex;gap:4px">
           <input id="re-filter" class="ci" style="width:92px" placeholder="filter…" oninput="reFilterOpts(this.value)">${reInstSelect('re-inst')}</div></div>
@@ -17207,12 +17133,7 @@ function reForecastBodyHTML(){
           <div>${rePill(trust[0],trust[1],trust[2])}</div>
           <div style="font-size:11px;color:var(--tx3);margin-top:2px">lift ${wf.liftExact.toFixed(2)}× on the held-out ${m.wf.testFrom} → ${m.wf.testTo} window</div></div>
       </div>
-      <div style="margin-top:9px;padding:8px 11px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px;font-size:11.5px;color:var(--tx2);line-height:1.75">
-        <b style="color:var(--acc)">How to read this:</b> every future trading day from ${start} was scored against the <b>${m.nEvents}</b> astro events measured on this instrument's own ${m.from}–${m.to} swing history, using the same ±${m.span}-day research window.
-        <b>${list.length}</b> days clear RPS ≥ ${o.minRps} — <b style="color:var(--bear)">${tops} top-biased</b>, <b style="color:var(--bull)">${bots} bottom-biased</b>.
-        The reversal being forecast is the <b>${m.thr.label}</b> rule: ${m.thr.rule}.
-        Every row is fully explainable — press <b>why?</b> for the counts behind it.
-      </div>
+      
       ${dirNote}
     </div></div>
 
@@ -17226,11 +17147,7 @@ function reForecastBodyHTML(){
       <th>Date</th><th style="text-align:right">RPS</th><th>Predicted reversal</th>
       <th style="text-align:right">Historical hit rate<br><i style="font-weight:400;color:var(--tx3)">of this RPS band</i></th>
       <th>Supporting historical patterns</th><th>Explain</th>
-    </tr></thead><tbody>${rows||`<tr><td colspan="6" style="color:var(--tx3);padding:14px">No day in the next ${o.horizon} days clears RPS ≥ ${o.minRps} with these filters. Lower the threshold or widen the horizon.</td></tr>`}</tbody></table></div>
-      <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.7">
-        RPS is a <i>ranking</i> metric, as the PRD specifies — the percentile of this day's weighted astro load against all ${m.nBars} days in the fitted history.
-        The “historical hit rate” column is the honest calibration behind it: of every historical day that scored in the same RPS band, that share turned out to be a genuine ${m.thr.label} swing pivot (baseline ${(m.base*100).toFixed(2)}%).
-        Read the out-of-sample verdict above before trusting any row. Astro-timing research is a study aid, not investment advice.</div></div>`;
+    </tr></thead><tbody>${rows||`<tr><td colspan="6" style="color:var(--tx3);padding:14px">No day in the next ${o.horizon} days clears RPS ≥ ${o.minRps} with these filters. Lower the threshold or widen the horizon.</td></tr>`}</tbody></table></div></div>`;
 }
 
 function tREForecast(){
