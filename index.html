@@ -5380,7 +5380,14 @@ function taDow(ds){return new Date(taMs(ds)).getUTCDay();}
 
 function taSky(ds, hourIST, ay){
   const key = ds+'|'+hourIST+'|'+ay;
-  const hit = window.TA.sky.get(key); if(hit) return hit;
+  const hit = window.TA.sky.get(key);
+  if(hit){ window.TA.sky.delete(key); window.TA.sky.set(key,hit); return hit; }  // LRU touch
+  // Bounded: a full intraday scan visits ~77k distinct instants, and an
+  // unbounded map of sky snapshots was a large part of why the tab stalled.
+  if(window.TA.sky.size>4000){
+    const it=window.TA.sky.keys();
+    for(let i=0;i<1000;i++){ const n=it.next(); if(n.done) break; window.TA.sky.delete(n.value); }
+  }
   const J = taJD(ds, hourIST), ayn = getAyanamsa(J, ay);
   const rl = rahuLon(J);
   const p = {};
@@ -6805,15 +6812,30 @@ function taCentre(ev, ay, ds, scope){
 }
 
 /* the public entry — sky + enrichment + evaluation, memoised per instant */
+/* Re-read one graded row's full evaluation, for the ledger panels. Rows keep
+   only what the tables render; the ledger is opened for a single row at a time,
+   so paying one cached call there is far cheaper than retaining every row's
+   rules for the whole run. */
+function taRowEv(r){
+  if(!r) return null;
+  if(r.ev) return r.ev;                       // weekly/monthly rows still carry it
+  try{ return taRead(r.date, r._hour!==undefined?r._hour:9.25, r._ay||taAy(), r._scope||'daily'); }
+  catch(e){ return null; }
+}
+
 function taRead(ds, hour, ay, scope){
   const k=ds+'|'+hour+'|'+ay+'|'+scope;
   window.TA.evalCache=window.TA.evalCache||new Map();
-  const hit=window.TA.evalCache.get(k); if(hit) return hit;
+  const C=window.TA.evalCache;
+  const hit=C.get(k); if(hit){ C.delete(k); C.set(k,hit); return hit; }   // LRU touch
   const sky=taEnrich(taSky(ds,hour,ay));
   let out=taEval(sky,scope);
   if(!_taBaseBuilding) out=taCentre(out, ay, ds, scope);
-  if(window.TA.evalCache.size>20000) window.TA.evalCache.clear();
-  window.TA.evalCache.set(k,out);
+  // Evict the oldest rather than wiping the map. An intraday scan visits
+  // ~77k distinct keys, so a full clear at 20k threw away everything
+  // repeatedly while still holding 20k heavy objects at the moment it did.
+  if(C.size>4000){ const it=C.keys(); for(let i=0;i<1000;i++){ const n=it.next(); if(n.done)break; C.delete(n.value); } }
+  C.set(k,out);
   return out;
 }
 
@@ -7066,6 +7088,24 @@ async function taFetch(sym, tf, univKey){
 
 function taYield(){ return typeof reYield==='function' ? reYield() : new Promise(r=>setTimeout(r,0)); }
 
+/* Fold one bar's rules into the section tallies.
+
+   Called from inside the grading loop so the rule arrays can be released
+   immediately. Keeping them on 77k rows for a post-pass was what made the
+   intraday scan look stuck: the tab spent its time collecting garbage. */
+function taTallyRow(bySec, infoSec, rules, tech, actual){
+  if(!isFinite(actual)) return;
+  const seen=new Set();
+  const tally=(sec,x)=>{
+    if(x.dir===0){ const s=(infoSec[sec]=infoSec[sec]||{sec,n:0}); s.n++; return; }
+    const s=(bySec[sec]=bySec[sec]||{sec,n:0,hit:0,sum:0});
+    s.n++; if(Math.sign(x.dir)===Math.sign(actual)) s.hit++;
+    s.sum+=Math.sign(x.dir)*actual;
+  };
+  (rules||[]).forEach(x=>{ const k=x.sec+x.dir; if(seen.has(k)) return; seen.add(k); tally(x.sec,x); });
+  (tech||[]).forEach(x=>tally('[TECH] '+x.sec,x));
+}
+
 /* Build the backward (graded) calendar. */
 async function taBacktest(instKey, tf, ay, opts){
   const u=RE_UNIV[instKey]; if(!u) throw new Error('unknown instrument '+instKey);
@@ -7091,6 +7131,16 @@ async function taBacktest(instKey, tf, ay, opts){
       if(i0>1) bars=bars.slice(i0);
     }
   }
+  // Section scoring counts only DIRECTIONAL rules. A rule the source states
+  // without a direction — "Major Turning", "Volatile", "support and
+  // resistance" — has dir 0, and Math.sign(0) can never match the outcome, so
+  // scoring them would print a flat 0% beside sections that never made a
+  // directional claim. Those go to infoSec and are reported, not graded.
+  const bySec={}, infoSec={};
+  const _t0=performance.now();
+  const _gradeTotal = tf==='intraday'
+    ? bars.filter(b=>b.hour>=TA_SESSION_START-0.001 && b.hour<=TA_SESSION_END+0.001).length
+    : bars.length;
   for(let i=1;i<bars.length;i++){
     const b=bars[i];
     if(tf==='intraday' && (b.hour<TA_SESSION_START-0.001 || b.hour>TA_SESSION_END+0.001)) continue;
@@ -7102,10 +7152,23 @@ async function taBacktest(instKey, tf, ay, opts){
     const actual = (b.c-b.o)/b.o*100;                      // open→close of the bar
     const prevC = bars[i-1].c;
     const netMove = (b.c-prevC)/prevC*100;
-    rows.push({i, ts:b.ts, date:b.date, hour:b.hour, o:b.o,h:b.h,l:b.l,c:b.c,
-      score, band:taBand(score), ev, tech, techNet, actual, netMove,
-      rules:ev.rules, vol:ev.volatility, turn:ev.turning});
-    if((++n%120)===0){ setP(5+Math.round(88*i/bars.length), `grading ${n} ${cfg.label} bars …`); await taYield(); }
+    const row={i, ts:b.ts, date:b.date, hour:b.hour, o:b.o,h:b.h,l:b.l,c:b.c,
+      score, band:taBand(score), techNet, actual, netMove,
+      vol:ev.volatility, turn:ev.turning,
+      topRules:(ev.rules||[]).slice(0,4).map(x=>x.name),
+      _ay:ay, _scope:cfg.scope, _hour:Math.round(hour*12)/12};
+    // Tally now, while the rules are in hand, so nothing heavy has to be kept.
+    taTallyRow(bySec, infoSec, ev.rules, tech, actual);
+    rows.push(row);
+    if((++n%120)===0){
+      const el=(performance.now()-_t0)/1000;
+      const done=i/Math.max(1,bars.length-1);
+      const eta=done>0.01 ? Math.max(0, el/done - el) : null;
+      setP(5+Math.round(88*done),
+        `grading ${n.toLocaleString()} of ~${_gradeTotal.toLocaleString()} ${cfg.label} bars`
+        + (eta!==null ? ` · ${eta>90?Math.round(eta/60)+' min':Math.round(eta)+' s'} left` : ''));
+      await taYield();
+    }
   }
   setP(96,'scoring …'); await taYield();
 
@@ -7128,18 +7191,6 @@ async function taBacktest(instKey, tf, ay, opts){
   // resistance", "Kaal Sarp enhances whatever is running" — has dir 0, and
   // Math.sign(0) can never match the outcome, so including them would print a
   // flat 0% next to sections that never made a directional claim at all.
-  const bySec={}, infoSec={};
-  graded.forEach(r=>{
-    const seen=new Set();
-    const tally=(bucket,sec,x)=>{
-      if(x.dir===0){ const s=(infoSec[sec]=infoSec[sec]||{sec,n:0}); s.n++; return; }
-      const s=(bucket[sec]=bucket[sec]||{sec,n:0,hit:0,sum:0});
-      s.n++; if(Math.sign(x.dir)===Math.sign(r.actual)) s.hit++;
-      s.sum+=Math.sign(x.dir)*r.actual;
-    };
-    r.rules.forEach(x=>{ if(seen.has(x.sec+x.dir)) return; seen.add(x.sec+x.dir); tally(bySec,x.sec,x); });
-    r.tech.forEach(x=>tally(bySec,'[TECH] '+x.sec,x));
-  });
   const sections=Object.values(bySec).map(s=>({...s,acc:s.n?s.hit/s.n:0,avg:s.n?s.sum/s.n:0}))
     .filter(s=>s.n>=8).sort((a,b)=>b.acc-a.acc);
   const infoSections=Object.values(infoSec).filter(s=>s.n>=8).sort((a,b)=>b.n-a.n);
@@ -7251,12 +7302,12 @@ function taIntradayHTML(){
   const cur=slots.reduce((b,s)=>Math.abs(s.hour-sel)<Math.abs(b.hour-sel)?s:b,slots[0]);
   const tbl=slots.map(s=>{
     const c=s.score>0?'var(--bull)':s.score<0?'var(--bear)':'var(--neut)';
-    const top=s.ev.rules.slice(0,3).map(r=>taEsc(r.name)).join(' · ');
+    const top=(s.topRules||[]).slice(0,3).map(taEsc).join(' · ');
     return `<tr class="${Math.abs(s.hour-cur.hour)<0.001?'tr-hl':''}" style="cursor:pointer" onclick="taSet('taSlot','${s.hour}')">
       <td style="white-space:nowrap;font-weight:700">${s.label}</td>
       <td style="text-align:right;color:${c};font-weight:800">${s.score>0?'+':''}${s.score}</td>
       <td style="color:${s.band.c};font-weight:700;white-space:nowrap">${s.band.t}</td>
-      <td style="text-align:right;color:var(--tx3)">${s.ev.volatility>2?'⚡ '+s.ev.volatility.toFixed(1):''}${s.ev.turning>1.5?' ↻ '+s.ev.turning.toFixed(1):''}</td>
+      <td style="text-align:right;color:var(--tx3)">${s.vol>2?'⚡ '+s.vol.toFixed(1):''}${s.turn>1.5?' ↻ '+s.turn.toFixed(1):''}</td>
       <td style="font-size:11px;color:var(--tx2)">${top}</td></tr>`;
   }).join('');
   return `
@@ -7270,7 +7321,7 @@ function taIntradayHTML(){
     </div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>SLOT LEDGER — ${cur.label} · score ${cur.score>0?'+':''}${cur.score} · <span style="color:${cur.band.c}">${cur.band.t}</span></div>
-    <div class="pb">${taLedgerHTML(cur.ev, null, 60)}</div></div>
+    <div class="pb">${taLedgerHTML(taRowEv(cur), null, 60)}</div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>ALL 5-MINUTE SLOTS</div>
     <div class="pb"><div class="ts" style="max-height:560px;overflow:auto"><table class="tbl"><thead><tr>
@@ -7285,13 +7336,13 @@ function taForwardHTML(tf){
   const max=Math.max(...rows.map(r=>Math.abs(r.score)),1);
   const body=rows.map((r,i)=>{
     const c=r.score>0?'var(--bull)':r.score<0?'var(--bear)':'var(--neut)';
-    const top=r.ev.rules.slice(0,4).map(x=>taEsc(x.name)).join(' · ');
+    const top=(r.topRules||[]).map(taEsc).join(' · ');
     return `<tr style="cursor:pointer" onclick="taSet('taPick','${r.date}')" class="${S.taPick===r.date?'tr-hl':''}">
       <td style="white-space:nowrap;font-weight:700">${r.date}${tf==='weekly'?`<div style="font-size:10px;color:var(--tx3)">week of</div>`:''}</td>
       <td style="text-align:right;color:${c};font-weight:800;font-size:15px">${r.score>0?'+':''}${r.score}</td>
       <td style="width:120px">${taBar(r.score,max,c)}</td>
       <td style="color:${r.band.c};font-weight:700;white-space:nowrap">${r.band.t}</td>
-      <td style="text-align:right;font-size:11px;color:var(--tx3)">${r.ev.volatility>2?'⚡':''}${r.ev.turning>1.5?' ↻':''}</td>
+      <td style="text-align:right;font-size:11px;color:var(--tx3)">${r.vol>2?'⚡':''}${r.turn>1.5?' ↻':''}</td>
       <td style="font-size:11px;color:var(--tx2)">${top}</td></tr>`;
   }).join('');
   const pick=rows.find(r=>r.date===S.taPick)||rows[0];
@@ -7302,7 +7353,7 @@ function taForwardHTML(tf){
     </tr></thead><tbody>${body}</tbody></table></div></div></div>
 
   <div class="pnl"><div class="ph"><span class="dot"></span>LEDGER — ${pick.date} · score ${pick.score>0?'+':''}${pick.score} · <span style="color:${pick.band.c}">${pick.band.t}</span></div>
-    <div class="pb">${taLedgerHTML(pick.ev,null,70)}</div></div>`;
+    <div class="pb">${taLedgerHTML(taRowEv(pick),null,70)}</div></div>`;
 }
 
 /* ── backward (graded) calendar ── */
@@ -7325,7 +7376,7 @@ function taBackwardHTML(){
       <td style="color:${r.band.c};font-size:11px;white-space:nowrap">${r.band.t}</td>
       <td style="text-align:right;color:${r.actual>=0?'var(--bull)':'var(--bear)'}">${r.actual>=0?'+':''}${r.actual.toFixed(2)}%</td>
       <td style="text-align:center">${r.score===0?'<span style="color:var(--tx3)">—</span>':ok?'<span style="color:var(--bull);font-weight:800">✓</span>':'<span style="color:var(--bear);font-weight:800">✗</span>'}</td>
-      <td style="font-size:11px;color:var(--tx2)">${r.rules.slice(0,3).map(x=>taEsc(x.name)).join(' · ')}</td></tr>`;
+      <td style="font-size:11px;color:var(--tx2)">${(r.topRules||[]).slice(0,3).map(taEsc).join(' · ')}</td></tr>`;
   }).join('');
   const secRows=m.sections.map(s=>`<tr>
       <td style="font-size:11.5px;color:${s.sec.startsWith('[TECH]')?'var(--jupi)':'var(--acc)'}">§ ${taEsc(s.sec)}</td>
@@ -7450,7 +7501,7 @@ function taContextHTML(){
 
 function taBodyHTML(){
   const tf=taTf(), view=S.taView||'forward';
-  if(window.TA.status==='running') return taProgressHTML();
+  if(window.TA.status==='running') return '';   // #ta-prog owns the live bar
   if(view==='backward') return taBackwardHTML();
   if(view==='audit')    return `<div class="pnl"><div class="ph"><span class="dot"></span>RULE COVERAGE AUDIT</div><div class="pb">${taAuditHTML()}</div></div>`;
   if(view==='context')  return `<div class="pnl"><div class="ph"><span class="dot"></span>SECTORS · CABINET · VEDH</div><div class="pb">${taContextHTML()}</div></div>`;
@@ -7561,7 +7612,8 @@ function tAstral(){
         <div class="cg"><span class="cl">INSTRUMENT (backward test)</span>${instSel}</div>
         <div class="cg"><span class="cl">AYANAMSA</span><select class="ci" style="width:110px" onchange="taSet('taAy',this.value)">
           ${[['lahiri','Lahiri'],['kp','KP New'],['kpold','KP Old'],['raman','Raman'],['sayana','Sayana']].map(([v,l])=>`<option value="${v}" ${taAy()===v?'selected':''}>${l}</option>`).join('')}</select></div>
-        <div class="cg" style="${tf==='intraday'?'':'display:none'}"><span class="cl">INTRADAY SPAN</span><select class="ci" style="width:120px" onchange="taSet('taIntraDays',this.value)">${[[30,'30 days'],[120,'120 days'],[365,'1 year'],[0,'all baked']].map(([v,l])=>`<option value="${v}" ${String(S.taIntraDays||120)===String(v)?'selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="cg" style="${tf==='intraday'?'':'display:none'}"><span class="cl">INTRADAY SPAN</span><select class="ci" style="width:120px" onchange="taSet('taIntraDays',this.value)">${[[30,'30 days · ~30 s'],[120,'120 days · ~2 min'],[365,'1 year · ~5 min'],[0,'all baked · ~20 min']].map(([v,l])=>`<option value="${v}" ${String(S.taIntraDays||120)===String(v)?'selected':''}>${l}</option>`).join('')}</select>
+          <div style="font-size:9.5px;color:var(--tx3);margin-top:2px">every slot is scored on its own sky, so time scales with bars</div></div>
         <div class="cg"><span class="cl">CHAPTER 2 TECHNICALS</span><select class="ci" style="width:110px" onchange="taSet('taTech',this.value)">
           <option value="1" ${S.taTech!=='0'?'selected':''}>included</option><option value="0" ${S.taTech==='0'?'selected':''}>astro only</option></select></div>
         <button onclick="taRun()" ${window.TA.status==='running'?'disabled':''}
