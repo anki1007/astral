@@ -3221,7 +3221,7 @@ function karanaOf(sunLon, moonLon){
   return { k, name, isVishti:(k>=1 && k<=56 && (k-1)%7===6), elong };
 }
 
-function computeBhadra(dateStr, rMin, ayMode){
+function computeBhadra(dateStr, rMin, ayMode, sMin){
   const dp = dateStr.split('-').map(Number);
   let inV=false, start=null, segs=[];
   for(let m=0; m<=30*60; m+=10){
@@ -3237,8 +3237,15 @@ function computeBhadra(dateStr, rMin, ayMode){
   if(!seg) return { active:false, hint:'No Bhadra (Vishti karana) on this date — neutral.' };
   const dayBhadra = (seg.k % 2 === 0);
   const typeLabel = dayBhadra ? 'Day Bhadra' : 'Night Bhadra';
-  const startsBeforeSunrise = seg.startM < rMin;
-  const phase = startsBeforeSunrise ? 'night-time' : 'daytime';
+  // Night is before sunrise OR after sunset. Testing sunrise alone scored a
+  // Bhadra opening at 20:00 as "daytime", which inverts the book's rule for
+  // every evening onset. The scan runs out to 30h, so fold the clock back
+  // into 0-24 before comparing it with anything.
+  const startClock = ((seg.startM % (24*60)) + 24*60) % (24*60);
+  const setMin = (sMin==null ? 18.5*60 : sMin);
+  const startsBeforeSunrise = startClock < rMin;
+  const isNight = startClock < rMin || startClock >= setMin;
+  const phase = isNight ? 'night-time' : 'daytime';
   let timePol;
   if(dayBhadra && phase==='daytime')       timePol=-1;
   else if(dayBhadra && phase==='night-time') timePol=+1;
@@ -3249,7 +3256,7 @@ function computeBhadra(dateStr, rMin, ayMode){
   const lokaPol = BHADRA_LOKA_POL[loka];
   const net = Math.sign(timePol + lokaPol) || timePol;
   return {
-    active:true, typeLabel, dayBhadra, phase, startsBeforeSunrise,
+    active:true, typeLabel, dayBhadra, phase, startsBeforeSunrise, isNight, startClock,
     startM:seg.startM, endM:seg.endM, k:seg.k,
     moonSign, moonSignName:SIGNS[moonSign], loka, lokaPol, timePol, net,
     windowTxt: `${mtt(((seg.startM%(24*60))+24*60)%(24*60))}->${mtt(seg.endM%(24*60))}`,
@@ -4299,7 +4306,7 @@ function computeAll(dateStr,timeIST,ayMode){
 
   // ── ASTRO-FINANCE HOLY-GRAIL RULE PACK (X-folder rules) ──────────
   const natal       = computeNatal(ayMode);
-  const bhadra      = computeBhadra(dateStr, rMin, ayMode);
+  const bhadra      = computeBhadra(dateStr, rMin, ayMode, sMin);
   const sbc         = rules ? computeSBC(planets, aspects, rules, dateStr) : {sig:[],bearishCount:0,netDir:0};
   const declShifts  = declinationShifts(J, planets);
   const bhavDay     = computeBhavphal(planets, ascSid);
@@ -14703,15 +14710,37 @@ function panchakEngine(dateStr, ayDeg){
   const nakOf=J=>NAKS[Math.floor(sidMoon(J)/(360/27))].n;
   const days=[]; for(let k=0;k<5;k++){ const J=startJ+k+0.3; if(J>endJ+0.6) break; const p=jdToISTParts(J);
     days.push({date:`${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}`, wd:new Date(p.year,p.month-1,p.day).getDay(), nak:nakOf(J), yoga:yogaAt(J)}); }
+  // Rules 3 and 4 both carry "and ends too in the same month" — a Panchak
+  // that opens at the right ghadi but runs past the month end does not
+  // qualify, and dropping that clause was handing out 1-year bull calls on
+  // windows the book excludes.
+  const ep=jdToISTParts(endJ);
+  const endsSameMonth = (ep.year===sp.year && ep.month===sp.month);
+
   const R={};
   R.r67 = (wd===1||wd===3||wd===5) ? {v:'BEARISH',note:'Panchak starts on '+WDNAME[wd]} : {v:'BULLISH',note:'Panchak starts on '+WDNAME[wd]};
   const near=(x,t)=>Math.abs(x-t)<=2.5;
-  R.r345 = near(ghadi,50) ? {v:'BULLISH',scope:'1 YEAR',high:true,note:ghadi.toFixed(1)+' ghadi ≈ 50 after sunrise'}
-         : near(ghadi,45) ? {v:'BULLISH',scope:'1 MONTH',note:ghadi.toFixed(1)+' ghadi ≈ 45 after sunrise'}
-         : {v:'BEARISH',scope:'FORTNIGHT',note:ghadi.toFixed(1)+' ghadi after sunrise (not 45/50)'};
+  const spanTxt = endsSameMonth ? 'ends in the same month' : 'ends in the NEXT month — rule 3/4 condition fails';
+  R.r345 = (near(ghadi,50) && endsSameMonth) ? {v:'BULLISH',scope:'1 YEAR',high:true,note:ghadi.toFixed(1)+' ghadi ≈ 50 after sunrise · '+spanTxt}
+         : (near(ghadi,45) && endsSameMonth) ? {v:'BULLISH',scope:'1 MONTH',note:ghadi.toFixed(1)+' ghadi ≈ 45 after sunrise · '+spanTxt}
+         : {v:'BEARISH',scope:'FORTNIGHT',note:ghadi.toFixed(1)+' ghadi after sunrise'+((near(ghadi,50)||near(ghadi,45))?' but '+spanTxt:' (not 45/50)')};
   R.r8 = goodYoga ? {v:'BULLISH',high:true,note:goodYoga+' yoga falls in the Panchak window'} : {v:'—',note:'no Indra / Vaidhriti / Vyatipata in window'};
+
+  // Rule 9 — Jupiter and Saturn together in any sign makes Panchak Bullish.
+  // Read at the window's midpoint; both are slow enough that a five-day
+  // window cannot change the answer.
+  let r9sign=null;
+  try{
+    const midJ=(startJ+endJ)/2;
+    const jS=Math.floor(n360(geoLon('Jupiter',midJ)-ayDeg)/30);
+    const sS=Math.floor(n360(geoLon('Saturn', midJ)-ayDeg)/30);
+    if(jS===sS) r9sign=SIGNS[jS];
+    R.r9 = r9sign ? {v:'BULLISH',high:true,note:'Jupiter and Saturn both in '+r9sign}
+                  : {v:'—',note:'Jupiter in '+SIGNS[jS]+', Saturn in '+SIGNS[sS]+' — not together'};
+  }catch(e){ R.r9={v:'—',note:'could not resolve Jupiter/Saturn signs'}; }
+
   let score=0; const w=(r,x)=>{ if(r.v==='BULLISH') score+=x; else if(r.v==='BEARISH') score-=x; };
-  w(R.r345, R.r345.high?2:1.5); w(R.r67,1); w(R.r8, R.r8.v==='BULLISH'?2:0);
+  w(R.r345, R.r345.high?2:1.5); w(R.r67,1); w(R.r8, R.r8.v==='BULLISH'?2:0); w(R.r9, R.r9.v==='BULLISH'?2:0);
   const verdict = score>0.5?'BULLISH':score<-0.5?'BEARISH':'NEUTRAL';
   // price-relevant window: the active Panchak, else the most recent COMPLETED
   // one — its 5 days' high/low form the Panchak trading range (S/R afterward).
@@ -14727,8 +14756,9 @@ function panchakEngine(dateStr, ayDeg){
     while(dt<=de){ dates.push(dt.toISOString().slice(0,10)); dt.setUTCDate(dt.getUTCDate()+1); }
     priceWin={startDate:sd, endDate:ed, dates, active:(noonJ>=ps-step&&noonJ<=pe+step), startDisp:fmtIST(A), endDisp:fmtIST(B)};
   }
-  return {none:false, active, startDisp:fmtIST(sp), endDisp:fmtIST(jdToISTParts(endJ)),
-          wd, ghadi, srH, startHour, goodYoga, startYoga:yogaAt(startJ), days, R, score, verdict, priceWin};
+  return {none:false, active, startDisp:fmtIST(sp), endDisp:fmtIST(ep),
+          wd, ghadi, srH, startHour, goodYoga, startYoga:yogaAt(startJ), days, R, score, verdict, priceWin,
+          endsSameMonth, r9sign};
 }
 // ── PANCHAK TRADING RANGE — the high/low made during the (active or most
 // recent) Panchak window becomes support/resistance for the period after.
@@ -14762,8 +14792,29 @@ async function panchakLevelsLoad(force){
     for(const b of post){ maxH=Math.max(maxH,b.h); minL=Math.min(minL,b.l);
       if(b.h>hi){ brokeAbove=true; if(!upBreakDate)upBreakDate=b.date; }
       if(b.l<lo){ brokeBelow=true; if(!dnBreakDate)dnBreakDate=b.date; } }
+    // Rules 1 & 2: every one of the five Panchak days Bullish makes the month
+    // Bullish, every one Bearish makes it Bearish. Direction is close vs the
+    // prior close, so the first day is measured against the bar before the
+    // window rather than against its own open.
+    const dayDirs=win.map(b=>{
+      const i=bars.findIndex(x=>x.date===b.date);
+      const prev=i>0?bars[i-1].c:b.o;
+      return {date:b.date, up:b.c>prev, pct:(b.c-prev)/prev*100};
+    });
+    const nUp=dayDirs.filter(d=>d.up).length;
+    // The Panchak spans five calendar days but a weekend usually leaves only
+    // three or four with a session. Demanding five bars meant the rule could
+    // almost never fire, so uniformity is judged over the days that actually
+    // traded, with the count reported alongside.
+    const allBull=dayDirs.length>=3 && nUp===dayDirs.length;
+    const allBear=dayDirs.length>=3 && nUp===0;
+    // "In case of a both-side break, the later side break is considered more
+    // powerful" — so a whipsaw resolves to whichever edge gave way last.
+    let laterBreak=null;
+    if(brokeAbove&&brokeBelow) laterBreak = (upBreakDate>dnBreakDate)?'up':'down';
     return {name,hi,lo,range:hi-lo,rangePct:(hi-lo)/lo*100,barsN:win.length,last,
-      postN:post.length,brokeAbove,brokeBelow,upBreakDate,dnBreakDate,
+      postN:post.length,brokeAbove,brokeBelow,upBreakDate,dnBreakDate,laterBreak,
+      dayDirs,nUp,allBull,allBear,
       maxH:isFinite(maxH)?maxH:null,minL:isFinite(minL)?minL:null};
   }));
   if(window.PANCHAKLV.key!==key) return; // superseded
@@ -14789,7 +14840,13 @@ function panchakLevelsHTML(){
     const above=r.last>r.hi, below=r.last<r.lo;
     if(above) return {t:'▲ ABOVE HIGH',sub:'holding above · +'+((r.last-r.hi)/r.hi*100).toFixed(2)+'%',c:'var(--bull)',ord:0};
     if(below) return {t:'▼ BELOW LOW',sub:'holding below · −'+((r.lo-r.last)/r.lo*100).toFixed(2)+'%',c:'var(--bear)',ord:1};
-    if(r.brokeAbove&&r.brokeBelow) return {t:'↕ WHIPSAW',sub:'broke both, back inside',c:'var(--sun)',ord:2};
+    if(r.brokeAbove&&r.brokeBelow){
+      // Both edges gave way: the book takes the later break as the powerful one.
+      const up=r.laterBreak==='up';
+      return {t:up?'↕ BOTH → UP LATER':'↕ BOTH → DOWN LATER',
+              sub:'later break '+(up?r.upBreakDate:r.dnBreakDate||'').slice(5)+' · '+(up?'bullish':'bearish')+' (later break rules)',
+              c:up?'var(--bull)':'var(--bear)',ord:2};
+    }
     if(r.brokeAbove) return {t:'⤾ FAILED HIGH BREAK',sub:'poked '+(r.upBreakDate||'').slice(5)+' → back inside (bearish)',c:'var(--bear)',ord:3};
     if(r.brokeBelow) return {t:'⤿ FAILED LOW BREAK',sub:'poked '+(r.dnBreakDate||'').slice(5)+' → recovered (bullish)',c:'var(--bull2)',ord:4};
     return {t:'↔ INSIDE',sub:r.postN?'range intact':'window still active',c:'var(--neut)',ord:5};
@@ -14863,29 +14920,42 @@ function tPanchak(){
       </div>
       <div class="ts"><table class="tbl"><thead><tr><th>#</th><th>Rule (applies to this Panchak)</th><th>Result</th><th>Basis</th></tr></thead>
         <tbody>
-          ${ruleRow('3/4/5','Start time vs sunrise (ghadi)',P.R.r345)}
+          ${(function(){
+            const lv=window.PANCHAKLV||{};
+            const r=(lv.rows||[]).find(x=>x&&x.dayDirs&&x.dayDirs.length);
+            if(!r) return ruleRow('1/2','All five Panchak days uniformly bull/bear',
+              {v:'—',note:'waiting on Panchak-window prices (see trading range below)'});
+            const dd=r.dayDirs.map(d=>(d.up?'▲':'▼')+d.date.slice(5)).join(' ');
+            return ruleRow('1/2','All five Panchak days uniformly bull/bear',
+              r.allBull ? {v:'BULLISH',scope:'ENTIRE MONTH',high:true,note:r.name+': all '+r.dayDirs.length+' days up · '+dd}
+            : r.allBear ? {v:'BEARISH',scope:'ENTIRE MONTH',note:r.name+': all '+r.dayDirs.length+' days down · '+dd}
+            : {v:'—',note:r.name+': '+r.nUp+' up / '+(r.dayDirs.length-r.nUp)+' down — not uniform · '+dd});
+          })()}
+          ${ruleRow('3/4/5','Start time vs sunrise (ghadi) + ends in same month',P.R.r345)}
           ${ruleRow('6/7','Weekday Panchak begins',P.R.r67)}
           ${ruleRow('8','Indra / Vaidhriti / Vyatipata yoga',P.R.r8)}
+          ${ruleRow('9','Jupiter & Saturn together in one sign',P.R.r9)}
         </tbody></table></div>
-      <div style="padding:6px 12px;font-size:10.5px;color:var(--tx3)">The 5 Panchak days (rules 1 & 2 look at whether every day is uniformly bull/bear — check each in Day Forecast):
+      <div style="padding:6px 12px;font-size:10.5px;color:var(--tx3)">The 5 Panchak days (rules 1 & 2 above grade these against price automatically):
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px">${P.days.map(d=>`<span class="pill pb-a" style="font-size:10px">${WDNAME[d.wd]} ${d.date.slice(5)} · ${d.nak}${PANCHAK_GOOD_YOGAS.has(d.yoga)?` · <b style="color:var(--bull)">${d.yoga}</b>`:''}</span>`).join('')}</div></div>
     </div>`;
   }
   statusCard += `<div id="panchakLevelsHost">${panchakLevelsHTML()}</div>`;
-  const rulesRef=`<div class="pnl"><div class="ph"><span class="dot"></span>PANCHAK RESULTS — the 8 rules (Parth Prophesies)</div>
+  const rulesRef=`<div class="pnl"><div class="ph"><span class="dot"></span>PANCHAK RESULTS — the 9 rules</div>
     <div class="ts"><table class="tbl"><thead><tr><th>#</th><th>Condition</th><th>Result</th></tr></thead><tbody>
       ${[
         ['1','All five Panchak days Bullish','entire month thereafter <b style="color:var(--bull)">Bullish</b>'],
         ['2','All five Panchak days Bearish','entire month thereafter <b style="color:var(--bear)">Bearish</b>'],
-        ['3','Panchak starts ~50 ghadi after sunrise (ends same)','<b style="color:var(--bull)">Bullish for one year</b> · HIGH-PROBABLE'],
-        ['4','Panchak starts ~45 ghadi after sunrise (ends same)','<b style="color:var(--bull)">Bullish for the month</b>'],
+        ['3','Panchak starts ~50 ghadi after sunrise <b>and ends in the same month</b>','<b style="color:var(--bull)">Bullish for one year</b> · HIGH-PROBABLE'],
+        ['4','Panchak starts ~45 ghadi after sunrise <b>and ends in the same month</b>','<b style="color:var(--bull)">Bullish for the month</b>'],
         ['5','Panchak starts & ends at any other time','<b style="color:var(--bear)">Bearish</b> for that fortnight'],
         ['6','Panchak starts on Monday, Wednesday or Friday','<b style="color:var(--bear)">Bearish</b>'],
         ['7','Panchak starts on Sunday, Tuesday, Thursday or Saturday','<b style="color:var(--bull)">Bullish</b>'],
         ['8','Indra, Vaidhriti or Vyatipata yoga on Panchak days','<b style="color:var(--bull)">high Bullish</b> · HIGH-PROBABLE'],
+        ['9','Jupiter and Saturn together in any sign','Panchak usually <b style="color:var(--bull)">Bullish</b> · HIGH-PROBABLE'],
       ].map(r=>`<tr><td style="text-align:center;color:var(--tx3)">${r[0]}</td><td style="color:var(--tx1)">${r[1]}</td><td style="color:var(--tx2)">${r[2]}</td></tr>`).join('')}
     </tbody></table></div>
-    <div style="padding:6px 12px;font-size:10.5px;color:var(--tx3)">Note: rules <b style="color:var(--tx1)">1, 3 & 8</b> are high-probable; the rest depend on many other factors. 1 day = 60 ghadi, 1 hour = 2.5 ghadi. Day starts at sunrise (Hindu calendar). Panchak = Moon in the last 5 nakshatras Dhanishtha→Revati (sidereal 293°20′→360°).</div>
+    <div style="padding:6px 12px;font-size:10.5px;color:var(--tx3)">Note: rules <b style="color:var(--tx1)">1, 3, 8 & 9</b> are high-probable; the rest depend on many other factors. 1 day = 60 ghadi, 1 hour = 2.5 ghadi. Day starts at sunrise (Hindu calendar). Panchak = Moon in the last 5 nakshatras Dhanishtha→Revati (sidereal 293°20′→360°). Range rule: Bullish above the Panchak high, Bearish below the low; if both edges break, the <b style="color:var(--tx1)">later</b> break is the powerful one.</div>
   </div>`;
   const anyActive=combos.some(c=>c.active);
   const combosPanel=`<div class="pnl"><div class="ph" style="justify-content:space-between"><span><span class="dot"></span>STRONG BEARISH PERMUTATION &amp; COMBINATION — Mars aspects (live)</span>
