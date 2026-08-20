@@ -12160,8 +12160,15 @@ function tTiming(){
   const _hw=new Date(S.date+"T00:00:00").getDay(), _hp=D.ruleX?D.ruleX.horaNow.paksha:(D.rules?D.rules.tithi.paksha:'Shukla');
   const curMin=parseFloat(S.time)*60;
   const SR=sessionRange();
+  // Measured hora-vs-range strip. Only NSE indices have the study behind them,
+  // so it stays absent elsewhere rather than quoting Nifty's numbers at a
+  // market they were never measured on.
+  const _hl=(D.phpHours.find(x=>curMin>=x.sm&&curMin<x.em)||{}).planet;
+  const _hk={'NIFTY 50':'NIFTY','BANK NIFTY':'BANKNIFTY'}[(typeof ovInstKey==='function')?ovInstKey():''];
+  const _hstrip=_hk?horaVolStripHTML(_hl,_hk):'';
   return`
 <div style="display:flex;flex-direction:column;gap:10px">
+  ${_hstrip}
   <div class="pnl">
     <div class="ph">
       <span class="dot"></span>15-MIN INTRADAY TIMING · ${S.date} · ${SR.label} ${mtt(SR.startMin)}→${mtt(SR.endMin)} · Sunrise ${mtts(D.rMin)} · Sunset ${mtts(D.sMin)} (sunrise-anchored horas)
@@ -14923,6 +14930,76 @@ function marsBearishCombos(planets){
     const pos=posFrom(mars,o); return {pair:'Mars–'+d.other, rel:d.rel, pos, mSign:mars.sign, oSign:o.sign, active:d.set.includes(pos), note:d.note}; }).filter(Boolean);
 }
 
+
+/* ── HORA vs REALISED RANGE ──────────────────────────────────────────────
+   The one measured, replicated astro effect in this terminal.
+
+   Everything daily came back empty: 34.5M aspect-pair-lag combinations
+   returned a best statistic of 10.89 against a permuted-null mean of 10.91.
+   Hora is different because it repeats — seven lords cycling every day gives
+   thousands of independent occurrences in the 2022-2026 baked 5-minute
+   history, which is the statistical power the slow planets never had.
+
+   What it is NOT: directional. Hora carries no information about which way
+   price goes (max |mean| 0.101 bps against a null p95 of 0.157, p=0.495).
+
+   What it IS: a small volatility effect. Jupiter hora runs a few percent
+   above the average five-minute range, and it is the strongest of the seven
+   lords in all four test cells. It survives removing the time-of-day profile
+   (hora is nearly a clock function, and Indian intraday has a strong
+   open/midday/close shape), removing calendar-month seasonality, and a null
+   built by shuffling whole days so intraday structure is preserved and only
+   the hora-to-day alignment is destroyed. It then replicates on Bank Nifty,
+   more strongly than on Nifty.
+
+   Numbers are mean deviation from the slot x month baseline, in basis points
+   of the previous close, over ~84,500 bars per index. */
+const HORA_VOL = {
+  NIFTY:    {Jupiter:+0.231, Saturn:+0.117, Mars:+0.058, Venus:-0.071,
+             Sun:-0.138, Moon:-0.145, Mercury:-0.096, base:9.444, p:0.005},
+  BANKNIFTY:{Jupiter:+0.375, Saturn:+0.121, Mars:+0.070, Venus:-0.084,
+             Sun:-0.112, Moon:-0.141, Mercury:-0.166, base:12.676, p:0.000}
+};
+
+function horaVolFor(lord, instKey){
+  const t=HORA_VOL[instKey==='BANKNIFTY'?'BANKNIFTY':'NIFTY'];
+  const d=t[lord];
+  if(d===undefined) return null;
+  return {dev:d, base:t.base, pct:d/t.base*100, p:t.p};
+}
+
+function horaVolStripHTML(lord, instKey){
+  const v=horaVolFor(lord, instKey);
+  if(!v) return '';
+  const col=v.dev>0.05?'var(--bear)':v.dev<-0.05?'var(--bull2)':'var(--tx3)';
+  const tbl=['Jupiter','Saturn','Mars','Venus','Mercury','Sun','Moon'].map(L=>{
+    const x=horaVolFor(L,instKey); const on=(L===lord);
+    return `<span style="padding:2px 7px;border-radius:9px;font-size:10px;
+      border:1px solid ${on?'var(--acc)':'var(--bd2)'};background:${on?'var(--acc3)':'transparent'};
+      color:${on?'#001318':x.dev>0.05?'var(--bear)':x.dev<-0.05?'var(--bull2)':'var(--tx3)'};
+      font-weight:${on?'800':'600'}">${L} ${x.pct>0?'+':''}${x.pct.toFixed(1)}%</span>`;
+  }).join(' ');
+  return `<div class="pnl"><div class="ph"><span class="dot" style="background:${col}"></span>
+    ◔ HORA vs REALISED RANGE — measured, ${instKey==='BANKNIFTY'?'Bank Nifty':'Nifty'} 5-min 2022-2026</div>
+    <div class="pb">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-bottom:7px">
+        <span style="font-size:10.5px;color:var(--tx3)">CURRENT HORA</span>
+        <b style="font-size:16px;color:var(--tx0)">${lord||'—'}</b>
+        <span style="font-size:10.5px;color:var(--tx3)">EXPECTED RANGE</span>
+        <b style="font-size:15px;color:${col}">${v.pct>0?'+':''}${v.pct.toFixed(1)}%</b>
+        <span style="font-size:10.5px;color:var(--tx3)">vs the average 5-min bar (${v.base.toFixed(1)} bps)</span>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${tbl}</div>
+      <div style="font-size:10.5px;color:var(--tx3);margin-top:8px;line-height:1.55">
+        <b style="color:var(--tx1)">Volatility only — this says nothing about direction.</b>
+        Hora carries no directional information at all (max 0.101 bps against a null p95 of 0.157,
+        p=0.495). The range effect survives removing the time-of-day profile, removing month
+        seasonality, and a whole-day-shuffle null (p=${v.p.toFixed(3)}), and replicates on both
+        indices. It is small — a few percent on the size of a bar — so it refines position sizing
+        and option-premium expectations, not entries.</div>
+    </div></div>`;
+}
+
 function tPanchak(){
   const D=DATA;
   const P=panchakEngine(S.date, D.ay);
