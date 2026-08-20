@@ -8223,6 +8223,36 @@ async function ovbcLoadPrice(force){
   // re-pay the failover cost of a dead primary every 60s
   const _pref=(window._ovbcSymPref||{})[ovInstKey()];
   if(_pref && syms.includes(_pref)) syms.sort((a,b)=>(a===_pref?-1:0)-(b===_pref?-1:0));
+  // NSE intraday comes from the baked Upstox 5-minute shards first. The
+  // chart resamples to the selected interval, so anything at or above 5m is
+  // served without touching Yahoo; 1m is finer than the bake and still falls
+  // through. Keeps the Overview on broker data for Indian instruments.
+  {
+    const uk=dsKeyForYahooSym(syms[0]) || (RE_UNIV[ovInstKey()]?ovInstKey():null);
+    if(uk && dsIsNSE(uk) && iv>=5){
+      try{
+        const intra=await dsBakedIntraday(uk);
+        if(intra && intra.length){
+          const day=intra.filter(b=>b.date===S.date);
+          if(day.length>=2){
+            const bucket=new Map();
+            for(const b of day){
+              const m=Math.floor((Math.round(b.hour*60))/iv)*iv;
+              const cur=bucket.get(m);
+              if(!cur) bucket.set(m,{m,o:b.o,h:b.h,l:b.l,c:b.c});
+              else { cur.h=Math.max(cur.h,b.h); cur.l=Math.min(cur.l,b.l); cur.c=b.c; }
+            }
+            const bars=[...bucket.values()].sort((a,b)=>a.m-b.m);
+            if(bars.length>=2){
+              window.OVBC={key,bars,status:'ready',err:'',note:'Upstox (baked 5-min)'};
+              const hh=document.getElementById('ovbcHost'); if(hh&&DATA) hh.innerHTML=ovBiasChart(DATA);
+              return;
+            }
+          }
+        }
+      }catch(e){ /* fall through to the proxy race */ }
+    }
+  }
   // 1m payloads are huge (thousands of rows) and choke the free proxies —
   // request a tight window around the selected day for 1m, wider otherwise
   const _d0=Math.floor(planMs(S.date)/1000);
@@ -15870,6 +15900,41 @@ async function yfRanges(sym, proxify){
   };
 }
 async function yfRangesMulti(sym){
+  // NSE first, from broker dailies. Prev-day / week / month anchors are just
+  // aggregates of completed daily bars, so the baked history answers them
+  // without a proxy round-trip and without Yahoo's index gaps.
+  try{
+    const k=dsKeyForYahooSym(sym);
+    if(k && dsIsNSE(k)){
+      const from=reISO(Date.now()-120*86400000);
+      const rows=await dsNseDaily(sym, from, reISO(Date.now()));
+      if(rows && rows.length>25){
+        const bars=rows.slice().sort((a,b)=>a.date<b.date?-1:1);
+        const today=reISO(Date.now());
+        const past=bars.filter(b=>b.date<today);
+        if(past.length>25){
+          const last=past[past.length-1];
+          const dow=d=>new Date(d+'T00:00:00Z').getUTCDay();
+          // previous completed week = the Mon-Fri block before this one
+          let i=past.length-1; const curMonday=(()=>{ const d=new Date(last.date+'T00:00:00Z');
+            d.setUTCDate(d.getUTCDate()-((dow(last.date)+6)%7)); return d.toISOString().slice(0,10); })();
+          const prevWeek=past.filter(b=>{ const d=new Date(b.date+'T00:00:00Z');
+            const m=new Date(curMonday+'T00:00:00Z'); const lo=new Date(m); lo.setUTCDate(lo.getUTCDate()-7);
+            return b.date>=lo.toISOString().slice(0,10) && b.date<curMonday; });
+          const curMonth=last.date.slice(0,7);
+          const pm=(()=>{ const d=new Date(curMonth+'-01T00:00:00Z'); d.setUTCMonth(d.getUTCMonth()-1);
+            return d.toISOString().slice(0,7); })();
+          const prevMonth=past.filter(b=>b.date.slice(0,7)===pm);
+          const hi=a=>a.length?Math.max(...a.map(b=>b.h)):null;
+          const lo=a=>a.length?Math.min(...a.map(b=>b.l)):null;
+          const out={pdh:last.h, pdl:last.l,
+                     pwh:hi(prevWeek), pwl:lo(prevWeek),
+                     pmh:hi(prevMonth), pml:lo(prevMonth)};
+          if(out.pdh && out.pdl) return out;
+        }
+      }
+    }
+  }catch(e){ /* fall through to Yahoo */ }
   for(const p of PROXIES){ try{ return await yfRanges(sym,p); }catch(e){} }
   return null;
 }
@@ -15902,6 +15967,18 @@ window.fetchAnchorRanges=fetchAnchorRanges;
 // so it works directly from a browser. This is the primary and most
 // reliable source. Yahoo is kept as a fallback in case MC has an outage.
 const PRICE_SOURCES = [
+  // Upstox first for the Indian indices. dsQuote uses the Worker when one is
+  // configured and falls back to the scanX quote feed otherwise; either way it
+  // is broker data. Moneycontrol and Yahoo stay below it as fallbacks, because
+  // a static page cannot hold a broker token and the Worker is optional — so
+  // there has to be something that still answers when it is absent.
+  {name:'Upstox (broker)', go:async()=>{
+    const q=await dsQuote(['NIFTY','BANKNIFTY']);
+    if(!q || !q.NIFTY || !q.BANKNIFTY) throw new Error('no upstox quotes');
+    const pick=v=>({open:+(v.ohlc&&v.ohlc.open)||+v.open||null,
+                    prevClose:+(v.ohlc&&v.ohlc.close)||+v.prevClose||+v.last_price||null});
+    return {nifty:pick(q.NIFTY), bn:pick(q.BANKNIFTY)};
+  }},
   {name:'Moneycontrol (direct)', go:async()=>({
     nifty:await mcFetch('in%3BNSX'),  // Nifty 50
     bn:   await mcFetch('in%3Bnbx')   // Bank Nifty
@@ -16598,13 +16675,31 @@ async function dsBakedIntraday(univKey, fromYear){
 }
 window.dsBakedIntraday=dsBakedIntraday;
 
+/* Can the baked file answer a request that runs to `toDate`?
+
+   This used to be a bare row count — >100 for dailies, >500 for intraday —
+   which silently sent short windows to Yahoo: 120 calendar days is about 82
+   NSE sessions, so every request under roughly five months failed the test
+   and left the router. What actually matters is whether the bake reaches the
+   end of the window. It refreshes weekly, so a tail inside ~10 days is
+   current; further behind than that and the caller genuinely does want a
+   live source for the missing stretch. */
+function dsBakeCovers(bars, toDate){
+  if(!bars || !bars.length) return false;
+  const last=bars[bars.length-1].date;
+  if(last>=toDate) return true;
+  const gap=(Date.parse(toDate+'T00:00:00Z')-Date.parse(last+'T00:00:00Z'))/86400000;
+  return gap<=10;
+}
+
 async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
   const wantSplice = window.DS.mode!=='upstox';
   if(unit==='minutes' && String(interval)==='5' && window.DS.mode!=='yahoo'){
     const intra=await dsBakedIntraday(univKey);
     if(intra && intra.length){
       const rows=intra.filter(b=>b.date>=fromDate && b.date<=toDate);
-      if(rows.length>500){ window.DS.stats.baked=(window.DS.stats.baked||0)+1; return rows; }
+      if(rows.length && dsBakeCovers(intra, toDate)){
+        window.DS.stats.baked=(window.DS.stats.baked||0)+1; return rows; }
     }
   }
   // Baked file first — daily only, and only when the caller has not opted out.
@@ -16612,7 +16707,7 @@ async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
     const baked=await dsBaked(univKey);
     if(baked && baked.length){
       let rows=baked.filter(b=>b.date>=fromDate && b.date<=toDate);
-      if(rows.length>100){
+      if(rows.length && dsBakeCovers(baked, toDate)){
         window.DS.stats.baked=(window.DS.stats.baked||0)+1;
         // Baked data starts at Upstox's Jan-2000 floor. Any earlier tail comes
         // from Yahoo — but that fetch runs through the public proxies and can
