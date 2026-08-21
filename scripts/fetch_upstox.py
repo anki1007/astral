@@ -255,15 +255,96 @@ def split_write(sym, key, rows):
                        "source": "upstox", "from": recent[0][0], "to": recent[-1][0],
                        "count": len(recent), "bars": recent}, f, separators=(",", ":"))
 
+
+def bake_live(symbols, tok):
+    """Today's 5-minute candles plus a quote snapshot, written to _live.json.
+
+    The full history bake walks 26 years and takes minutes, which is fine
+    weekly and impossible every quarter hour. This does the opposite: one
+    intraday call and one quote call per symbol, a file measured in kilobytes,
+    cheap enough to run right through the session.
+
+    A static page cannot hold a broker token, so this is how live Upstox data
+    reaches it — the token stays in Actions and only the resulting prices are
+    published. Latency is the cron interval, not a tick feed.
+    """
+    today = date.today().isoformat()
+    out = {"generated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+           "source": "upstox", "date": today, "quotes": {}, "intraday": {}}
+    keys = {}
+    for sym in symbols:
+        try:
+            keys[sym] = resolve(sym)
+        except Exception as e:
+            print(f"{sym:<12} resolve failed: {e}", file=sys.stderr)
+
+    # Quotes: one batched call for everything we can resolve.
+    if keys:
+        try:
+            qs = quote(",".join(keys.values()), safe="")
+            j = get(f"{UPSTOX}/v2/market-quote/quotes?instrument_key={qs}", tok)
+            by_key = {}
+            for ik, v in (j.get("data") or {}).items():
+                by_key[str(v.get("instrument_token") or ik)] = v
+                by_key[str(ik)] = v
+            for sym, k in keys.items():
+                v = by_key.get(k) or by_key.get(k.replace("|", ":")) or None
+                if v is None:
+                    # Upstox echoes the key in its own punctuation; match on the tail.
+                    tail = k.split("|")[-1].upper()
+                    for kk, vv in by_key.items():
+                        if kk.upper().endswith(tail):
+                            v = vv
+                            break
+                if v is None:
+                    continue
+                o = v.get("ohlc") or {}
+                out["quotes"][sym] = {
+                    "last": v.get("last_price"), "open": o.get("open"),
+                    "high": o.get("high"), "low": o.get("low"),
+                    "prevClose": o.get("close"), "ts": v.get("last_trade_time"),
+                }
+            print(f"quotes: {len(out['quotes'])}/{len(keys)}")
+        except Exception as e:
+            print(f"quotes FAILED: {e}", file=sys.stderr)
+
+    # Intraday: the current session's 5-minute candles.
+    for sym, k in keys.items():
+        try:
+            j = get(f"{UPSTOX}/v3/historical-candle/intraday/{quote(k, safe='')}/minutes/5", tok)
+            rows = []
+            for c in reversed((j.get("data") or {}).get("candles") or []):
+                rows.append([str(c[0])[:16].replace("T", " "),
+                             c[1], c[2], c[3], c[4]])
+            if rows:
+                out["intraday"][sym] = rows
+                print(f"{sym:<12} {len(rows):>4} intraday bars  {rows[0][0]} -> {rows[-1][0]}")
+        except Exception as e:
+            print(f"{sym:<12} intraday FAILED: {e}", file=sys.stderr)
+        time.sleep(0.25)
+
+    os.makedirs(OUT_DIR, exist_ok=True)
+    with open(os.path.join(OUT_DIR, "_live.json"), "w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stocks", default="", help="comma-separated NSE symbols to bake as well")
     ap.add_argument("--start", default=START)
     ap.add_argument("--intraday", default="", help="comma-separated symbols to also bake as 5-minute year shards")
+    ap.add_argument("--live", default="", help="comma-separated symbols for the cheap intraday+quote snapshot; skips the history bake")
     args = ap.parse_args()
 
     tok = token()
     os.makedirs(OUT_DIR, exist_ok=True)
+
+    if args.live.strip():
+        syms = [x.strip().upper() for x in args.live.split(",") if x.strip()]
+        got = bake_live(syms, tok)
+        print(f"_live.json written: {len(got['quotes'])} quotes, {len(got['intraday'])} intraday")
+        return
 
     targets = list(INDICES.keys())
     if args.stocks.strip().lower() == "all":

@@ -1,0 +1,66 @@
+# Near-live NSE prices for a static page.
+#
+# The page cannot call Upstox itself — no CORS, and a broker token must never
+# ship in client code — so the token stays here and only the resulting prices
+# are published. This job is the cheap counterpart to the weekly history bake:
+# one intraday call and one quote call per symbol, a few kilobytes, fast enough
+# to run right through the session.
+#
+# Latency is the cron interval, not a tick feed. GitHub's shared scheduler also
+# drops firings under load, which is exactly why this runs every 15 minutes
+# instead of on the hour — a dropped slot costs one interval, not a day.
+
+name: Upstox live snapshot
+
+on:
+  schedule:
+    # NSE trades 09:15-15:30 IST = 03:45-10:00 UTC, Mon-Fri. Offset off :00
+    # because on-the-hour firings are the ones GitHub drops most.
+    - cron: "3,18,33,48 3-10 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      symbols:
+        description: "Symbols for the snapshot"
+        required: false
+        default: "NIFTY,BANKNIFTY,FINNIFTY,SENSEX"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: astral-upstox-live
+  cancel-in-progress: true      # a stale snapshot is worthless; drop it for the newer one
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Snapshot
+        env:
+          UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$UPSTOX_ACCESS_TOKEN" ]; then
+            echo "::error::UPSTOX_ACCESS_TOKEN is not set."; exit 1
+          fi
+          python scripts/fetch_upstox.py --live "${{ inputs.symbols || 'NIFTY,BANKNIFTY,FINNIFTY,SENSEX' }}"
+
+      - name: Commit & push
+        run: |
+          git config user.name  "astral-bot"
+          git config user.email "astral@users.noreply.github.com"
+          git add data/nse/_live.json
+          if git diff --cached --quiet; then echo "unchanged"; exit 0; fi
+          git commit -m "Live NSE snapshot"
+          # Another snapshot may have landed while this one ran; rebase rather
+          # than lose it. Only this job writes _live.json, so it applies cleanly.
+          for i in 1 2 3; do
+            git push && exit 0
+            git pull --rebase --autostash origin main || { echo "::error::rebase failed"; exit 1; }
+          done
+          echo "::error::could not push"; exit 1

@@ -8283,6 +8283,26 @@ async function ovbcLoadPrice(force){
     const uk=dsKeyForYahooSym(syms[0]) || (RE_UNIV[ovInstKey()]?ovInstKey():null);
     if(uk && dsIsNSE(uk) && iv>=5){
       try{
+        // The weekly shards stop at the last bake, so today and the few days
+        // after it come from the 15-minute snapshot instead. Without this the
+        // current session had no NSE source at all and fell through to the
+        // Yahoo proxies, which is what "price unavailable: timeout" was.
+        const live=await dsLiveIntraday(uk, S.date);
+        if(live && live.length>=2){
+          const bk=new Map();
+          for(const b of live){
+            const mm=Math.floor(Math.round(b.hour*60)/iv)*iv;
+            const cur=bk.get(mm);
+            if(!cur) bk.set(mm,{m:mm,o:b.o,h:b.h,l:b.l,c:b.c});
+            else { cur.h=Math.max(cur.h,b.h); cur.l=Math.min(cur.l,b.l); cur.c=b.c; }
+          }
+          const lb=[...bk.values()].sort((a,b)=>a.m-b.m);
+          if(lb.length>=2){
+            window.OVBC={key,bars:lb,status:'ready',err:'',note:'Upstox (live snapshot)'};
+            const hl=document.getElementById('ovbcHost'); if(hl&&DATA) hl.innerHTML=ovBiasChart(DATA);
+            return;
+          }
+        }
         const intra=await dsBakedIntraday(uk);
         if(intra && intra.length){
           const day=intra.filter(b=>b.date===S.date);
@@ -16101,7 +16121,16 @@ const PRICE_SOURCES = [
   // is broker data. Moneycontrol and Yahoo stay below it as fallbacks, because
   // a static page cannot hold a broker token and the Worker is optional — so
   // there has to be something that still answers when it is absent.
-  {name:'Upstox (broker)', go:async()=>{
+  // The published snapshot comes first: it needs no Worker, no proxy and no
+  // third party, and it is the same broker prices the rest of the NSE path uses.
+  {name:'Upstox (snapshot)', go:async()=>{
+    const j=await dsLive();
+    const q=j&&j.quotes;
+    if(!q || !q.NIFTY || !q.BANKNIFTY) throw new Error('no live snapshot');
+    const pick=v=>({open:+v.open||null, prevClose:+v.prevClose||+v.last||null});
+    return {nifty:pick(q.NIFTY), bn:pick(q.BANKNIFTY)};
+  }},
+  {name:'Upstox (worker)', go:async()=>{
     const q=await dsQuote(['NIFTY','BANKNIFTY']);
     if(!q || !q.NIFTY || !q.BANKNIFTY) throw new Error('no upstox quotes');
     const pick=v=>({open:+(v.ohlc&&v.ohlc.open)||+v.open||null,
@@ -16776,6 +16805,43 @@ window.dsBaked=dsBaked;
    daily files: same-origin, no credential, no proxy. Sharding keeps the repo
    small — only the current year's file changes when the bake re-runs. */
 const DS_INTRA = {};                 // univKey -> bars | null
+/* The near-live snapshot: today's 5-minute candles and a quote per index,
+   refreshed every 15 minutes by the Actions job that holds the Upstox token.
+   This is how a static page gets broker prices at all — it cannot call Upstox
+   itself, so the token stays in Actions and only the prices are published.
+   Cached for 60s so a burst of panels costs one request. */
+let DS_LIVE=null, DS_LIVE_AT=0;
+async function dsLive(force){
+  const now=Date.now();
+  if(!force && DS_LIVE!==null && (now-DS_LIVE_AT)<60000) return DS_LIVE;
+  for(const src of DS_BAKED_SOURCES){
+    try{
+      const r=await fetch(src.url('_live'),{cache:'no-cache'});
+      if(!r.ok) continue;
+      const j=await r.json();
+      if(j && (j.quotes || j.intraday)){ DS_LIVE=j; DS_LIVE_AT=now; return j; }
+    }catch(e){ /* try the next mirror */ }
+  }
+  DS_LIVE_AT=now; DS_LIVE=null;
+  return null;
+}
+window.dsLive=dsLive;
+
+/* Today's 5-minute bars for one index, from the live snapshot. Returns null
+   when the snapshot is for a different session, so callers fall through to
+   the weekly shards or Yahoo rather than drawing yesterday as today. */
+async function dsLiveIntraday(univKey, dateISO){
+  const j=await dsLive();
+  if(!j || !j.intraday || !j.intraday[univKey]) return null;
+  if(dateISO && j.date && j.date!==dateISO) return null;
+  return j.intraday[univKey].map(b=>({
+    t:b[0], date:b[0].slice(0,10),
+    hour:(+b[0].slice(11,13))+(+b[0].slice(14,16))/60,
+    o:b[1], h:b[2], l:b[3], c:b[4]
+  }));
+}
+window.dsLiveIntraday=dsLiveIntraday;
+
 async function dsBakedIntraday(univKey, fromYear){
   if(DS_INTRA[univKey]!==undefined) return DS_INTRA[univKey];
   const nowY=new Date().getUTCFullYear();
