@@ -12,9 +12,12 @@ name: Upstox NSE history
 
 on:
   schedule:
-    # Sunday 02:20 UTC = 07:50 IST Monday. Offset minutes off :00 because
-    # GitHub's shared cron drops a lot of on-the-hour firings.
-    - cron: "20 2 * * 0"
+    # Daily, 11:07 UTC = 16:37 IST — after the NSE close, so the session that
+    # just ended is complete. Weekly was too thin a margin for a scheduler that
+    # drops firings: this job's cron had not fired once since it was added, and
+    # a missed weekly slot left the app ten days stale with no NSE source for
+    # the current session at all. Daily means a dropped slot costs a day.
+    - cron: "7 11 * * 1-5"
   workflow_dispatch:
     inputs:
       stocks:
