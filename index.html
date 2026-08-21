@@ -16019,61 +16019,213 @@ function srbSignSectors(sign){
   return hit;
 }
 
-/* Per-planet adjustments. `pl` is the D.planets entry, `D` the day. */
+
+/* ── BOOK RULES → SECTORS (Tech Astro Analysis) ───────────────────────────
+   The Astral Forecast engine (taEval) already evaluates the book: sign and
+   degree nature, placement with companions, combustion east/west, the 137
+   observations, the SBC vedh table with its benefic/malefic inversion, and
+   the Gold / Silver / Sugar-and-Jaggery prophecy configurations. What it did
+   not do was reach the Sector Forecast. This layer reads the rules that
+   FIRED for the day and attributes each to the sectors the book says it
+   moves, so the Sector tab carries the book's verdict with the rule, its
+   section and its weight visible — and adds the two sector-only rules the
+   engine does not evaluate (the yearly cabinet, and Jupiter opposite Pluto).
+
+   Attribution follows the book's own statements:
+     prophecy rules      → the commodity they are written for
+     vedh rules          → "sectors ruled by the Nakshtra Lord" (the engine
+                           hands over the lord)
+     paap-kartari        → banks, as the engine already tags them
+     named-planet rules  → sectors ruled by the planets the rule names
+     sign-occupancy      → "SECTORAL REPRESENTATION - ZODIAC SIGNS"
+     Rahu's sign / lord  → "RAHU HELPS THE SECTORS REPRESENTED BY THE
+                           ZODIAC SIGN / NAKSHTRA LORD IT IS PLACED"
+   Weights are the engine's own rule weights scaled down so the book tips a
+   sector, it does not decide it; the measured layer beside it is where
+   evidence lives. */
+
+const SRB_K = 0.22;                    // rule-weight units → sector-score units
+const SRB_PLANETS = ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu','Uranus','Neptune','Pluto'];
+const SRB_ALIAS = {Herschel:'Uranus', Rahu:'Rahu', Ketu:'Ketu'};
+/* the book's own sector names (TA_SECTOR_LORDS, prophecy tags) → tab sectors */
+const SRB_BOOK_TO_TAB = {
+  'Bank/NBFC':['Banking & Finance / BFSI'], 'Bank - Private':['Banking & Finance / BFSI'], 'Bank - Government':['PSU Banks'],
+  'Automobile':['Automobiles'], 'Cement':['Cement'], 'Chemical':['Chemicals'], 'Communication':['Telecom'],
+  'Computer':['IT / Technology'], 'Construction':['Infrastructure','Realty / Real Estate'], 'Electricity':['Power · Renewable / Solar'],
+  'Electronics':['Electrical Goods','Semiconductors'], 'Fertilizer - Compost':['Fertilizer / Pesticide'], 'FMCG':['FMCG'],
+  'Media':['Media & Entertainment'], 'Medicine':['Pharma / Healthcare'], 'Metal':['Metals · Iron & Steel'],
+  'Metal - Aluminum':['Metals · Iron & Steel'], 'Metal - Copper':['Copper'], 'Metal - Gold':['Gold','Luxury / Watches'],
+  'Metal - Iron and Steel':['Metals · Iron & Steel'], 'Metal - Silver':['Silver'], 'Oil and Chemicals':['Oil & Gas / Crude','Chemicals'],
+  'Textile':['Cotton / Textile'], 'Sugar & Jaggery':['Sugar'],
+  'Aeronautics':['Aviation','Defense'], 'Mining':['Mining / Coal'], 'Oil Exploration':['Oil & Gas / Crude'],
+  'Power and internet':['Power · Renewable / Solar','Telecom'], 'Logistics':['Logistics'], 'Gas Industry':['Oil & Gas / Crude'],
+  'Arms and disaster measures':['Defense'], 'Surveillance':['Defense','Artificial Intelligence / Drones'],
+  'Data Base/ SAP':['IT / Technology'], 'Educational Apps':['IT / Technology'], 'Food':['FMCG'],
+};
+/* observations whose sector target is stated in the rule text rather than by planet */
+const SRB_OBS_TARGETS = {
+  51:['FMCG','Sugar'],                                   // "High Bullish for grains"
+  52:['Gold','Silver'],                                  // "High Bullish for Gold and Silver"
+  93:['Gold','Silver','Copper','Oil & Gas / Crude','Metals · Iron & Steel','Sugar'],  // "High Bullish in Commodities"
+  10:['Gold','Silver','Copper','Oil & Gas / Crude','Sugar'],                          // Sankranti 15 muhurta – commodities
+  11:['Gold','Silver','Copper','Oil & Gas / Crude','Sugar'],                          // Sankranti 45 muhurta – commodities
+};
+const SRB_AGRI=['Fertilizer / Pesticide','Sugar','Tea / Coffee','Cotton / Textile','FMCG'];
+const SRB_MINING=['Mining / Coal','Metals · Iron & Steel','Copper','Gold','Silver'];
+
+function srbPlanetSectors(planet){
+  const P=SRB_ALIAS[planet]||planet, out=new Set();
+  Object.entries(SECTOR_RULERS).forEach(([sec,rulers])=>{ if(rulers.includes(P)) out.add(sec); });
+  // outer planets have no rulers in the tab's table; the book lists their sectors by name
+  if(typeof TA_PLANET_SECTORS!=='undefined'){
+    const key=P==='Uranus'?'Herschel':P; const txt=TA_PLANET_SECTORS[key]||'';
+    if(txt) for(const [sec,keys] of Object.entries(SRB_KEYS)){ if(keys.some(k=>txt.toLowerCase().includes(k.toLowerCase()))) out.add(sec); }
+  }
+  return [...out];
+}
+function srbBookSectorToTab(name){
+  if(SRB_BOOK_TO_TAB[name]) return SRB_BOOK_TO_TAB[name];
+  if(SRB_PLANETS.includes(name)||SRB_ALIAS[name]) return srbPlanetSectors(name);
+  const m=/^Nakshatra-lord (\w+)$/.exec(name); if(m) return srbPlanetSectors(m[1]);
+  const g=/^(\w+) goods$/.exec(name); if(g) return srbSignSectors(g[1]);
+  const hit=[]; for(const [sec,keys] of Object.entries(SRB_KEYS)){ if(keys.some(k=>name.toLowerCase().includes(k.toLowerCase()))) hit.push(sec); }
+  return hit;
+}
+function srbPlanetsNamed(text){
+  const t=String(text||''); const out=[];
+  for(const P of SRB_PLANETS){ if(new RegExp('\\b'+P+'\\b').test(t)) out.push(P); }
+  if(/\bHerschel\b/.test(t)) out.push('Uranus');
+  return out;
+}
+
+/* One evaluation per (date, time, ayanamsa); the fired rules are the engine's. */
+let SRB_CACHE={key:null, val:null};
+function srBookEval(D){
+  const ds=(D&&D.dateStr)||S.date, hour=Math.round(((parseFloat(S.time)||9.25))*12)/12, ay=S.ayMode||'lahiri';
+  const key=ds+'|'+hour+'|'+ay;
+  if(SRB_CACHE.key===key) return SRB_CACHE.val;
+  let ev=null; try{ ev=taRead(ds,hour,ay,'daily'); }catch(e){ ev=null; }
+  const perSector={}, perPlanet={};
+  const bumpS=(sec,d,rule)=>{ if(!SECTOR_RULERS[sec]) return; const a=(perSector[sec]=perSector[sec]||{s:0,rules:[]}); a.s+=d; a.rules.push(rule); };
+  const bumpP=(pl,d,rule)=>{ const a=(perPlanet[pl]=perPlanet[pl]||{s:0,rules:[]}); a.s+=d; a.rules.push(rule); };
+  if(ev&&ev.rules){
+    for(const r of ev.rules){
+      if(!r.dir) continue;
+      const d=r.dir*r.w*SRB_K;
+      const rule={sec:r.sec, name:r.name, d:Math.round(d*100)/100, detail:r.detail||''};
+      let targets=[];
+      if(r.sectors&&r.sectors.length) r.sectors.forEach(n=>{ targets=targets.concat(srbBookSectorToTab(n)); });
+      const obs=/^obs:(\d+)$/.exec(r.id||''); if(obs&&SRB_OBS_TARGETS[+obs[1]]) targets=targets.concat(SRB_OBS_TARGETS[+obs[1]]);
+      if(!targets.length){
+        // rules stated about a planet move the sectors that planet rules
+        const pls=srbPlanetsNamed(r.name);
+        pls.forEach(pl=>{ bumpP(pl,d,rule); });
+        if(pls.length===1) targets=srbPlanetSectors(pls[0]);     // two-planet rules stay on the planet cards
+      }
+      [...new Set(targets)].forEach(sec=>bumpS(sec,d,rule));
+    }
+    // the engine's own roll-up adds sign occupancy and Rahu's help; take those two lines from it
+    (ev.sectors||[]).forEach(x=>{ if(/ goods$|^Nakshatra-lord /.test(x.sector))
+      srbBookSectorToTab(x.sector).forEach(sec=>bumpS(sec, x.score*SRB_K, {sec:/goods$/.test(x.sector)?'SECTORAL REPRESENTATION - ZODIAC SIGNS':'RAHU / KETU - BULLISH', name:x.why.join(' · '), d:Math.round(x.score*SRB_K*100)/100})); });
+  }
+  // ── sector-only rules the engine does not evaluate ──
+  try{ const sky=ev&&ev.sky;
+    if(sky&&sky.p&&sky.p.Jupiter&&sky.p.Pluto){
+      const opp=Math.abs(taSignDist(sky.p.Jupiter.si, sky.p.Pluto.si))===7;
+      if(opp&&sky.p.Jupiter.retro&&!sky.p.Pluto.retro){ SRB_AGRI.forEach(s=>bumpS(s,-0.5,{sec:'MANY IMPORTANT OBSERVATION #86',name:'Retrograde Jupiter opposite Direct Pluto',d:-0.5,detail:'all agriculture commodities become Bearish'}));
+        SRB_MINING.forEach(s=>bumpS(s,+0.5,{sec:'MANY IMPORTANT OBSERVATION #86',name:'Retrograde Jupiter opposite Direct Pluto',d:0.5,detail:'all Mining products become Bullish'})); }
+      if(opp&&!sky.p.Jupiter.retro&&sky.p.Pluto.retro){ SRB_AGRI.forEach(s=>bumpS(s,+0.5,{sec:'MANY IMPORTANT OBSERVATION #87',name:'Direct Jupiter opposite Retrograde Pluto',d:0.5,detail:'all Agriculture products Bullish'}));
+        SRB_MINING.forEach(s=>bumpS(s,-0.5,{sec:'MANY IMPORTANT OBSERVATION #87',name:'Direct Jupiter opposite Retrograde Pluto',d:-0.5,detail:'Mining products Bearish'})); }
+    }
+    const cab=srbCabinet(ds, ay);
+    if(cab){ (cab.tilts||[]).forEach(t=>t.sectors.forEach(s=>bumpS(s,t.d,{sec:'RESULT OF CABINET RANKS - '+t.rank,name:t.name,d:t.d,detail:t.detail}))); }
+    SRB_CACHE.val={ev, perSector, perPlanet, cabinet:cab};
+  }catch(e){ SRB_CACHE.val={ev, perSector, perPlanet, cabinet:null}; }
+  SRB_CACHE.key=key;
+  return SRB_CACHE.val;
+}
+
+/* §"YEARLY CABINET BASED ON HINDU NEW YEAR": King = weekday lord of Chaitra
+   Shukla Pratipada (the day after the Amavasya with the Sun in sidereal
+   Pisces); Mantri = weekday lord of the Sun's entry into Aries. The book's
+   commodity consequences are mapped to the tab's sectors. */
+function srbCabinet(ds, ay){
+  try{
+    const Y=+ds.slice(0,4);
+    const find=(year)=>{ let prevT=null, prat=null, mesha=null;
+      for(let d=0; d<75; d++){ const dt=new Date(Date.UTC(year,1,20)); dt.setUTCDate(dt.getUTCDate()+d);
+        const J=JD(dt.getUTCFullYear(),dt.getUTCMonth()+1,dt.getUTCDate(),9.25); const ayn=getAyanamsa(J,ay);
+        const sun=n360(geoLon('Sun',J)-ayn), moon=n360(geoLon('Moon',J)-ayn); const t=tithiCompute(sun,moon);
+        if(prat==null && prevT && prevT.num===30 && t.num===1 && Math.floor(sun/30)===11) prat=dt;
+        if(mesha==null && Math.floor(sun/30)===0 && d>0) mesha=dt;
+        prevT=t; if(prat&&mesha) break; }
+      return {prat,mesha}; };
+    let r=find(Y); if(!r.prat) return null;
+    const lordOf=dt=>TA_WEEKDAY_LORD[dt.getUTCDay()];
+    const king=lordOf(r.prat), mantri=r.mesha?lordOf(r.mesha):null;
+    const tilts=[];
+    const K={Saturn:{sectors:['Mining / Coal','Metals · Iron & Steel','Cotton / Textile'],d:+0.35,detail:'Less rainfall and price rise — specially Coal, Iron and Wool'},
+             Mars:{sectors:['FMCG','Sugar'],d:+0.25,detail:'Deficiency and prices move higher'},
+             Moon:{sectors:['FMCG','Sugar'],d:+0.2,detail:'Excess of everything — till 7th and 8th month prices rise'},
+             Jupiter:{sectors:['FMCG','Sugar'],d:-0.25,detail:'Excess of everything and prices fall'},
+             Venus:{sectors:['FMCG','Sugar'],d:-0.2,detail:'Excess and prices fall except Rice'},
+             Sun:{sectors:['FMCG','Sugar'],d:+0.2,detail:'Production of grains, vegetables and fruits is less'},
+             Mercury:{sectors:['FMCG'],d:-0.15,detail:'Business is good despite soft prices'}};
+    const M={Sun:{sectors:['Sugar','FMCG'],d:+0.3,detail:'Grains and Juicy product — Bullish'},
+             Moon:{sectors:['Silver','Cotton / Textile'],d:-0.35,detail:'White goods production is high so prices fall — Rice, Cotton, Silver'},
+             Mars:{sectors:['FMCG'],d:+0.3,detail:'Wheat and Milk products become very costly'},
+             Saturn:{sectors:['FMCG'],d:+0.3,detail:'Wheat and Milk products become very costly'},
+             Mercury:{sectors:['FMCG','Sugar'],d:-0.25,detail:'Everything available in plenty and cheap'},
+             Jupiter:{sectors:['FMCG','Sugar'],d:-0.2,detail:'Dry fruits, fruits and grains in excess'},
+             Venus:{sectors:['FMCG','Sugar'],d:-0.2,detail:'Dry fruits, fruits and grains in excess'}};
+    if(K[king]) tilts.push(Object.assign({rank:'KING',name:'King of the year: '+king},K[king]));
+    if(mantri&&M[mantri]) tilts.push(Object.assign({rank:'MANTRI',name:'Mantri of the year: '+mantri},M[mantri]));
+    return {king, mantri, pratipada:r.prat.toISOString().slice(0,10), mesha:r.mesha?r.mesha.toISOString().slice(0,10):null, tilts};
+  }catch(e){ return null; }
+}
+
+/* ── hooks used by sectorPlanetScores / computeSectorRows ── */
 function srRulebookPlanet(n, D, pl){
   const out={delta:0, flags:[]};
-  if(!pl||!D) return out;
-  const add=(d,t,c,sec)=>{ out.delta+=d; out.flags.push({t, c, sec}); };
-  // § NATURE OF PLANETS PURELY ONLY PLACEMENT BASIS — bullish / bearish signs
-  try{ const P=(typeof TA_PLACEMENT!=='undefined')?TA_PLACEMENT[n]:null;
-    if(P&&pl.sign){ const w=(P.w||1)*(P.soft?0.25:0.4);
-      if((P.bull||[]).includes(pl.sign)) add(+w,'§placement ▲','var(--bull)','NATURE OF PLANETS — placement');
-      else if((P.bear||[]).includes(pl.sign)) add(-w,'§placement ▼','var(--bear)','NATURE OF PLANETS — placement'); } }catch(e){}
-  // § BULLISH / BEARISH DEGREES — 6°40′ bands within the sign
-  try{ if(typeof TA_DEG_BANDS!=='undefined'&&pl.deg!=null){ const b=TA_DEG_BANDS.find(x=>pl.deg>=x.lo&&pl.deg<x.hi);
-    if(b) add(b.dir*0.25, b.dir>0?'§deg ▲':'§deg ▼', b.dir>0?'var(--bull)':'var(--bear)', 'BULLISH / BEARISH DEGREES'); } }catch(e){}
-  // § MANY IMPORTANT OBSERVATION 1-2 — atichari: benefic faster than normal = bullish, malefic = bearish
-  try{ if(typeof TA_NORMAL_SPEED!=='undefined'&&TA_NORMAL_SPEED[n]&&typeof planetSpeed==='function'&&D.J){
-    const sp=Math.abs(planetSpeed(n,D.J)); const norm=TA_NORMAL_SPEED[n];
-    if(sp>norm*1.15){ const ben=SRB_BEN.has(n); add(ben?+0.4:-0.4,'§atichari '+(ben?'▲':'▼'),ben?'var(--bull)':'var(--bear)','MANY IMPORTANT OBSERVATION — atichari'); } } }catch(e){}
-  // § MANY IMPORTANT OBSERVATION 50 — Mars retrograde in any sign: bullish for its sectors
-  if(n==='Mars'&&pl.retro) add(+0.6,'§Mars ℞ ▲','var(--bull)','MANY IMPORTANT OBSERVATION 50 — Mars retrograde');
-  // § DAYS AND THEIR LORDS — day lord and Moon-nakshatra lord the same: that lord's sectors bullish
-  try{ const moon=(D.planets||[]).find(p=>p.name==='Moon'); const nakL=moon&&moon.nakL;
-    if(nakL&&D.dayLord&&nakL===D.dayLord&&n===nakL) add(+0.5,'§day=nak lord ▲','var(--bull)','DAYS AND THEIR LORDS'); }catch(e){}
-  // § MERCURY PAAP KARTARI YOG — Mercury hemmed by malefics: bearish, banks in particular (applied at sector level too)
-  try{ if(n==='Mercury'&&typeof papaKartari==='function'){ const pk=papaKartari(D.planets||[]).find(x=>x.target==='Mercury');
-    if(pk) add(pk.tight?-0.8:-0.4,'§paap kartari ▼','var(--bear)','MERCURY PAAP KARTARI YOG'); } }catch(e){}
-  out.delta=Math.round(out.delta*100)/100;
+  try{ const B=srBookEval(D); const a=B.perPlanet[n]; if(!a) return out;
+    out.delta=Math.round(Math.max(-1.2,Math.min(1.2,a.s))*100)/100;
+    const top=a.rules.slice().sort((x,y)=>Math.abs(y.d)-Math.abs(x.d)).slice(0,3);
+    top.forEach(r=>out.flags.push({t:'§'+(r.d>0?'▲':'▼')+' '+r.name.slice(0,22), c:r.d>0?'var(--bull)':'var(--bear)', sec:r.sec+' — '+r.name}));
+  }catch(e){}
   return out;
 }
-window.srRulebookPlanet=srRulebookPlanet;
-
-/* Per-sector adjustments that do not route through a ruling planet. */
 function srRulebookSector(sector, D){
   const out={delta:0, notes:[]};
-  if(!D||!D.planets) return out;
-  const add=(d,t)=>{ out.delta+=d; out.notes.push(t); };
-  const dp=Object.fromEntries(D.planets.map(p=>[p.name,p]));
-  // § RAHU / KETU - BULLISH — Rahu helps the sectors of the sign it occupies
-  try{ const r=dp.Rahu; if(r&&r.sign&&srbSignSectors(r.sign).includes(sector)) add(+0.4,'Rahu in '+r.sign+' helps this sector (§RAHU / KETU - BULLISH)'); }catch(e){}
-  // § SECTORAL REPRESENTATION - PLANET WISE — Pluto rules every commodity of its sign; follows Pluto's polarity by sign nature
-  try{ const p=dp.Pluto; if(p&&p.sign&&srbSignSectors(p.sign).includes(sector)&&typeof TA_SIGN_NATURE!=='undefined'){
-    const sn=TA_SIGN_NATURE.find(x=>x.sign===p.sign); if(sn&&sn.base) add(Math.sign(sn.base)*0.3,'Pluto in '+p.sign+' ('+sn.note+') (§SECTORAL REPRESENTATION - PLANET WISE)'); } }catch(e){}
-  // § SECTORAL REPRESENTATION - ZODIAC SIGNS + § NATURE OF SIGNS — occupied sign's base nature tilts its sectors
-  try{ if(typeof TA_SIGN_NATURE!=='undefined'){
-    for(const sn of TA_SIGN_NATURE){ if(!sn.base) continue; if(!srbSignSectors(sn.sign).includes(sector)) continue;
-      const occ=D.planets.filter(p=>p.sign===sn.sign&&!['Uranus','Neptune','Pluto'].includes(p.name)).map(p=>p.name);
-      if(occ.length) add(Math.sign(sn.base)*Math.min(0.45,0.15*occ.length),(occ.join('+'))+' in '+sn.sign+' — '+sn.note+' sign (§SECTORAL REPRESENTATION - ZODIAC SIGNS)'); } } }catch(e){}
-  // § MERCURY PAAP KARTARI YOG — banks in particular
-  try{ if(/Bank|BFSI/i.test(sector)&&typeof papaKartari==='function'){ const pk=papaKartari(D.planets).find(x=>x.target==='Mercury');
-    if(pk) add(pk.tight?-0.6:-0.3,'Mercury hemmed by '+pk.left+' & '+pk.right+' — banks bearish (§MERCURY PAAP KARTARI YOG)'); } }catch(e){}
-  // § MANY IMPORTANT OBSERVATION 50 — Mars retrograde: metals, gold, pharma
-  try{ if(dp.Mars&&dp.Mars.retro&&/Metal|Steel|Gold|Pharma|Copper/i.test(sector)) add(+0.4,'Mars retrograde — bullish for metals/gold/pharma (§MANY IMPORTANT OBSERVATION 50)'); }catch(e){}
-  out.delta=Math.round(out.delta*100)/100;
+  try{ const B=srBookEval(D); const a=B.perSector[sector]; if(!a) return out;
+    out.delta=Math.round(Math.max(-1.5,Math.min(1.5,a.s))*100)/100;
+    a.rules.slice().sort((x,y)=>Math.abs(y.d)-Math.abs(x.d)).slice(0,6).forEach(r=>out.notes.push((r.d>0?'▲ ':'▼ ')+r.name+' ('+r.sec+')'));
+  }catch(e){}
   return out;
 }
-window.srRulebookSector=srRulebookSector;
+window.srRulebookPlanet=srRulebookPlanet; window.srRulebookSector=srRulebookSector;
+
+/* The explainability panel: every sector the book moved today, with the rules. */
+function srBookPanelHTML(D){
+  let B; try{ B=srBookEval(D); }catch(e){ return ''; }
+  const rows=Object.entries(B.perSector).map(([sec,a])=>({sec, s:a.s, rules:a.rules})).sort((x,y)=>Math.abs(y.s)-Math.abs(x.s));
+  const cab=B.cabinet;
+  const nFired=(B.ev&&B.ev.rules)?B.ev.rules.length:0;
+  const open=S.srBookOpen!==false;
+  const hdr=`<div class="ph" style="cursor:pointer" onclick="S.srBookOpen=${open?'false':'true'};render()"><span class="dot" style="background:var(--acc)"></span>📖 BOOK RULES → SECTORS — Tech Astro Analysis, ${nFired} rules fired today · ${rows.length} sectors moved${open?'▾':'▸'}</div>`;
+  if(!open) return `<div class="pnl">${hdr}</div>`;
+  const body=rows.slice(0,37).map(r=>{ const col=r.s>0.15?'var(--bull)':r.s<-0.15?'var(--bear)':'var(--tx3)';
+    const top=r.rules.slice().sort((x,y)=>Math.abs(y.d)-Math.abs(x.d)).slice(0,5);
+    return `<tr><td style="font-weight:700;color:var(--tx1);white-space:nowrap">${reEsc(r.sec)}</td>
+      <td style="text-align:right;font-family:monospace;font-weight:800;color:${col}">${r.s>0?'+':''}${r.s.toFixed(2)}</td>
+      <td style="font-size:10.5px;color:var(--tx2)">${top.map(x=>`<div title="${reEsc(x.sec)}${x.detail?' — '+reEsc(x.detail):''}"><span style="color:${x.d>0?'var(--bull)':'var(--bear)'}">${x.d>0?'▲':'▼'}</span> ${reEsc(x.name)} <span style="color:var(--tx3)">· ${reEsc(String(x.sec).replace(/^MANY IMPORTANT OBSERVATION/,'OBS'))} · ${x.d>0?'+':''}${x.d}</span></div>`).join('')}${r.rules.length>5?`<div style="color:var(--tx3)">+${r.rules.length-5} more</div>`:''}</td></tr>`; }).join('');
+  const cabHtml=cab?`<div style="font-size:10.5px;color:var(--tx3);margin-bottom:8px">YEARLY CABINET (§YEARLY CABINET BASED ON HINDU NEW YEAR): King <b style="color:var(--tx1)">${reEsc(cab.king)}</b> (Chaitra Shukla Pratipada ${cab.pratipada})${cab.mantri?` · Mantri <b style="color:var(--tx1)">${reEsc(cab.mantri)}</b> (Mesha Sankranti ${cab.mesha})`:''}${cab.tilts.length?' — '+cab.tilts.map(t=>reEsc(t.detail)).join('; '):''}</div>`:'';
+  return `<div class="pnl">${hdr}<div class="pb">${cabHtml}
+    <div class="ts" style="max-height:520px;overflow:auto"><table class="tbl"><thead><tr><th>Sector</th><th style="text-align:right">Book tilt</th><th>Rules that fired (section · weight)</th></tr></thead><tbody>${body||'<tr><td colspan="3" style="color:var(--tx3)">no book rule touched a sector today</td></tr>'}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:8px;line-height:1.5">Each rule is the Astral Forecast engine's own evaluation of the book for ${reEsc(S.date)} at ${mtt((parseFloat(S.time)||9.25)*60)}; this panel attributes it to the sectors the book names — prophecies to their commodity, vedh to the nakshatra lord's sectors, planet rules to the planets' sectors, sign occupancy to the sign's goods, Rahu to the sign and lord it sits in. The tilt is folded into Net in the ranking above (§ chip). Weights are the engine's rule weights × ${SRB_K}.</div>
+  </div></div>`;
+}
+window.srBookPanelHTML=srBookPanelHTML;
+
 
 /* ══════════════════════════════════════════════════════════════════════════
    SECTOR RESEARCH — the Research Engine's method applied to sectors.
@@ -16440,7 +16592,8 @@ function sectorPlanetScores(D){
     // dignity tilt
     if(BEN.has(n)){ sc+=0.3; } else if(n!=='Sun'){ sc-=0.3; }
     // shar / latitude — उत्तर शर विजयी (north = strength)
-    if(vp.lat>0.2){ sc+=0.3; flags.push({t:'शर N',c:'var(--bull)'}); } else if(vp.lat<-0.2){ sc-=0.3; flags.push({t:'शर S',c:'var(--bear)'}); }
+    // §MANY IMPORTANT OBSERVATION 5-6: "Shar in South of any planet - Bullish; Shar in North - Bearish"
+    if(vp.lat>0.2){ sc-=0.3; flags.push({t:'शर N',c:'var(--bear)',sec:'MANY IMPORTANT OBSERVATION 6 — Shar in North: Bearish'}); } else if(vp.lat<-0.2){ sc+=0.3; flags.push({t:'शर S',c:'var(--bull)',sec:'MANY IMPORTANT OBSERVATION 5 — Shar in South: Bullish'}); }
     // retrograde — reversal / caution
     if(pl.retro && n!=='Rahu' && n!=='Ketu'){ sc*=0.6; sc-=0.4; flags.push({t:'℞ वक्री',c:'var(--bear)'}); }
     // combustion (star planets within Sun orb)
@@ -16638,7 +16791,7 @@ function tSector(){
     </div>
     <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">क्षेत्र के घटक F&amp;O शेयर। किसी नाम पर क्लिक करें → वह शेयर ★ Vyapaar Ratna चार्ट में price + तेजी/मंदी overlay के साथ खुलेगा। मैपिंग सूचक है, exhaustive नहीं।</div></div></div>`;
 
-  return `<div style="display:flex;flex-direction:column;gap:10px">${hdr}<div id="sr-host">${srPanelHTML(rows)}</div>${fwdPanel}${tablePanel}${watchPanel}${cardsPanel}
+  return `<div style="display:flex;flex-direction:column;gap:10px">${hdr}<div id="sr-host">${srPanelHTML(rows)}</div>${srBookPanelHTML(D)}${fwdPanel}${tablePanel}${watchPanel}${cardsPanel}
     <div style="font-size:10.5px;color:var(--tx3)">स्रोत: व्यापार-रत्न दृष्टि-योग इंजन + अष्टकवर्ग + वर्षेश + ग्रह-गरिमा + नक्षत्र-गति, terminal के मौजूदा इंजनों से संकलित। अध्ययन-सहायक, निवेश-सलाह नहीं।</div></div>`;
 }
 
