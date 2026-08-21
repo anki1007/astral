@@ -4598,7 +4598,7 @@ function rHdr(){
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts2','📈 Charts'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['plandec','🧭 Planet Dec'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
@@ -4607,7 +4607,7 @@ function rNav(){
 }
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts2:tCharts2,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,plandec:tPlanetDec,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();
@@ -7714,7 +7714,7 @@ function planFwd(){ return (S.planFwd==null)?180:S.planFwd; }
 function planBodies(){ return (S.planBodies||'Moon,Mercury,Venus,Mars,Jupiter,Saturn').split(',').filter(Boolean); }
 function planChartType(){ return S.planChart || 'candle'; }
 function planOrb(){ return S.planOrb || 6; }
-function planKind(){ return S.tab==='planlon'?'lon':S.tab==='plandec'?'dec':'lat'; }
+function planKind(){ return S.tab==='planlon'?'lon':'lat'; }
 
 function planJD(y,m,d,hUTC){ let Y=y,M=m; if(M<=2){Y--;M+=12;} const A=Math.floor(Y/100),B=2-A+Math.floor(A/4); return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+d+hUTC/24+B-1524.5; }
 function planJDfromMs(ms){ const d=new Date(ms); return planJD(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate(), d.getUTCHours()+d.getUTCMinutes()/60); }
@@ -7837,7 +7837,7 @@ function planComputeData(kind){
   const spanDays=(t1-t0)/PLAN_DAYMS, nS=Math.max(40,Math.min(1800,Math.round(spanDays*4))), step=(t1-t0)/nS;
   const times=[], series={}, retro={}; bodies.forEach(b=>{series[b]=[];retro[b]=[];});
   for(let k=0;k<=nS;k++){ const ms=t0+k*step; times.push(ms); const J=planJDfromMs(ms);
-    for(const b of bodies){ if(kind==='lat') series[b].push(geoLat(b,J)); else if(kind==='dec') series[b].push(declination(b,J));
+    for(const b of bodies){ if(kind==='lat') series[b].push(geoLat(b,J));
       else { series[b].push(n360(geoLon(b,J))); const sp=(b==='Rahu'||b==='Ketu')?-0.05:planetSpeed(b,J); retro[b].push(sp<0); } } }
   let conj=[];
   if(kind==='lon'){ const orb=planOrb();
@@ -8070,7 +8070,7 @@ function planTimeline(){
 function planChart(kind){
   const key=planInstKey()+'|'+planRange(); const st=window.PLAN.status, ohlc=window.PLAN.ohlc[key];
   if(st==='loading' || (!ohlc && st!=='error'))
-    return `<div style="padding:30px;text-align:center;color:var(--acc)"><div class="spin-anim" style="font-size:18px">⟳</div><div style="font-size:12px;margin-top:6px">Fetching ${planInstKey()} candles &amp; computing planet ${kind==='lat'?'latitudes':kind==='dec'?'declinations':'longitudes'}…</div></div>`;
+    return `<div style="padding:30px;text-align:center;color:var(--acc)"><div class="spin-anim" style="font-size:18px">⟳</div><div style="font-size:12px;margin-top:6px">Fetching ${planInstKey()} candles &amp; computing planet ${kind==='lat'?'latitudes':'longitudes'}…</div></div>`;
   if(st==='error')
     return `<div style="padding:18px;border:1px solid var(--bear2);border-radius:4px;background:var(--bear3)"><div style="color:var(--bear);font-weight:700;font-size:12px">⚠ Price data unavailable (${window.PLAN.err})</div>
       <div style="font-size:11.5px;color:var(--tx2);margin-top:6px">Yahoo CORS proxies are unreachable. Retry when online.</div>
@@ -8109,11 +8109,11 @@ function planChart(kind){
   }
   let raw=''; const rawOpen=!!S.planRaw; let rawBody='';
   if(rawOpen && D){ const prRows=D.ohlc.slice().reverse().map(r=>`<tr><td>${r.date}</td><td style="text-align:right">${r.o.toFixed(2)}</td><td style="text-align:right">${r.h.toFixed(2)}</td><td style="text-align:right">${r.l.toFixed(2)}</td><td style="text-align:right;color:var(--tx1)">${r.c.toFixed(2)}</td></tr>`).join('');
-    let plRows=''; for(let ms=D.t1; ms>=D.t0; ms-=PLAN_DAYMS){ const J=planJDfromMs(ms); let tds=''; for(const b of D.bodies){ const v=kind==='lat'?geoLat(b,J):kind==='dec'?declination(b,J):n360(geoLon(b,J)); const rr=(kind==='lon'&&((b==='Rahu'||b==='Ketu')||(b!=='Sun'&&b!=='Moon'&&planetSpeed(b,J)<0)))?'<span style="color:var(--bear)">℞</span>':''; tds+=`<td style="text-align:right;color:${PLAN_COL[b]}">${v.toFixed(2)}°${rr}</td>`; } plRows+=`<tr><td>${planISO(ms)}</td>${tds}</tr>`; }
+    let plRows=''; for(let ms=D.t1; ms>=D.t0; ms-=PLAN_DAYMS){ const J=planJDfromMs(ms); let tds=''; for(const b of D.bodies){ const v=kind==='lat'?geoLat(b,J):n360(geoLon(b,J)); const rr=(kind==='lon'&&((b==='Rahu'||b==='Ketu')||(b!=='Sun'&&b!=='Moon'&&planetSpeed(b,J)<0)))?'<span style="color:var(--bear)">℞</span>':''; tds+=`<td style="text-align:right;color:${PLAN_COL[b]}">${v.toFixed(2)}°${rr}</td>`; } plRows+=`<tr><td>${planISO(ms)}</td>${tds}</tr>`; }
     const plHead=D.bodies.map(b=>`<th style="text-align:right;color:${PLAN_COL[b]}">${b}</th>`).join('');
     rawBody=`<div class="pb"><div class="g2">
       <div><div style="font-size:10.5px;color:var(--acc);font-weight:700;margin-bottom:3px">PRICES (${D.ohlc.length} bars)</div><div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th><th style="text-align:right">Open</th><th style="text-align:right">High</th><th style="text-align:right">Low</th><th style="text-align:right">Close</th></tr></thead><tbody>${prRows}</tbody></table></div></div>
-      <div><div style="font-size:10.5px;color:var(--acc);font-weight:700;margin-bottom:3px">PLANET ${kind==='lat'?'LATITUDES':kind==='dec'?'DECLINATIONS':'LONGITUDES'} (daily${kind==='lon'?', ℞=retro':''})</div><div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th>${plHead}</tr></thead><tbody>${plRows}</tbody></table></div></div></div></div>`; }
+      <div><div style="font-size:10.5px;color:var(--acc);font-weight:700;margin-bottom:3px">PLANET ${kind==='lat'?'LATITUDES':'LONGITUDES'} (daily${kind==='lon'?', ℞=retro':''})</div><div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th>${plHead}</tr></thead><tbody>${plRows}</tbody></table></div></div></div></div>`; }
   raw=`<div class="pnl" style="margin-top:10px"><div class="ph" style="cursor:pointer" onclick="gs({planRaw:${!rawOpen}})"><span class="dot"></span>${rawOpen?'▾':'▸'} RAW DATA — prices &amp; planet positions ${rawOpen?'(click to hide)':'(click to show)'}</div>${rawBody}</div>`;
 
   const _hostStyle=_MAX?'position:fixed;inset:0;z-index:9999;background:var(--bg2);padding:10px 14px 18px;overflow:auto':'';
@@ -8125,13 +8125,13 @@ function planChart(kind){
 }
 
 function planPaint(){
-  if(typeof S==='undefined') return; if(S.tab!=='planlat' && S.tab!=='planlon' && S.tab!=='plandec') return;
+  if(typeof S==='undefined') return; if(S.tab!=='planlat' && S.tab!=='planlon') return;
   const kind=planKind();
   const mt=document.getElementById('plan-metrics'); if(mt) mt.innerHTML=planMetrics();
   const el=document.getElementById('plan-chart'); if(el) el.innerHTML=planChart(kind);
   planMountChart();
 }
-if(!window.PLAN._rb){ window.PLAN._rb=true; let _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(function(){ if(typeof S!=='undefined'&&(S.tab==='planlat'||S.tab==='planlon'||S.tab==='plandec')) planRedraw(); },200); }); }
+if(!window.PLAN._rb){ window.PLAN._rb=true; let _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(function(){ if(typeof S!=='undefined'&&(S.tab==='planlat'||S.tab==='planlon')) planRedraw(); },200); }); }
 
 function planBtn(active,onclick,label,col){ return `<button onclick="${onclick}" style="display:inline-block;padding:3px 9px;margin:0;font-family:inherit;font-size:11.5px;cursor:pointer;border-radius:3px;background:${active?'var(--bg3)':'var(--bg2)'};color:${active?(col||'var(--tx1)'):'var(--tx1)'};border:1px solid ${active?(col||'var(--acc)'):'#104858'};font-weight:${active?'800':'400'}">${label}</button>`; }
 function planControls(kind){
@@ -8151,7 +8151,8 @@ function planControls(kind){
     ${grp('RANGE',ranges)} ${grp('FORECAST',fwds)} ${grp('PRICE',ptype)} ${conjCtrl} ${sjCtrl}
     <button onclick="window.PLAN.loadedKey=null;window.PLAN.status='idle';planLoad()" style="margin-left:auto;background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);padding:4px 10px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:11.5px">↻ Reload</button>
   </div>
-  <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><span style="font-size:10.5px;color:var(--tx3);margin-right:2px">PLANETS</span>${chips}</div>`;
+  <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><span style="font-size:10.5px;color:var(--tx3);margin-right:2px">PLANETS</span>${chips}</div>
+  ${actToolbar('plan-oac-host',{tf:'day', baseType: planChartType()==='line'?'line':'candlestick'})}`;
 }
 function planToggle(b){ let sel=planBodies(); if(sel.includes(b)) sel=sel.filter(x=>x!==b); else sel=PLAN_ORDER.filter(x=>sel.includes(x)||x===b); gs({planBodies:sel.join(',')}); }
 
@@ -8177,11 +8178,6 @@ function tPlanetLat(){ setTimeout(planLoad,30);
   return `<div class="pnl"><div class="ph"><span class="dot"></span>PLANET LATITUDE — ${planInstKey()} candles vs planet ecliptic latitude (Shar)</div>
     <div class="pb">${planControls('lat')}<div id="plan-metrics">${planMetrics()}</div><div id="plan-chart">${planChart('lat')}</div>
       <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Top: ${planInstKey()} OHLC. Bottom: planet ecliptic latitude (N+ / S−). Zoom: Ctrl+wheel or ＋－ buttons (plain wheel scrolls the page) · Pan: shift-drag or Pan toggle · Reset: dbl-click · ⛶ Maximize / ▭ Minimize in toolbar. Port of planet.py.</div>
-    </div></div>${planScrollRail()}`; }
-function tPlanetDec(){ setTimeout(planLoad,30);
-  return `<div class="pnl"><div class="ph"><span class="dot"></span>PLANET DECLINATION — ${planInstKey()} candles vs planet declination (Kranti)</div>
-    <div class="pb">${planControls('dec')}<div id="plan-metrics">${planMetrics()}</div><div id="plan-chart">${planChart('dec')}</div>
-      <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Top: ${planInstKey()} OHLC. Bottom: planet declination (N+ / S−) — the Kranti the research engine studies for maxima, minima, reversals and zero-crossings; the Sun's ±23.4° annual swing is the reference the others cross. Wheel/drag to zoom and pan · ＋－ buttons · ⛶ Maximize / ▭ Minimize in toolbar.</div>
     </div></div>${planScrollRail()}`; }
 function tPlanetLon(){ setTimeout(planLoad,30);
   return `<div class="pnl"><div class="ph"><span class="dot"></span>PLANET LONGITUDE — ${planInstKey()} candles vs planet ecliptic longitude</div>
@@ -8275,7 +8271,7 @@ function ovSessionRange(){
 function ovPriceKey(){ return [S.date,ovInstKey(),Math.max(1,parseInt(S.ovInt,10)||15),S.loc||'Mumbai',ovMkt().tz].join('|'); }
 window.OVBC={key:null,bars:null,status:'idle',err:'',note:''};
 async function ovbcLoadPrice(force){
-  const key=ovPriceKey();
+  const key=ovPriceKey(), _ik=ovInstKey();
   if(!force && window.OVBC.key===key && window.OVBC.status!=='idle') return;
   if(window.OVBC.status==='loading' && window.OVBC.key===key) return; // already in flight
   // keep the last candles on screen while a refresh is in flight (no blanking)
@@ -8405,9 +8401,9 @@ async function ovbcLoadPrice(force){
         window.OVBC.bars=await tryIv(ivS,sym); window.OVBC.status='ready';
         const notes=[];
         if(ivS!==ivStr) notes.push(ivS+' bars shown — '+ivStr+' feed unavailable right now');
-        if(sym!==PLAN_INST[ovInstKey()]) notes.push('via '+sym+' (primary symbol has no Yahoo data)');
+        if(sym!==PLAN_INST[_ik]) notes.push('via '+sym+' (primary symbol has no Yahoo data)');
         window.OVBC.note=notes.join(' · ');
-        (window._ovbcSymPref=window._ovbcSymPref||{})[ovInstKey()]=sym;
+        (window._ovbcSymPref=window._ovbcSymPref||{})[_ik]=sym;
         ok=true; break outer;
       }catch(e){ window.OVBC.err=((e&&e.message)||'fetch failed'); }
     }
@@ -8518,6 +8514,81 @@ function ovRepaintBC(){ const el=document.getElementById('ovbcHost'); if(el&&DAT
 window.ovToggleKp  =function(){ window.OV_KP  =(window.OV_KP===false);   ovRepaintBC(); };
 window.ovToggleComp=function(){ window.OV_COMP=(window.OV_COMP===false); ovRepaintBC(); };
 window.ovToggleSlot=function(){ window.OV_SLOT=(window.OV_SLOT!==true);  ovRepaintBC(); };
+
+/* ── Overview history: step the terminal's date to another session ───────
+   Steps over Saturday and Sunday, since no exchange this terminal follows
+   trades then and an empty chart is not a useful destination. A holiday
+   still lands on an empty session — the strip says so rather than pretending. */
+function ovDateStep(n){
+  const dir=n<0?-1:1; let d=S.date;
+  for(let i=0;i<12;i++){
+    d=dateShiftStr(d,dir);
+    const w=new Date(d+'T12:00:00').getDay();
+    if(w!==0&&w!==6) break;
+  }
+  if(d>todayStr()) d=todayStr();
+  gs({date:d});
+}
+window.ovDateStep=ovDateStep;
+function ovDateNavHTML(){
+  const past=S.date!==todayStr();
+  const bt='background:var(--bg3);color:var(--tx2);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:11px;padding:2px 6px;cursor:pointer';
+  return `<span style="display:inline-flex;gap:3px;align-items:center;background:var(--bg2);border:1px solid ${past?'var(--sun)':'var(--bd)'};border-radius:4px;padding:2px 4px" title="View any past session: the bands, the KP signal and the ✓/✗ grading are all recomputed for the date shown here.">
+    <span style="font-size:9.5px;color:${past?'var(--sun)':'var(--tx3)'};letter-spacing:.4px;font-weight:700">${past?'HISTORY':'SESSION'}</span>
+    <button style="${bt}" onclick="ovDateStep(-1)" title="Previous trading session">◀</button>
+    <input type="date" class="ci" style="width:124px;font-size:11px;padding:2px 4px" value="${S.date}" max="${todayStr()}" onchange="if(this.value)gs({date:this.value})">
+    <button style="${bt}" onclick="ovDateStep(1)" title="Next trading session" ${S.date>=todayStr()?'disabled':''}>▶</button>
+    <button style="${bt};${past?'color:var(--acc);border-color:var(--acc)':'opacity:.45'}" onclick="gs({date:todayStr()})" ${past?'':'disabled'} title="Back to today">Today</button>
+  </span>`;
+}
+window.ovDateNavHTML=ovDateNavHTML;
+
+/* ── the session's forecast, graded window by window ─────────────────────
+   `bands` already carries `res` (hit / miss / not yet gradable) and `net`
+   (the window's actual move) from the same rules the chart labels with.
+   This lays them out, and puts the only baseline that matters next to the
+   score: buy-and-hold over the SAME windows. A 60% day means nothing if
+   holding long through those windows would have paid on 70% of them. */
+function ovFcStripHTML(bands, iv){
+  const g=(bands||[]).filter(b=>b.res!=null);
+  const past=S.date!==todayStr();
+  if(!g.length){
+    const why=(window.OVBC&&window.OVBC.status==='error')
+      ? `no candles for ${S.date} — ${reEsc(window.OVBC.err||'fetch failed')}`
+      : (window.OVBC&&window.OVBC.status==='loading') ? 'loading candles…'
+      : `no completed window on ${S.date} yet`;
+    return `<div style="font-size:10.5px;color:var(--tx3);margin-top:6px;border-top:1px solid var(--bd);padding-top:6px">
+      <b style="color:var(--tx2)">PAST FORECAST</b> — ${why}. Weekends and exchange holidays have no session; Yahoo keeps 5–30 min bars for about 60 days, so older US dates grade only at hourly or not at all. NSE instruments read the baked Upstox history and go back years.</div>`;
+  }
+  const THR=0.08;                       // the same materiality gate the bands use
+  const hits=g.filter(b=>b.res).length;
+  // Two trivial callers, graded by exactly the rules the bands are graded by.
+  // Both are needed: on a flat session "all neutral" is nearly unbeatable and
+  // "all bullish" scores zero, so quoting only one of them turns a quiet day
+  // into apparent skill.
+  const longHit=g.filter(b=>b.net>THR).length;
+  const flatHit=g.filter(b=>Math.abs(b.net)<=THR).length;
+  const best=Math.max(longHit,flatHit);
+  const pc=n=>(n*100/g.length).toFixed(0);
+  const col=hits>best?'var(--bull)':hits<best?'var(--bear)':'var(--sun)';
+  const chips=g.map(b=>{
+    const c=b.res?'var(--bull)':'var(--bear)';
+    return `<span title="${reEsc(b.why||'')}" style="display:inline-flex;gap:4px;align-items:center;background:var(--bg2);border:1px solid ${c}55;border-left:3px solid ${b.col};border-radius:3px;padding:1px 6px;font-size:10px;white-space:nowrap;cursor:help">
+      <span style="color:var(--tx3)">${mtt(b.from)}</span><b style="color:${b.col}">${b.arrow} ${b.bias.slice(0,4)}</b>
+      <span style="color:var(--tx2)">${b.net>0?'+':''}${b.net.toFixed(2)}%</span><b style="color:${c}">${b.res?'✓':'✗'}</b></span>`;
+  }).join(' ');
+  return `<div style="margin-top:6px;border-top:1px solid var(--bd);padding-top:6px">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:11px;margin-bottom:5px">
+      <b style="color:var(--tx1)">PAST FORECAST — ${S.date}${past?'':' (session in progress)'} · ${ovInstKey()}</b>
+      <span style="color:${col};font-weight:800">rulebook ${hits}/${g.length} (${pc(hits)}%)</span>
+      <span style="color:var(--tx3)" title="The same ${g.length} window${g.length===1?'':'s'}, called by two rules that use no astrology at all: BULLISH every time, and NEUTRAL every time. Beating the better of the two is the bar.">always-bullish ${longHit}/${g.length} (${pc(longHit)}%) · always-neutral ${flatHit}/${g.length} (${pc(flatHit)}%)</span>
+      <span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="One session is far too small to read as skill: at this window count the spread between 30% and 70% is ordinary noise. The number that carries weight is the 6,618-session grading in the VALIDATION panel below — 49.0% against a 53.9% base rate.">one session — not a sample</span>
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">${chips}</div>
+  </div>`;
+}
+window.ovFcStripHTML=ovFcStripHTML;
+
 function ovBuildSlots(D){
   const key=ovSlotKey();
   if(_ovbcSlots.key===key) return _ovbcSlots.slots;
@@ -8792,6 +8863,7 @@ ${s.why}</title></circle>`).join('');
     <div class="ph" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
       <span><span class="dot" style="background:${dayCol}"></span>◈ BIAS CHART — ${ovInstKey()} · ${SR.label} · <span style="color:${dayCol};font-weight:800">DAY: ${D.combinedLabel} ${D.combinedScore>0?'+':''}${D.combinedScore}</span>${hitSummary?' · '+hitSummary:''}<span class="pill" title="Graded on 6,618 sessions since 2000-01-04: this call is right 49.0% of the time against a 53.9% base rate, and no component of it beats always-long at 95% confidence. Treat it as the rulebook's reading, not as a probability." style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);margin-left:8px;font-weight:700">rulebook · 49.0% measured, no edge</span></span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        ${ovDateNavHTML()}
         <select class="ci" style="font-size:11px;padding:2px 4px;max-width:160px" onchange="ovSelInst(this.value)">${instSel}</select>
         <label title="After 16:00 IST the terminal follows New York, and returns to the NSE before 09:15. Picking an instrument by hand holds it for the rest of that block."
           style="font-size:10.5px;color:var(--tx3);display:inline-flex;align-items:center;gap:4px;cursor:pointer">
@@ -8806,6 +8878,7 @@ ${s.why}</title></circle>`).join('');
       </span>
     </div>
     <div class="pb">
+      ${actToolbar('ovbc-canvas',{tf:'min', tfLabel:'CANDLE'})}
       <div id="ovbc-canvas" style="width:100%;aspect-ratio:1560/430;min-height:280px"></div>
       <div id="ovbc-tip" style="font-size:11px;margin-top:4px;min-height:14px;color:var(--tx2)"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--tx2);margin-top:6px;align-items:center">
@@ -8816,6 +8889,7 @@ ${s.why}</title></circle>`).join('');
         ${legend}
         <span style="margin-left:auto">${priceStatus}</span>
       </div>
+      ${ovFcStripHTML(bands, iv)}
       <div style="font-size:10px;color:var(--tx3);margin-top:4px">
         Bands = per-slot forecast from that slot's own sky: hour-lord house from the SLOT's lagna, real dignity (exalt/own/debil), Moon sub-lord at the slot, hora and day-trend tilt — hover a band for the full scoring. <strong style="color:var(--acc)">✦ KP ASTRO SIGNAL</strong> (cyan step) = the Overview panel's <em>pure</em> /±100 score, recomputed at every slot with that instant's lagna and Moon position — at the TIME-picker slot it equals the panel reading exactly, and it steps whenever the rising sign rotates a planet into a new house or the Moon changes nakshatra. <strong style="color:var(--moon)">◈ composite</strong> (blue smooth) = that same per-slot signal blended 50/50 with the day's combined score, so it is deliberately damped and will <em>not</em> match the panel number. Both share the ±100 right axis, so the gap between them is the day-score drag. <strong style="color:var(--sun)">⌁ slot</strong> (amber dashed, off by default) = the hour-lord score behind the bands, on its own auto scale. Hover any dot for the factor breakdown. Bands are stable (they never repaint when you change the TIME picker). ✓/✗ on each completed band = forecast vs the band's actual net move (±0.08% threshold; VOLATILE ✓ = whipsaw range ≫ net). Yahoo history: 1m ≈ 30d, 5/15/30m ≈ 60d; older dates fall back to hourly, then bands-only. Today auto-refreshes every 60s; ↻ forces it. 24H session covers US markets / commodities.
       </div>
@@ -15016,380 +15090,79 @@ function marsBearishCombos(planets){
     const pos=posFrom(mars,o); return {pair:'Mars–'+d.other, rel:d.rel, pos, mSign:mars.sign, oSign:o.sign, active:d.set.includes(pos), note:d.note}; }).filter(Boolean);
 }
 
-
-/* ── HORA vs REALISED RANGE ──────────────────────────────────────────────
-   The one measured, replicated astro effect in this terminal.
-
-   Everything daily came back empty: 34.5M aspect-pair-lag combinations
-   returned a best statistic of 10.89 against a permuted-null mean of 10.91.
-   Hora is different because it repeats — seven lords cycling every day gives
-   thousands of independent occurrences in the 2022-2026 baked 5-minute
-   history, which is the statistical power the slow planets never had.
-
-   What it is NOT: directional. Hora carries no information about which way
-   price goes (max |mean| 0.101 bps against a null p95 of 0.157, p=0.495).
-
-   What it IS: a small volatility effect. Jupiter hora runs a few percent
-   above the average five-minute range, and it is the strongest of the seven
-   lords in all four test cells. It survives removing the time-of-day profile
-   (hora is nearly a clock function, and Indian intraday has a strong
-   open/midday/close shape), removing calendar-month seasonality, and a null
-   built by shuffling whole days so intraday structure is preserved and only
-   the hora-to-day alignment is destroyed. It then replicates on Bank Nifty,
-   more strongly than on Nifty.
-
-   Numbers are mean deviation from the slot x month baseline, in basis points
-   of the previous close, over ~84,500 bars per index. */
-const HORA_VOL = {
-  NIFTY:    {Jupiter:+0.231, Saturn:+0.117, Mars:+0.058, Venus:-0.071,
-             Sun:-0.138, Moon:-0.145, Mercury:-0.096, base:9.444, p:0.005},
-  BANKNIFTY:{Jupiter:+0.375, Saturn:+0.121, Mars:+0.070, Venus:-0.084,
-             Sun:-0.112, Moon:-0.141, Mercury:-0.166, base:12.676, p:0.000}
-};
-
-function horaVolFor(lord, instKey){
-  const t=HORA_VOL[instKey==='BANKNIFTY'?'BANKNIFTY':'NIFTY'];
-  const d=t[lord];
-  if(d===undefined) return null;
-  return {dev:d, base:t.base, pct:d/t.base*100, p:t.p};
-}
-
-function horaVolStripHTML(lord, instKey){
-  const v=horaVolFor(lord, instKey);
-  if(!v) return '';
-  const col=v.dev>0.05?'var(--bear)':v.dev<-0.05?'var(--bull2)':'var(--tx3)';
-  const tbl=['Jupiter','Saturn','Mars','Venus','Mercury','Sun','Moon'].map(L=>{
-    const x=horaVolFor(L,instKey); const on=(L===lord);
-    return `<span style="padding:2px 7px;border-radius:9px;font-size:10px;
-      border:1px solid ${on?'var(--acc)':'var(--bd2)'};background:${on?'var(--acc3)':'transparent'};
-      color:${on?'#001318':x.dev>0.05?'var(--bear)':x.dev<-0.05?'var(--bull2)':'var(--tx3)'};
-      font-weight:${on?'800':'600'}">${L} ${x.pct>0?'+':''}${x.pct.toFixed(1)}%</span>`;
-  }).join(' ');
-  return `<div class="pnl"><div class="ph"><span class="dot" style="background:${col}"></span>
-    ◔ HORA vs REALISED RANGE — measured, ${instKey==='BANKNIFTY'?'Bank Nifty':'Nifty'} 5-min 2022-2026</div>
-    <div class="pb">
-      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-bottom:7px">
-        <span style="font-size:10.5px;color:var(--tx3)">CURRENT HORA</span>
-        <b style="font-size:16px;color:var(--tx0)">${lord||'—'}</b>
-        <span style="font-size:10.5px;color:var(--tx3)">EXPECTED RANGE</span>
-        <b style="font-size:15px;color:${col}">${v.pct>0?'+':''}${v.pct.toFixed(1)}%</b>
-        <span style="font-size:10.5px;color:var(--tx3)">vs the average 5-min bar (${v.base.toFixed(1)} bps)</span>
-      </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">${tbl}</div>
-      <div style="font-size:10.5px;color:var(--tx3);margin-top:8px;line-height:1.55">
-        <b style="color:var(--tx1)">Volatility only — this says nothing about direction.</b>
-        Hora carries no directional information at all (max 0.101 bps against a null p95 of 0.157,
-        p=0.495). The range effect survives removing the time-of-day profile, removing month
-        seasonality, and a whole-day-shuffle null (p=${v.p.toFixed(3)}), and replicates on both
-        indices. It is small — a few percent on the size of a bar — so it refines position sizing
-        and option-premium expectations, not entries.</div>
-    </div></div>`;
-}
-
-
-/* ══════════════════════════════════════════════════════════════════════════
-   ◈ CHARTS — OpenAlgo Charts engine (vendored, Apache-2.0) on the terminal's
-   own data router, with the day's hora bands shaded behind price.
-
-   Why this engine: zero runtime dependencies and a plain canvas, so it inlines
-   into a single-file page; 91 indicators and 43 drawing tools registered into
-   a shared registry; and getState/restoreState so a layout survives a reload.
-   The library is the OAC global defined in the script block above.
-
-   Data goes through taFetch, which is the same router every other tab uses:
-   NSE instruments come from the baked Upstox history (plus today's live
-   snapshot), US instruments and commodities from Yahoo. Nothing here talks to
-   a provider directly, so the chart cannot drift from the rest of the app.
-
-   The one thing a generic chart cannot do: the hora lord of each stretch of
-   the session is painted as a translucent band, using buildPlanetHours24 —
-   the same function the Timing tab uses — so the measured Jupiter-hora range
-   effect is visible against the bars it was measured on.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-window.CH = window.CH || { chart:null, series:null, draw:null, key:null,
-                           bars:null, src:'', status:'idle', err:'',
-                           indicators:{}, bands:[], savedState:null };
-
-const CH_TF = {
-  intraday:{label:'5-min',   bars: 600},
-  daily:   {label:'Daily',   bars:1200},
-  weekly:  {label:'Weekly',  bars: 800},
-  monthly: {label:'Monthly', bars: 400},
-};
-const CH_TYPES = [['candlestick','Candles'],['hollow-candlestick','Hollow'],['bar','OHLC'],
-                  ['line','Line'],['area','Area'],['baseline','Baseline'],
-                  ['heikin-ashi','Heikin Ashi'],['renko','Renko'],['kagi','Kagi'],
-                  ['line-break','Line Break'],['point-figure','P&F']];
-const CH_IND_QUICK = [['sma','SMA'],['ema','EMA'],['vwap','VWAP'],['bollinger','Bollinger'],
-                      ['supertrend','Supertrend'],['rsi','RSI'],['macd','MACD'],
-                      ['adx','ADX'],['atr','ATR'],['cpr','CPR']];
-const CH_DRAW_QUICK = [['trend-line','Trend'],['horizontal-line','H-Line'],['ray','Ray'],
-                       ['rectangle','Rect'],['fib-retracement','Fib'],['parallel-channel','Channel'],
-                       ['long-position','Long'],['short-position','Short'],['text','Text']];
-const CH_HORA_COL = {Sun:'#f2b134', Moon:'#b8c7d9', Mars:'#ff5570', Mercury:'#3fc98c',
-                     Jupiter:'#f4d35e', Venus:'#ff9ed2', Saturn:'#8a9bb3'};
-
-function chInst(){ return S.chInst || 'NIFTY'; }
-function chTf(){ return S.chTf || 'daily'; }
-function chType(){ return S.chType || 'candlestick'; }
-
-/* The library ships light and dark palettes; the terminal's CSS variables are
-   resolved at render time so the chart matches whichever the body is showing. */
-function chTheme(){
-  const cs=getComputedStyle(document.body);
-  const v=n=>cs.getPropertyValue(n).trim();
-  const base=document.body.classList.contains('light')?OAC.lightTheme:OAC.darkTheme;
-  const acc=v('--acc')||'#3df1ff';
-  return Object.assign({}, base, {
-    background: v('--bg1')||base.background, grid:(v('--bd')||base.grid)+'55',
-    axisText: v('--tx2')||base.axisText, axisLine: v('--bd2')||base.axisLine,
-    paneSeparator: v('--bd2')||base.paneSeparator, crosshair: acc,
-    upColor: v('--bull2')||base.upColor, downColor: v('--bear')||base.downColor,
-    wickUpColor: v('--bull2')||base.wickUpColor, wickDownColor: v('--bear')||base.wickDownColor,
-    lineColor: acc, areaTopColor: acc+'66', areaBottomColor: acc+'05',
-    lastPriceUp: v('--bull2')||base.lastPriceUp, lastPriceDown: v('--bear')||base.lastPriceDown});
-}
-
-/* Router rows -> engine bars. Router stamps are IST wall clock; the engine
-   wants UTC seconds and formats the axis in IST itself. */
-function chToBars(rows){
-  const out=[];
-  for(const r of rows){
-    const t=String(r.t||r.date);
-    const iso = t.length>=16 ? t.slice(0,10)+'T'+t.slice(11,16)+':00+05:30'
-                             : t.slice(0,10)+'T09:15:00+05:30';
-    const sec=Math.floor(Date.parse(iso)/1000);
-    if(!isFinite(sec)||!(r.c>0)) continue;
-    const vol=+(r.v||r.vol||0);
-    const b={time:sec, open:+r.o, high:+r.h, low:+r.l, close:+r.c};
-    if(vol>0) b.volume=vol;
-    out.push(b);
-  }
-  out.sort((a,b)=>a.time-b.time);
-  // A live-snapshot bar can overlap the bake on the same stamp; keep the later one.
-  const dd=[];
-  for(const b of out){ if(dd.length&&dd[dd.length-1].time===b.time) dd[dd.length-1]=b; else dd.push(b); }
-  return dd;
-}
-
-async function chLoad(force){
-  const inst=chInst(), tf=chTf();
-  const u=RE_UNIV[inst];
-  if(!u){ window.CH.status='error'; window.CH.err='unknown instrument '+inst; chPaintStatus(); return; }
-  const key=inst+'|'+tf;
-  if(!force && window.CH.key===key && window.CH.bars){ chRender(); return; }
-  window.CH.status='loading'; window.CH.err=''; window.CH.key=key;
-  chPaintStatus();
-  try{
-    const _s0=JSON.stringify(window.DS?window.DS.stats:{});
-    const rows=await taFetch(u.sym, tf, inst);
-    let all=rows||[];
-    // Intraday: the weekly shards stop at the last bake; fold today's live
-    // snapshot in so the session in progress is on the chart.
-    if(tf==='intraday' && dsIsNSE(inst)){
-      try{ const live=await dsLiveIntraday(inst, null); if(live&&live.length) all=all.concat(live); }catch(e){}
-    }
-    let bars=chToBars(all);
-    const cap=CH_TF[tf].bars;
-    if(bars.length>cap) bars=bars.slice(-cap);
-    if(bars.length<5) throw new Error('no bars returned for '+u.label);
-    if(window.CH.key!==key) return;                 // superseded by a newer pick
-    window.CH.bars=bars; window.CH.src=dsUsedSince(_s0); window.CH.status='ready';
-    chRender();
-  }catch(e){ window.CH.status='error'; window.CH.err=(e&&e.message)||'load failed'; chPaintStatus(); }
-}
-window.chLoad=chLoad;
-
-/* A vertical band between two times on the price pane with the lord's name
-   at the top. This follows the engine's own IPrimitive contract exactly —
-   zOrder() is a method, draw(ctx, rc) receives the 2D context and a render
-   context in DEVICE pixels (hence the dpr scaling), and x comes from the same
-   indexToX(timeToIndexFloat(t)) idiom the library's drawings use, so the band
-   edges line up with any trend line the user draws over them. */
-function chBandPrimitive(t0, t1, color, label){
-  return {
-    zOrder(){ return 'bottom'; },
-    draw(ctx, rc){
-      const ts=rc.timeScale, dl=rc.dataLayer; if(!ts||!dl) return;
-      const _d=rc.dpr||1; // indexToX returns media px; the engine's markers multiply by dpr
-      const x0=ts.indexToX(dl.timeToIndexFloat(t0))*_d, x1=ts.indexToX(dl.timeToIndexFloat(t1))*_d;
-      if(!isFinite(x0)||!isFinite(x1)) return;
-      const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W0=rc.plotWidth*dpr;
-      const L=Math.max(0,Math.min(x0,x1)), R=Math.min(W0,Math.max(x0,x1)), W=R-L;
-      if(W<=0) return;
-      ctx.save();
-      ctx.fillStyle=color+'1c'; ctx.fillRect(L,0,W,H);
-      if(W>34*dpr){ ctx.fillStyle=color+'cc'; ctx.font=(10*dpr)+'px ui-monospace,monospace'; ctx.textBaseline='top'; ctx.fillText(label,L+4*dpr,4*dpr); }
-      ctx.restore();
-    }
-  };
-}
-
-/* One band per planetary hour inside the trading session of each day on the
-   chart, from the same hora table the Timing tab reads. */
-function chHoraBands(){
-  const ch=window.CH.chart, bars=window.CH.bars; if(!ch||!bars) return;
-  for(const p of window.CH.bands){ try{ ch.removePrimitive&&ch.removePrimitive(p); }catch(e){} }
-  window.CH.bands=[];
-  // Hora bands describe the NSE session (09:15-15:30 IST). A US index has no
-  // such session, so painting 461 Indian planetary hours over the S&P is
-  // noise — the bands are only meaningful where the hora study was run.
-  if(chTf()!=='intraday' || S.chHora===false || !ch.addPrimitive || !dsIsNSE(chInst())) return;
-  const days=Array.from(new Set(bars.map(b=>OAC.utcSecondsToIstDateString(b.time))));
-  const first=bars[0].time, last=bars[bars.length-1].time;
-  for(const d of days){
-    let hrs; try{ hrs=buildPlanetHours24(d); }catch(e){ continue; }
-    const day0=Math.floor(Date.parse(d+'T00:00:00+05:30')/1000);
-    const sA=day0+9*3600+15*60, sB=day0+15*3600+30*60;
-    for(const h of hrs){
-      const a=day0+Math.round(h.sm*60), b=day0+Math.round(h.em*60);
-      const lo=Math.max(a,sA), hi=Math.min(b,sB);
-      if(hi<=lo || hi<first || lo>last) continue;
-      try{ const p=chBandPrimitive(lo,hi,CH_HORA_COL[h.planet]||'#888',h.planet); ch.addPrimitive(p,0); window.CH.bands.push(p); }catch(e){}
-    }
-  }
-}
-
-function chRender(){
-  const host=document.getElementById('ch-host'); if(!host||!window.CH.bars) return;
-  if(window.CH.chart){ try{ window.CH.chart.destroy(); }catch(e){} window.CH.chart=null; }
-  window.CH.bands=[];
-  // raf is injectable so the chart can be driven headlessly (tests, hidden
-  // panes where rAF never fires). Unset in normal use -> the engine's own rAF.
-  const ch=OAC.createChart(host,{theme:chTheme(), crosshairMode:'magnet', legendOffset:{top:34,left:10},
-                                 raf: window.CH_RAF||undefined});
-  window.CH.chart=ch;
-  let s;
-  try{ s=ch.addSeries(chType()); }catch(e){ S.chType='candlestick'; s=ch.addSeries('candlestick'); }
-  s.setData(window.CH.bars);
-  window.CH.series=s;
-  // Re-add indicators the user had on; the instance ids change with the chart.
-  const want=Object.keys(window.CH.indicators); window.CH.indicators={};
-  for(const id of want){ try{ window.CH.indicators[id]=ch.addIndicator(id,{}); }catch(e){} }
-  try{ window.CH.draw=new OAC.DrawingController(ch,{magnet:true}); }catch(e){ window.CH.draw=null; }
-  if(window.CH.savedState){ try{ ch.restoreState(window.CH.savedState); }catch(e){} }
-  chHoraBands();
-  try{ ch.fitContent(); }catch(e){}
-  ch.subscribeCrosshairMove(e=>{
-    const el=document.getElementById('ch-ohlc'); if(!el) return;
-    if(!e||!e.bar){ el.textContent=''; return; }
-    const b=e.bar;
-    let when=OAC.utcSecondsToIstDateString(b.time);
-    try{ const p=OAC.utcSecondsToIstParts(b.time);
-         const hh=p.hour!==undefined?p.hour:p.h, mm=p.minute!==undefined?p.minute:p.m;
-         if(hh!==undefined && chTf()==='intraday') when+=' '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }catch(x){}
-    const pc=x=>x.toLocaleString('en-IN',{maximumFractionDigits:x>1000?1:2});
-    const up=b.close>=b.open, col=up?'var(--bull2)':'var(--bear)';
-    el.innerHTML='<span style="color:var(--tx3)">'+when+'</span> O <b>'+pc(b.open)+'</b> H <b>'+pc(b.high)+'</b> L <b>'+pc(b.low)+'</b> C <b style="color:'+col+'">'+pc(b.close)+'</b> <span style="color:'+col+'">'+((b.close-b.open)/b.open*100).toFixed(2)+'%</span>';
-  });
-  chPaintStatus();
-  chPaintToolbar();
-}
-
-function chAddIndicator(id){
-  const ch=window.CH.chart; if(!ch||!id) return;
-  const cur=window.CH.indicators[id];
-  if(cur){
-    try{ ch.removeIndicator(cur.id||cur.instanceId||id); }catch(e){}
-    delete window.CH.indicators[id];
-  } else {
-    try{ window.CH.indicators[id]=ch.addIndicator(id,{}); }
-    catch(e){ window.CH.err='indicator '+id+': '+e.message; chPaintStatus(); }
-  }
-  chPaintToolbar();
-}
-window.chAddIndicator=chAddIndicator;
-
-function chSetTool(t){
-  const d=window.CH.draw; if(!d) return;
-  const next = S.chTool===t ? null : t;
-  try{ d.setTool(next); }catch(e){}
-  S.chTool=next; chPaintToolbar();
-}
-window.chSetTool=chSetTool;
-function chUndo(){ try{ window.CH.draw&&window.CH.draw.undo(); }catch(e){} }
-function chRedo(){ try{ window.CH.draw&&window.CH.draw.redo(); }catch(e){} }
-function chClearDrawings(){ const d=window.CH.draw; if(!d) return; try{ (d.clear||d.removeAll||function(){}).call(d); }catch(e){} }
-window.chUndo=chUndo; window.chRedo=chRedo; window.chClearDrawings=chClearDrawings;
-
-function chSaveLayout(){
-  try{ window.CH.savedState=window.CH.chart.getState();
-       localStorage.setItem('astralChartState',JSON.stringify(window.CH.savedState));
-       chPaintStatus('layout saved'); }
-  catch(e){ window.CH.err='save: '+e.message; chPaintStatus(); }
-}
-window.chSaveLayout=chSaveLayout;
-try{ const s=localStorage.getItem('astralChartState'); if(s) window.CH.savedState=JSON.parse(s); }catch(e){}
-
-function chSet(k,v){
-  if(k==='chInst'){ if(typeof mktPin==='function') mktPin(); Object.assign(S, mktVenuePatch(v)); }
-  S[k]=v;
-  if(k==='chInst'||k==='chTf'){ window.CH.bars=null; chLoad(true); }
-  else if(k==='chType'){ chRender(); }
-  else if(k==='chHora'){ chHoraBands(); }
-  chPaintToolbar();
-}
-window.chSet=chSet;
-
-function chPaintStatus(note){
-  const el=document.getElementById('ch-status'); if(!el) return;
-  const C=window.CH;
-  if(C.status==='loading') el.innerHTML='<span style="color:var(--acc)">⏳ loading '+reEsc((RE_UNIV[chInst()]||{}).label||chInst())+' '+CH_TF[chTf()].label+' …</span>';
-  else if(C.status==='error') el.innerHTML='<span style="color:var(--bear)">'+reEsc(C.err)+'</span>';
-  else if(C.bars){
-    const n=C.bars.length, a=OAC.utcSecondsToIstDateString(C.bars[0].time), b=OAC.utcSecondsToIstDateString(C.bars[n-1].time);
-    el.innerHTML='<span style="color:var(--tx3)">'+n.toLocaleString()+' bars · '+a+' → '+b+' · <b style="color:var(--tx1)">'+reEsc(C.src||'')+'</b>'+(note?' · <span style="color:var(--bull2)">'+reEsc(note)+'</span>':'')+'</span>';
-  } else el.innerHTML='';
-}
-function chPaintToolbar(){ const el=document.getElementById('ch-toolbar'); if(el) el.innerHTML=chToolbarHTML(); }
-
-function chToolbarHTML(){
-  const btn=(on,label,onclick,title)=>'<button onclick="'+onclick+'" title="'+(title||'')+'" class="nb'+(on?' on':'')+'" style="padding:4px 10px;border:1px solid '+(on?'var(--acc)':'var(--bd2)')+';border-radius:3px;font-size:11px">'+label+'</button>';
-  const GRP=[['index','INDEX'],['commodity','COMMODITY'],['stock','NSE F&O STOCKS'],['usstock','US STOCKS']];
-  const instSel='<select class="ci" style="width:210px" onchange="chSet(\'chInst\',this.value)">'+
-    GRP.map(([kind,lbl])=>'<optgroup label="'+lbl+'">'+Object.values(RE_UNIV).filter(o=>o.kind===kind).map(o=>
-      '<option value="'+o.key+'" '+(o.key===chInst()?'selected':'')+'>'+reEsc(o.label)+'</option>').join('')+'</optgroup>').join('')+'</select>';
-  const inds=(OAC.registeredIndicators?OAC.registeredIndicators():[]).slice().sort();
-  const tools=(OAC.registeredDrawingTools?OAC.registeredDrawingTools():[]).slice().sort();
-  const horaCtl = chTf()==='intraday'
-    ? '<div class="cg"><span class="cl">HORA BANDS</span>'+btn(S.chHora!==false,S.chHora!==false?'on':'off',"chSet('chHora',"+(S.chHora===false?'true':'false')+")",'Shade each planetary hour behind price')+'</div>'
-    : '';
-  return ''+
-  '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">'+
-    '<div class="cg"><span class="cl">INSTRUMENT</span>'+instSel+'</div>'+
-    '<div class="cg"><span class="cl">TIMEFRAME</span><div style="display:flex;gap:4px">'+Object.entries(CH_TF).map(([k,v])=>btn(chTf()===k,v.label,"chSet('chTf','"+k+"')")).join('')+'</div></div>'+
-    '<div class="cg"><span class="cl">TYPE</span><select class="ci" style="width:130px" onchange="chSet(\'chType\',this.value)">'+CH_TYPES.map(([k,l])=>'<option value="'+k+'" '+(chType()===k?'selected':'')+'>'+l+'</option>').join('')+'</select></div>'+
-    horaCtl+
-    '<div class="cg"><span class="cl">&nbsp;</span>'+btn(false,'↻',"chLoad(true)",'Reload')+'</div>'+
-  '</div>'+
-  '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:7px">'+
-    '<div class="cg"><span class="cl">INDICATORS</span><div style="display:flex;gap:4px;flex-wrap:wrap">'+CH_IND_QUICK.map(([id,l])=>btn(!!window.CH.indicators[id],l,"chAddIndicator('"+id+"')")).join('')+
-      '<select class="ci" style="width:150px" onchange="if(this.value){chAddIndicator(this.value);this.value=\'\';}"><option value="">+ all '+inds.length+'…</option>'+inds.map(id=>'<option value="'+id+'">'+id+'</option>').join('')+'</select></div></div>'+
-    '<div class="cg"><span class="cl">DRAW</span><div style="display:flex;gap:4px;flex-wrap:wrap">'+CH_DRAW_QUICK.map(([id,l])=>btn(S.chTool===id,l,"chSetTool('"+id+"')")).join('')+
-      '<select class="ci" style="width:140px" onchange="if(this.value){chSetTool(this.value);this.value=\'\';}"><option value="">+ all '+tools.length+'…</option>'+tools.map(id=>'<option value="'+id+'">'+id+'</option>').join('')+'</select>'+
-      btn(false,'↶',"chUndo()",'Undo')+btn(false,'↷',"chRedo()",'Redo')+btn(false,'✕ clear',"chClearDrawings()",'Remove all drawings')+btn(false,'💾 layout',"chSaveLayout()",'Save indicators, drawings and viewport')+'</div></div>'+
-  '</div>';
-}
-
-function tCharts2(){
-  // render() rebuilds the DOM, so any stored chart is attached to a detached
-  // node afterwards; re-mount once the new host exists.
-  setTimeout(()=>{ if(S.tab!=='charts2') return; chLoad(false); }, 0);
-  return ''+
-  '<div class="pnl"><div class="ph" data-noco><span class="dot"></span>◈ CHARTS — OpenAlgo Charts engine · Upstox for NSE, Yahoo for US</div>'+
-    '<div class="pb">'+
-      '<div id="ch-toolbar">'+chToolbarHTML()+'</div>'+
-      '<div id="ch-status" style="font-size:11px;margin-top:8px;min-height:14px"></div>'+
-      '<div id="ch-ohlc" style="font-size:11.5px;margin-top:4px;min-height:16px;font-family:ui-monospace,monospace"></div>'+
-      '<div id="ch-host" style="width:100%;height:560px;margin-top:6px;border:1px solid var(--bd);border-radius:4px;overflow:hidden;background:var(--bg1)"></div>'+
-      '<div style="font-size:10.5px;color:var(--tx3);margin-top:8px;line-height:1.5">'+
-        'Drag or scroll to pan and zoom · hover for OHLC · pick a DRAW tool, then click on the chart to place it and drag anchors to edit · '+
-        'hora bands shade each planetary hour of the session (intraday only); the measured Jupiter-hora range effect is on the ⏱ Timing tab · '+
-        'Apache-2.0 engine by <a href="https://github.com/marketcalls/openalgo-charts" target="_blank" rel="noopener" style="color:var(--acc)">marketcalls/openalgo-charts</a>.</div>'+
-    '</div></div>';
-}
-
+
+/* ── HORA vs REALISED RANGE ──────────────────────────────────────────────
+   The one measured, replicated astro effect in this terminal.
+
+   Everything daily came back empty: 34.5M aspect-pair-lag combinations
+   returned a best statistic of 10.89 against a permuted-null mean of 10.91.
+   Hora is different because it repeats — seven lords cycling every day gives
+   thousands of independent occurrences in the 2022-2026 baked 5-minute
+   history, which is the statistical power the slow planets never had.
+
+   What it is NOT: directional. Hora carries no information about which way
+   price goes (max |mean| 0.101 bps against a null p95 of 0.157, p=0.495).
+
+   What it IS: a small volatility effect. Jupiter hora runs a few percent
+   above the average five-minute range, and it is the strongest of the seven
+   lords in all four test cells. It survives removing the time-of-day profile
+   (hora is nearly a clock function, and Indian intraday has a strong
+   open/midday/close shape), removing calendar-month seasonality, and a null
+   built by shuffling whole days so intraday structure is preserved and only
+   the hora-to-day alignment is destroyed. It then replicates on Bank Nifty,
+   more strongly than on Nifty.
+
+   Numbers are mean deviation from the slot x month baseline, in basis points
+   of the previous close, over ~84,500 bars per index. */
+const HORA_VOL = {
+  NIFTY:    {Jupiter:+0.231, Saturn:+0.117, Mars:+0.058, Venus:-0.071,
+             Sun:-0.138, Moon:-0.145, Mercury:-0.096, base:9.444, p:0.005},
+  BANKNIFTY:{Jupiter:+0.375, Saturn:+0.121, Mars:+0.070, Venus:-0.084,
+             Sun:-0.112, Moon:-0.141, Mercury:-0.166, base:12.676, p:0.000}
+};
+
+function horaVolFor(lord, instKey){
+  const t=HORA_VOL[instKey==='BANKNIFTY'?'BANKNIFTY':'NIFTY'];
+  const d=t[lord];
+  if(d===undefined) return null;
+  return {dev:d, base:t.base, pct:d/t.base*100, p:t.p};
+}
+
+function horaVolStripHTML(lord, instKey){
+  const v=horaVolFor(lord, instKey);
+  if(!v) return '';
+  const col=v.dev>0.05?'var(--bear)':v.dev<-0.05?'var(--bull2)':'var(--tx3)';
+  const tbl=['Jupiter','Saturn','Mars','Venus','Mercury','Sun','Moon'].map(L=>{
+    const x=horaVolFor(L,instKey); const on=(L===lord);
+    return `<span style="padding:2px 7px;border-radius:9px;font-size:10px;
+      border:1px solid ${on?'var(--acc)':'var(--bd2)'};background:${on?'var(--acc3)':'transparent'};
+      color:${on?'#001318':x.dev>0.05?'var(--bear)':x.dev<-0.05?'var(--bull2)':'var(--tx3)'};
+      font-weight:${on?'800':'600'}">${L} ${x.pct>0?'+':''}${x.pct.toFixed(1)}%</span>`;
+  }).join(' ');
+  return `<div class="pnl"><div class="ph"><span class="dot" style="background:${col}"></span>
+    ◔ HORA vs REALISED RANGE — measured, ${instKey==='BANKNIFTY'?'Bank Nifty':'Nifty'} 5-min 2022-2026</div>
+    <div class="pb">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-bottom:7px">
+        <span style="font-size:10.5px;color:var(--tx3)">CURRENT HORA</span>
+        <b style="font-size:16px;color:var(--tx0)">${lord||'—'}</b>
+        <span style="font-size:10.5px;color:var(--tx3)">EXPECTED RANGE</span>
+        <b style="font-size:15px;color:${col}">${v.pct>0?'+':''}${v.pct.toFixed(1)}%</b>
+        <span style="font-size:10.5px;color:var(--tx3)">vs the average 5-min bar (${v.base.toFixed(1)} bps)</span>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${tbl}</div>
+      <div style="font-size:10.5px;color:var(--tx3);margin-top:8px;line-height:1.55">
+        <b style="color:var(--tx1)">Volatility only — this says nothing about direction.</b>
+        Hora carries no directional information at all (max 0.101 bps against a null p95 of 0.157,
+        p=0.495). The range effect survives removing the time-of-day profile, removing month
+        seasonality, and a whole-day-shuffle null (p=${v.p.toFixed(3)}), and replicates on both
+        indices. It is small — a few percent on the size of a bar — so it refines position sizing
+        and option-premium expectations, not entries.</div>
+    </div></div>`;
+}
+
+
+
+
 
 /* ══════════════════════════════════════════════════════════════════════════
    ASTRAL CHART — the one engine layer under every price chart in the terminal.
@@ -15563,16 +15336,22 @@ function astralChart(host, spec){
   const prims=[];
   const add=(p,pane)=>{ try{ ch.addPrimitive(p,pane||0); prims.push(p); }catch(e){} };
 
-  // ── time axis: bars ∪ whitespace, deduplicated and sorted ──
+  // ── time axis: bars ∪ whitespace ──
+  // The whitespace lives in its OWN series, never in the price series. The
+  // data layer merges every series onto one logical index, so the axis still
+  // extends past the last candle — but chart.addIndicator() computes over the
+  // PRICE series' bars, and a whitespace item normalises to a NaN bar. One NaN
+  // inside a recursive average (EMA, RMA, and everything built on them) poisons
+  // the rest of the series, so an indicator on a padded chart would have gone
+  // blank from the first weekend onwards.
   const bars=(spec.bars||[]).slice().sort((a,b)=>a.time-b.time);
-  const items=[]; const seen=new Set();
+  const items=[]; const seen=new Set(); const ws=[];
   for(const b of bars){ if(seen.has(b.time)) continue; seen.add(b.time); items.push(b); }
   if(spec.extend && spec.extend.step>0){
     const [e0,e1]=[spec.extend.t0,spec.extend.t1];
-    for(let t=e0;t<=e1;t+=spec.extend.step){ const tt=Math.round(t); if(!seen.has(tt)){ seen.add(tt); items.push({time:tt}); } }
-    items.sort((a,b)=>a.time-b.time);
+    for(let t=e0;t<=e1;t+=spec.extend.step){ const tt=Math.round(t); if(!seen.has(tt)){ seen.add(tt); ws.push({time:tt}); } }
   }
-  const times=items.map(i=>i.time);
+  const times=items.concat(ws).map(i=>i.time).sort((a,b)=>a-b);
   const idxOf=t=>{ let lo=0,hi=times.length-1; while(lo<hi){ const m=(lo+hi)>>1; if(times[m]<t) lo=m+1; else hi=m; }
     if(times[lo]===t||lo===0||lo>=times.length) return lo;
     const a=times[lo-1], b=times[lo]; return lo-1+(t-a)/Math.max(1,b-a); };
@@ -15583,6 +15362,12 @@ function astralChart(host, spec){
   try{ price=ch.addSeries(priceType,{paneIndex:0, style:Object.assign({priceLineVisible:false,lastValueVisible:spec.lastValue!==false},spec.priceStyle||{})}); }
   catch(e){ price=ch.addSeries('candlestick',{paneIndex:0}); }
   price.setData(items);
+  // the padding series: claims no primary role (the price series already did),
+  // draws nothing (whitespace has no value) and is skipped by autoscale.
+  if(ws.length){
+    const wsr=ch.addSeries('line',{paneIndex:0, style:{color:'rgba(0,0,0,0)',lineWidth:0.1,priceLineVisible:false,lastValueVisible:false,crosshairMarkerVisible:false}});
+    wsr.setData(ws);
+  }
 
   // ── pane 0: ±100 score lines, drawn as primitives ──
   // Primitives only see a pane's RIGHT scale, so a score series on a 'left'
@@ -15676,13 +15461,472 @@ function acMount(hostId, specFn, _try){
     return null;
   }
   const old=window.AC_MOUNTS[hostId]; if(old){ try{ old.destroy(); }catch(e){} }
+  // Remember how to rebuild: the toolbar re-mounts on a timeframe or chart-type
+  // change without going through the tab's own render().
+  if(window.ACT) window.ACT.spec[hostId]=specFn;
+  if(host.dataset.acAspect===undefined) host.dataset.acAspect=host.style.aspectRatio||'';
+  if(typeof actHeight==='function') actHeight(hostId);
   let spec=null; try{ spec=specFn(); }catch(e){ host.innerHTML='<div style="padding:18px;color:var(--bear);font-size:11.5px">chart spec failed: '+reEsc(e.message)+'</div>'; return null; }
   if(!spec) return null;
+  if(typeof actPatchSpec==='function') spec=actPatchSpec(hostId, spec);
   const api=astralChart(host,spec);
   window.AC_MOUNTS[hostId]=api;
+  if(typeof actAttach==='function'){ try{ actAttach(hostId, api); }catch(e){} }
   return api;
 }
 window.acMount=acMount;
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ACT — the OpenAlgo tool set, on every chart in the terminal.
+
+   The charts drawn through astralChart (Gann SQ9, Overview bias, Planet
+   Lat/Lon) had the engine underneath but none of its tools exposed: no
+   timeframe, no indicators, no drawings. This module is the missing UI, and
+   it is shared, so a chart gets the whole set by rendering one toolbar.
+
+     timeframe   resamples the bars the spec already fetched — 1D/1W/1M/3M on
+                 daily charts, 5m/15m/30m/1H on the intraday one. No refetch:
+                 aggregation is a pure fold over the loaded candles, so it is
+                 instant and works the same on Upstox and Yahoo data.
+     chart type  all 15 the engine registers (candles, hollow, HA-style
+                 transforms, line, area, baseline, P&F, Kagi, …).
+     indicators  all 91, grouped by the descriptor's own `category`, with a
+                 settings form generated from the descriptor's `inputs`.
+     drawings    all 43, grouped, with the engine's DrawingController for
+                 undo/redo/magnet, and per-tool keyboard shortcuts bound here
+                 (the library deliberately installs no key listener).
+
+   Every chart in this app is re-mounted whenever the tab re-renders, which
+   destroys the chart instance and everything on it. So nothing lives on the
+   instance: the config is per-host, persisted to localStorage, and re-applied
+   by actAttach() after each mount. Drawings are stored as the engine's own
+   `Drawing` records — anchors in {time, price} data space — so they survive a
+   re-mount, a zoom, and a timeframe change.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+window.ACT = window.ACT || { cfg:{}, ctrl:{}, spec:{}, inst:{}, pop:null, tools:null, inds:null };
+try{ const _s=localStorage.getItem('astralTools'); if(_s) window.ACT.cfg=JSON.parse(_s)||{}; }catch(e){}
+function actSave(){ try{ localStorage.setItem('astralTools', JSON.stringify(window.ACT.cfg)); }catch(e){} }
+function actCfg(h){
+  const c=window.ACT.cfg;
+  if(!c[h]) c[h]={};
+  const k=c[h];
+  if(!k.ind) k.ind=[]; if(!k.draw) k.draw=[];
+  if(!k.style) k.style={color:'#4f8cff',lineWidth:2,lineStyle:'solid'};
+  if(k.magnet==null) k.magnet=true;
+  return k;
+}
+
+/* ── registries, read once from the engine ─────────────────────────────── */
+function actInds(){
+  if(window.ACT.inds) return window.ACT.inds;
+  let list=[]; try{ list=OAC.registeredIndicators()||[]; }catch(e){ list=[]; }
+  return (window.ACT.inds=list.map(d=>({id:d.id, name:d.name, cat:d.category||'Other',
+                                        pane:d.placement==='pane', inputs:d.inputs||[]})));
+}
+const ACT_ICAT=['Trend','Momentum','Volatility','Volume','Other'];
+/* Drawing tools carry no category of their own; these are the six a trader
+   reaches for as groups. Anything the engine registers that is not listed
+   falls through to "More", so a library update can never drop a tool. */
+const ACT_DGROUP=[
+  ['Lines',      ['trend-line','ray','extended-line','arrow','horizontal-line','horizontal-ray','vertical-line','cross-line','parallel-channel','path','polyline']],
+  ['Shapes',     ['rectangle','rotated-rectangle','ellipse','circle','triangle','arc','curve','double-curve','brush','highlighter']],
+  ['Fibonacci',  ['fib-retracement','fib-extension','fib-channel','fib-time-zone','fib-fan']],
+  ['Gann · Cycles',['gann-fan','gann-box','cyclic-lines','time-cycles','sine-line']],
+  ['Measure · Position',['measure','price-range','date-range','forecast','long-position','short-position']],
+  ['Annotation', ['text','callout','price-label','flag-mark','arrow-up','arrow-down']],
+];
+function actTools(){
+  if(window.ACT.tools) return window.ACT.tools;
+  let list=[]; try{ list=OAC.registeredDrawingTools()||[]; }catch(e){ list=[]; }
+  const byId={}; list.forEach(t=>byId[t.id]=t);
+  const groups=[], used=new Set();
+  for(const [g,ids] of ACT_DGROUP){
+    const items=ids.filter(i=>byId[i]).map(i=>{ used.add(i); return byId[i]; });
+    if(items.length) groups.push([g,items]);
+  }
+  const rest=list.filter(t=>!used.has(t.id));
+  if(rest.length) groups.push(['More',rest]);
+  return (window.ACT.tools=groups);
+}
+/* registeredChartTypes() returns bare ids and the descriptors carry no display
+   name, so the labels live here. `column` and `histogram` are registered but
+   declare isPriceSeries:false — used as the price series they would leave the
+   chart with no primary series at all, which is what indicators, the magnet
+   crosshair and the OHLC legend all read. Filtered out, not renamed. */
+const ACT_TYPE_NAME={candlestick:'Candles','hollow-candle':'Hollow candles','volume-candle':'Volume candles',
+  bar:'OHLC bars','high-low':'High-Low',line:'Line','line-markers':'Line + markers',step:'Step',
+  area:'Area','hlc-area':'HLC area',baseline:'Baseline','point-figure':'Point & Figure',kagi:'Kagi'};
+function actTypes(){
+  try{
+    return (OAC.registeredChartTypes()||[]).map(id=>{
+      const d=OAC.getChartType(id);
+      return (d&&d.isPriceSeries===false)?null:{id, name:ACT_TYPE_NAME[id]||id};
+    }).filter(Boolean);
+  }catch(e){ return [{id:'candlestick',name:'Candles'},{id:'line',name:'Line'}]; }
+}
+
+/* ── timeframe: a pure fold over the bars the spec already has ─────────── */
+const ACT_TF_DAY=[['','Native'],['1D','1 Day'],['1W','1 Week'],['1M','1 Month'],['3M','3 Months']];
+const ACT_TF_MIN=[['','Native'],['5m','5 min'],['15m','15 min'],['30m','30 min'],['1h','1 hour'],['1D','1 Day']];
+function actBucket(tf){
+  if(!tf) return null;
+  if(tf==='1W') return t=>{ const d=new Date(t*1000); return Math.floor((t-((d.getUTCDay()+6)%7)*86400)/86400); };
+  if(tf==='1M') return t=>{ const d=new Date(t*1000); return d.getUTCFullYear()*12+d.getUTCMonth(); };
+  if(tf==='3M') return t=>{ const d=new Date(t*1000); return d.getUTCFullYear()*4+Math.floor(d.getUTCMonth()/3); };
+  if(tf==='1D') return t=>Math.floor(t/86400);
+  let m=/^(\d+)m$/.exec(tf); if(m) return t=>Math.floor(t/(+m[1]*60));
+  m=/^(\d+)h$/.exec(tf);     if(m) return t=>Math.floor(t/(+m[1]*3600));
+  return null;
+}
+/* Aggregate to `tf`. Returns the input untouched when the timeframe is native,
+   unknown, or coarser than the data can support (one bucket for everything). */
+function actAggr(bars, tf){
+  const key=actBucket(tf); if(!key||!bars||bars.length<3) return bars;
+  const out=[]; let cur=null, ck=null;
+  for(const b of bars){
+    if(b.open==null||!isFinite(b.open)) continue;
+    const k=key(b.time);
+    if(cur&&k===ck){ cur.high=Math.max(cur.high,b.high); cur.low=Math.min(cur.low,b.low); cur.close=b.close;
+                     if(b.volume!=null) cur.volume=(cur.volume||0)+b.volume; }
+    else { if(cur) out.push(cur); ck=k;
+           cur={time:b.time,open:b.open,high:b.high,low:b.low,close:b.close};
+           if(b.volume!=null) cur.volume=b.volume; }
+  }
+  if(cur) out.push(cur);
+  return out.length>1?out:bars;
+}
+/* acMount calls this between building the spec and drawing it. */
+function actPatchSpec(hostId, spec){
+  if(!spec) return spec;
+  // Volume indicators need a volume column. The terminal's specs are built from
+  // the baked [date,o,h,l,c] history and from the Yahoo OHLC map, neither of
+  // which carries volume — so the picker greys those out rather than letting a
+  // user add an indicator that can only ever draw a flat line at zero.
+  (window.ACT.vol=window.ACT.vol||{})[hostId] =
+    !!(spec.bars && spec.bars.some(b=>b && b.volume!=null && b.volume>0));
+  const c=window.ACT.cfg[hostId]; if(!c) return spec;
+  if(c.tf && spec.bars && spec.bars.length) spec.bars=actAggr(spec.bars, c.tf);
+  if(c.type) spec.priceType=c.type;
+  return spec;
+}
+window.actPatchSpec=actPatchSpec;
+
+/* ── attach: re-apply everything after a mount ─────────────────────────── */
+function actAttach(hostId, api){
+  if(!api||!api.chart) return;
+  const ch=api.chart, c=actCfg(hostId);
+  window.ACT.inst[hostId]=[];
+  for(const rec of c.ind){
+    try{ window.ACT.inst[hostId].push({ref:rec, api:ch.addIndicator(rec.id, rec.settings||{})}); }
+    catch(e){}
+  }
+  let d=null;
+  try{ d=new OAC.DrawingController(ch,{magnet:c.magnet!==false, defaultStyle:Object.assign({},c.style)}); }catch(e){ d=null; }
+  window.ACT.ctrl[hostId]=d;
+  if(d){
+    if(c.draw&&c.draw.length){ try{ d.fromJSON(c.draw); }catch(e){} }
+    const persist=()=>{ try{ c.draw=d.toJSON(); actSave(); }catch(e){} actPaintToolbar(hostId); };
+    try{ ch.on('draw:add',persist); ch.on('draw:update',persist); ch.on('draw:remove',persist);
+         ch.on('draw:tool',()=>actPaintToolbar(hostId)); }catch(e){}
+    if(c.tool){ try{ d.setTool(c.tool); }catch(e){} }
+  }
+  actPaintToolbar(hostId);
+}
+window.actAttach=actAttach;
+
+/* ── toolbar ───────────────────────────────────────────────────────────── */
+const ACT_CSS=`<style id="act-css">
+.act-tb{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 6px;font-size:11px}
+.act-tb .g{display:flex;gap:3px;align-items:center;background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:2px 4px}
+.act-tb .lb{font-size:9.5px;color:var(--tx3);letter-spacing:.4px}
+.act-tb select{background:var(--bg3);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:11px;padding:2px 3px;cursor:pointer}
+.act-tb button{background:var(--bg3);color:var(--tx2);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:11px;padding:2px 7px;cursor:pointer;line-height:1.5}
+.act-tb button:hover{border-color:var(--acc);color:var(--acc)}
+.act-tb button.on{background:var(--acc);color:#04121f;border-color:var(--acc);font-weight:700}
+.act-tb button[disabled]{opacity:.35;cursor:default}
+.act-tb button[disabled]:hover{border-color:var(--bd2);color:var(--tx2)}
+.act-pop{position:fixed;z-index:9000;background:var(--bg1);border:1px solid var(--bd3);border-radius:6px;box-shadow:0 10px 34px rgba(0,0,0,.6);width:390px;max-width:94vw;max-height:74vh;display:flex;flex-direction:column;font-size:11.5px}
+.act-pop .hd{display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid var(--bd);font-size:10.5px;color:var(--acc);letter-spacing:.6px;font-weight:700}
+.act-pop .hd button{margin-left:auto;background:none;border:none;color:var(--tx3);font-size:14px;cursor:pointer;padding:0 2px}
+.act-pop .bd{overflow:auto;padding:6px 8px}
+.act-pop input[type=text],.act-pop input[type=number],.act-pop select{width:100%;background:var(--bg3);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:11.5px;padding:3px 5px;box-sizing:border-box}
+.act-pop .cat{display:flex;gap:3px;flex-wrap:wrap;margin:6px 0 4px}
+.act-pop .cat button{background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);border-radius:10px;font-family:inherit;font-size:10px;padding:1px 8px;cursor:pointer}
+.act-pop .cat button.on{background:var(--acc);color:#04121f;border-color:var(--acc)}
+.act-row{display:flex;align-items:center;gap:6px;padding:3px 4px;border-radius:3px;cursor:pointer}
+.act-row:hover{background:var(--bg3)}
+.act-row .nm{flex:1;color:var(--tx1)}
+.act-row .tg{font-size:9px;color:var(--tx3);border:1px solid var(--bd2);border-radius:8px;padding:0 5px}
+.act-sec{font-size:9.5px;color:var(--tx3);letter-spacing:.6px;margin:8px 0 3px;border-top:1px solid var(--bd);padding-top:6px}
+.act-sec:first-child{border-top:none;margin-top:2px}
+.act-ir{display:flex;align-items:center;gap:6px;padding:3px 4px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px;margin-bottom:3px}
+.act-ir .nm{flex:1;color:var(--tx1)}
+.act-ir button{background:none;border:none;color:var(--tx3);cursor:pointer;font-size:12px;padding:0 3px}
+.act-ir button:hover{color:var(--acc)}
+.act-f{display:grid;grid-template-columns:1fr 130px;gap:5px 8px;align-items:center;margin-bottom:6px}
+.act-f label{color:var(--tx2);font-size:11px}
+.act-sw{display:flex;gap:3px;flex-wrap:wrap}
+.act-sw i{width:15px;height:15px;border-radius:3px;border:1px solid var(--bd2);cursor:pointer;display:inline-block}
+.act-sw i.on{outline:2px solid var(--tx1);outline-offset:1px}
+</style>`;
+
+function actCSS(){
+  if(document.getElementById('act-css')) return;
+  const d=document.createElement('div'); d.innerHTML=ACT_CSS;
+  const st=d.firstElementChild; if(st) document.head.appendChild(st);
+}
+function actToolbar(hostId, opts){
+  opts=opts||{};
+  window.ACT.opt=window.ACT.opt||{}; window.ACT.opt[hostId]=opts;
+  actCSS();
+  return `<div class="act-tb" id="act-tb-${hostId}">${actToolbarInner(hostId)}</div>`;
+}
+window.actToolbar=actToolbar;
+
+function actToolbarInner(hostId){
+  const c=actCfg(hostId), o=(window.ACT.opt&&window.ACT.opt[hostId])||{};
+  const d=window.ACT.ctrl[hostId];
+  const tfs=o.tf==='min'?ACT_TF_MIN:(o.tf===false?null:ACT_TF_DAY);
+  let h='';
+  if(tfs) h+=`<div class="g"><span class="lb">${o.tfLabel||'TF'}</span><select onchange="actSet('${hostId}','tf',this.value)">`+
+    tfs.map(([v,l])=>`<option value="${v}" ${c.tf===v?'selected':''}>${l}</option>`).join('')+`</select></div>`;
+  if(o.types!==false){
+    const cur=c.type||o.baseType||'candlestick';
+    h+=`<div class="g"><span class="lb">TYPE</span><select onchange="actSet('${hostId}','type',this.value)">`+
+      actTypes().map(t=>`<option value="${t.id}" ${cur===t.id?'selected':''}>${reEsc(t.name)}</option>`).join('')+`</select></div>`;
+  }
+  const nInd=c.ind.length;
+  h+=`<div class="g"><button onclick="actIndPop('${hostId}',event)" title="Add or configure indicators (91 available)">ƒx Indicators${nInd?' ('+nInd+')':''}</button></div>`;
+  const tool=d?d.activeTool():c.tool;
+  const tName=tool?actToolName(tool):'';
+  h+=`<div class="g"><button class="${tool?'on':''}" onclick="actDrawPop('${hostId}',event)" title="Drawing tools (43 available)">✎ ${tool?reEsc(tName):'Draw'}</button>`+
+     `<button onclick="actDo('${hostId}','undo')" title="Undo drawing (Ctrl+Z)" ${d&&d.canUndo()?'':'disabled'}>↶</button>`+
+     `<button onclick="actDo('${hostId}','redo')" title="Redo drawing (Ctrl+Y)" ${d&&d.canRedo()?'':'disabled'}>↷</button>`+
+     `<button onclick="actDo('${hostId}','clear')" title="Remove every drawing on this chart" ${c.draw.length?'':'disabled'}>⌫${c.draw.length?' '+c.draw.length:''}</button></div>`;
+  h+=`<div class="g"><span class="lb">SIZE</span>`+
+     [['','S'],['520','M'],['720','L'],['920','XL']].map(([v,l])=>
+       `<button class="${(c.h||'')===v?'on':''}" onclick="actSet('${hostId}','h','${v}')">${l}</button>`).join('')+
+     `<button onclick="actFull('${hostId}')" title="Full screen">⛶</button></div>`;
+  h+=`<div class="g"><button onclick="actDo('${hostId}','reset')" title="Clear indicators, drawings, timeframe and type for this chart">↻ Reset</button></div>`;
+  return h;
+}
+function actPaintToolbar(hostId){ const el=document.getElementById('act-tb-'+hostId); if(el) el.innerHTML=actToolbarInner(hostId); }
+window.actPaintToolbar=actPaintToolbar;
+function actToolName(id){ for(const [,items] of actTools()){ const t=items.find(x=>x.id===id); if(t) return t.name; } return id; }
+
+function actRemount(hostId){
+  const f=window.ACT.spec[hostId];
+  if(f) acMount(hostId, f); else actPaintToolbar(hostId);
+}
+function actHeight(hostId){
+  const el=document.getElementById(hostId); if(!el) return;
+  const c=actCfg(hostId);
+  if(c.h){ el.style.height=c.h+'px'; el.style.aspectRatio='auto'; }
+  else { el.style.height=''; el.style.aspectRatio=el.dataset.acAspect||''; }
+}
+window.actHeight=actHeight;
+
+function actSet(hostId,k,v){
+  const c=actCfg(hostId);
+  c[k]=v; actSave();
+  if(k==='h'){ actHeight(hostId); actPaintToolbar(hostId); return; }
+  actRemount(hostId);
+}
+window.actSet=actSet;
+
+function actFull(hostId){
+  const el=document.getElementById(hostId); if(!el) return;
+  const box=el.parentElement||el;
+  try{ if(document.fullscreenElement) document.exitFullscreen(); else box.requestFullscreen(); }catch(e){}
+}
+window.actFull=actFull;
+
+function actDo(hostId,what){
+  const c=actCfg(hostId), d=window.ACT.ctrl[hostId];
+  if(what==='undo'&&d){ try{ d.undo(); c.draw=d.toJSON(); }catch(e){} }
+  else if(what==='redo'&&d){ try{ d.redo(); c.draw=d.toJSON(); }catch(e){} }
+  else if(what==='clear'){ if(d){ try{ d.clear(); }catch(e){} } c.draw=[]; }
+  else if(what==='reset'){ c.ind=[]; c.draw=[]; c.tf=''; c.type=''; c.tool=null; c.h='';
+    if(d){ try{ d.clear(); d.setTool(null); }catch(e){} }
+    actSave(); actHeight(hostId); actRemount(hostId); return; }
+  actSave(); actPaintToolbar(hostId);
+}
+window.actDo=actDo;
+
+/* ── popovers ──────────────────────────────────────────────────────────── */
+function actClosePop(){ const p=window.ACT.pop; if(p&&p.parentNode) p.parentNode.removeChild(p); window.ACT.pop=null; }
+window.actClosePop=actClosePop;
+function actPop(ev, title, bodyHTML){
+  actClosePop();
+  const p=document.createElement('div'); p.className='act-pop';
+  p.innerHTML=`<div class="hd">${title}<button onclick="actClosePop()" title="Close">✕</button></div><div class="bd">${bodyHTML}</div>`;
+  document.body.appendChild(p);
+  const r=(ev&&ev.currentTarget&&ev.currentTarget.getBoundingClientRect)?ev.currentTarget.getBoundingClientRect():{left:60,bottom:80};
+  const w=p.offsetWidth, hh=p.offsetHeight;
+  p.style.left=Math.max(6,Math.min(window.innerWidth-w-6, r.left))+'px';
+  p.style.top =(r.bottom+6+hh>window.innerHeight? Math.max(6,r.top-hh-6) : r.bottom+6)+'px';
+  setTimeout(()=>{ document.addEventListener('mousedown', actPopOutside, true); },0);
+  return p;
+}
+function actPopOutside(e){
+  const p=window.ACT.pop||document.querySelector('.act-pop');
+  if(p&&!p.contains(e.target)){ document.removeEventListener('mousedown', actPopOutside, true); actClosePop(); }
+}
+function actPopBody(html){ const p=document.querySelector('.act-pop .bd'); if(p) p.innerHTML=html; }
+
+/* indicators ------------------------------------------------------------ */
+function actIndPop(hostId, ev){
+  const p=actPop(ev,'INDICATORS', actIndBody(hostId,'','All')); window.ACT.pop=p;
+  const s=p.querySelector('#act-isearch'); if(s){ s.focus();
+    s.oninput=()=>{ const cat=p.dataset.cat||'All'; actIndList(hostId, s.value, cat); }; }
+  p.dataset.cat='All';
+}
+window.actIndPop=actIndPop;
+function actIndBody(hostId, q, cat){
+  return `<input type="text" id="act-isearch" placeholder="Search 91 indicators…" autocomplete="off">
+    <div class="cat">${['All'].concat(ACT_ICAT).map(c=>`<button class="${c===cat?'on':''}" onclick="actIndCat('${hostId}','${c}')">${c}</button>`).join('')}</div>
+    <div id="act-ilist">${actIndListHTML(hostId,q,cat)}</div>
+    <div id="act-iactive">${actIndActiveHTML(hostId)}</div>`;
+}
+function actIndCat(hostId,cat){
+  const p=document.querySelector('.act-pop'); if(!p) return; p.dataset.cat=cat;
+  p.querySelectorAll('.cat button').forEach(b=>b.classList.toggle('on', b.textContent===cat));
+  const s=p.querySelector('#act-isearch');
+  actIndList(hostId, s?s.value:'', cat);
+}
+window.actIndCat=actIndCat;
+function actIndList(hostId,q,cat){ const el=document.getElementById('act-ilist'); if(el) el.innerHTML=actIndListHTML(hostId,q,cat); }
+function actIndListHTML(hostId,q,cat){
+  q=(q||'').trim().toLowerCase();
+  let list=actInds();
+  if(cat&&cat!=='All') list=list.filter(d=>d.cat===cat);
+  if(q) list=list.filter(d=>d.name.toLowerCase().includes(q)||d.id.includes(q));
+  if(!list.length) return '<div style="color:var(--tx3);padding:8px 2px">no indicator matches</div>';
+  const cap=q?400:list.length;
+  const hasVol=(window.ACT.vol||{})[hostId]!==false;
+  return list.slice(0,cap).map(d=>{
+    const off = d.cat==='Volume' && !hasVol;
+    if(off) return `<div class="act-row" style="opacity:.4;cursor:not-allowed" title="${reEsc(d.name)} needs a volume column, and this chart's price feed does not carry one.">
+       <span style="color:var(--tx3)">－</span><span class="nm">${reEsc(d.name)}</span>
+       <span class="tg">no volume</span></div>`;
+    return `<div class="act-row" onclick="actIndAdd('${hostId}','${d.id}')" title="Add ${reEsc(d.name)}">
+       <span style="color:var(--acc)">＋</span><span class="nm">${reEsc(d.name)}</span>
+       <span class="tg">${d.cat}</span><span class="tg">${d.pane?'pane':'overlay'}</span></div>`;
+  }).join('');
+}
+function actIndActiveHTML(hostId){
+  const c=actCfg(hostId);
+  if(!c.ind.length) return '<div class="act-sec">ON THIS CHART</div><div style="color:var(--tx3);padding:2px">none yet — pick one above</div>';
+  return '<div class="act-sec">ON THIS CHART</div>'+c.ind.map((r,i)=>{
+    const d=actInds().find(x=>x.id===r.id);
+    const sum=Object.keys(r.settings||{}).filter(k=>!/color|Color/.test(k)).map(k=>r.settings[k]).slice(0,3).join(', ');
+    return `<div class="act-ir"><span class="nm">${reEsc(d?d.name:r.id)}${sum?' <span style="color:var(--tx3);font-size:10px">('+reEsc(String(sum))+')</span>':''}</span>
+      <button onclick="actIndCfg('${hostId}',${i})" title="Settings">⚙</button>
+      <button onclick="actIndDel('${hostId}',${i})" title="Remove">✕</button></div>`;
+  }).join('');
+}
+function actIndAdd(hostId,id){
+  const c=actCfg(hostId), d=actInds().find(x=>x.id===id); if(!d) return;
+  const st={}; (d.inputs||[]).forEach(i=>{ if(i.default!==undefined) st[i.key]=i.default; });
+  c.ind.push({id, settings:st}); actSave();
+  const el=document.getElementById('act-iactive'); if(el) el.innerHTML=actIndActiveHTML(hostId);
+  actRemount(hostId);
+}
+window.actIndAdd=actIndAdd;
+function actIndDel(hostId,i){
+  const c=actCfg(hostId); c.ind.splice(i,1); actSave();
+  const el=document.getElementById('act-iactive'); if(el) el.innerHTML=actIndActiveHTML(hostId);
+  actRemount(hostId);
+}
+window.actIndDel=actIndDel;
+function actIndCfg(hostId,i){
+  const c=actCfg(hostId), r=c.ind[i]; if(!r) return;
+  const d=actInds().find(x=>x.id===r.id); if(!d) return;
+  const SRC=['close','open','high','low','hl2','hlc3','ohlc4','volume'];
+  const f=(d.inputs||[]).map(inp=>{
+    const v=(r.settings&&r.settings[inp.key]!==undefined)?r.settings[inp.key]:inp.default;
+    const on=`actIndInput('${hostId}',${i},'${inp.key}','${inp.type}',this)`;
+    let ctl;
+    if(inp.type==='number') ctl=`<input type="number" value="${v}" ${inp.min!=null?'min="'+inp.min+'"':''} ${inp.max!=null?'max="'+inp.max+'"':''} step="${inp.step||1}" onchange="${on}">`;
+    else if(inp.type==='boolean') ctl=`<input type="checkbox" ${v?'checked':''} onchange="${on}" style="width:auto">`;
+    else if(inp.type==='color') ctl=`<input type="color" value="${/^#[0-9a-f]{6}$/i.test(String(v))?v:'#4f8cff'}" onchange="${on}" style="width:100%;height:22px;padding:0;background:none;border:1px solid var(--bd2)">`;
+    else if(inp.type==='select') ctl=`<select onchange="${on}">${(inp.options||[]).map(o=>`<option value="${o.value}" ${String(v)===String(o.value)?'selected':''}>${reEsc(o.label||o.value)}</option>`).join('')}</select>`;
+    else if(inp.type==='source') ctl=`<select onchange="${on}">${SRC.map(s=>`<option value="${s}" ${v===s?'selected':''}>${s}</option>`).join('')}</select>`;
+    else ctl=`<input type="text" value="${reEsc(String(v==null?'':v))}" onchange="${on}">`;
+    return `<label>${reEsc(inp.label||inp.key)}</label>${ctl}`;
+  }).join('');
+  actPopBody(`<div style="font-size:10.5px;color:var(--acc);letter-spacing:.5px;margin-bottom:6px">${reEsc(d.name)} SETTINGS</div>
+    <div class="act-f">${f||'<label style="color:var(--tx3)">no settings</label><span></span>'}</div>
+    <button onclick="actIndPop('${hostId}')" style="background:var(--bg3);color:var(--tx2);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:11px;padding:3px 9px;cursor:pointer">‹ Back</button>`);
+}
+window.actIndCfg=actIndCfg;
+function actIndInput(hostId,i,key,type,el){
+  const c=actCfg(hostId), r=c.ind[i]; if(!r) return;
+  r.settings=r.settings||{};
+  r.settings[key] = type==='number'?(+el.value) : type==='boolean'?!!el.checked : el.value;
+  actSave();
+  const live=(window.ACT.inst[hostId]||[])[i];
+  if(live&&live.api){ try{ live.api.setSettings(r.settings); return; }catch(e){} }
+  actRemount(hostId);
+}
+window.actIndInput=actIndInput;
+
+/* drawings -------------------------------------------------------------- */
+const ACT_COLORS=['#4f8cff','#00f07a','#ff3355','#f2b134','#c39bff','#3fc98c','#ff9e2c','#b8c7d9','#ffffff'];
+function actDrawPop(hostId, ev){
+  const c=actCfg(hostId);
+  const st=c.style||{};
+  const body=`<div class="act-sec" style="margin-top:0">STYLE</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+      <span class="act-sw">${ACT_COLORS.map(col=>`<i class="${st.color===col?'on':''}" style="background:${col}" onclick="actDrawStyle('${hostId}','color','${col}')" title="${col}"></i>`).join('')}</span>
+      <select onchange="actDrawStyle('${hostId}','lineWidth',+this.value)" style="width:70px">${[1,2,3,4].map(w=>`<option value="${w}" ${st.lineWidth===w?'selected':''}>${w} px</option>`).join('')}</select>
+      <select onchange="actDrawStyle('${hostId}','lineStyle',this.value)" style="width:88px">${['solid','dashed','dotted'].map(s=>`<option value="${s}" ${st.lineStyle===s?'selected':''}>${s}</option>`).join('')}</select>
+      <button onclick="actDrawStyle('${hostId}','magnet',${c.magnet===false})" style="background:${c.magnet!==false?'var(--acc)':'var(--bg3)'};color:${c.magnet!==false?'#04121f':'var(--tx2)'};border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:11px;padding:2px 8px;cursor:pointer" title="Snap new anchors to the nearest O/H/L/C">🧲 Magnet ${c.magnet!==false?'ON':'OFF'}</button>
+    </div>
+    <div class="act-row" onclick="actTool('${hostId}',null)" style="background:var(--bg2)"><span style="color:var(--tx3)">✛</span><span class="nm">Cursor (no tool)</span></div>`+
+    actTools().map(([g,items])=>`<div class="act-sec">${g}</div>`+items.map(t=>
+      `<div class="act-row" onclick="actTool('${hostId}','${t.id}')"><span style="color:var(--acc)">✎</span>
+        <span class="nm">${reEsc(t.name)}</span>${t.shortcut?`<span class="tg">${reEsc(t.shortcut)}</span>`:''}
+        <span class="tg">${t.freehand?'drag':(t.points===0?'dbl-click ends':t.points+' pt')}</span></div>`).join('')).join('');
+  window.ACT.pop=actPop(ev,'DRAWING TOOLS', body);
+}
+window.actDrawPop=actDrawPop;
+function actTool(hostId,id){
+  const c=actCfg(hostId), d=window.ACT.ctrl[hostId];
+  c.tool = (c.tool===id)?null:id; actSave();
+  if(d){ try{ d.setTool(c.tool); }catch(e){} }
+  actClosePop(); actPaintToolbar(hostId);
+}
+window.actTool=actTool;
+function actDrawStyle(hostId,k,v){
+  const c=actCfg(hostId);
+  if(k==='magnet') c.magnet=v; else { c.style=c.style||{}; c.style[k]=v; }
+  actSave();
+  const d=window.ACT.ctrl[hostId];
+  if(d){ try{ d.setOptions({magnet:c.magnet!==false, defaultStyle:Object.assign({},c.style)}); }catch(e){} }
+  const ev={currentTarget:document.getElementById('act-tb-'+hostId)};
+  actDrawPop(hostId, ev);
+}
+window.actDrawStyle=actDrawStyle;
+
+/* keyboard: the library ships shortcut strings but installs no listener,
+   since only the host knows whether the chart has focus or a dialog is open. */
+if(!window.ACT._keys){
+  window.ACT._keys=true;
+  document.addEventListener('keydown', e=>{
+    const t=e.target, tag=t&&t.tagName;
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)) return;
+    const ids=Object.keys(window.ACT.ctrl).filter(h=>document.getElementById(h));
+    if(!ids.length) return;
+    const hostId=ids[0], d=window.ACT.ctrl[hostId];
+    if(e.key==='Escape'){ actClosePop(); if(d){ try{ d.setTool(null); }catch(x){} } actCfg(hostId).tool=null; actSave(); actPaintToolbar(hostId); return; }
+    if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'){ e.preventDefault(); actDo(hostId,'undo'); return; }
+    if((e.ctrlKey||e.metaKey)&&(e.key.toLowerCase()==='y'||(e.shiftKey&&e.key.toLowerCase()==='z'))){ e.preventDefault(); actDo(hostId,'redo'); return; }
+    if(e.altKey){ try{ const id=OAC.matchDrawingShortcut(e); if(id){ e.preventDefault(); actTool(hostId,id); } }catch(x){} }
+  }, false);
+}
 
 /* ── PLANET LAT / LON / DEC CHART on the shared engine ────────────────────
    Two panes: price on top, the planet curves below on their own degree axis,
@@ -15714,7 +15958,7 @@ function planChartSpec(kind){
 
   const lower={series:[], zeroLine: kind!=='lon', fixed: kind==='lon'?[0,360]:null,
                format:v=>v.toFixed(1)+'°', weight:1, weightTop:1,
-               title:`Planet ecliptic ${kind==='lat'?'latitude (°)':kind==='dec'?'declination (°)':'longitude (°)'}`};
+               title:`Planet ecliptic ${kind==='lat'?'latitude (°)':'longitude (°)'}`};
   for(const b of D.bodies){
     const col=PLAN_COL[b]||'var(--tx1)', ys=D.series[b];
     if(kind==='lon'){
@@ -16999,6 +17243,7 @@ function gannAstroChart(){
   const legend=GANN_ASPECTS.map(a=>`<span style="color:${a.c};font-weight:700">${a.g}${a.d}°</span>`).join(' · ');
   return `<div class="pnl">${controls}${togglesUI}${gannTimeline()}
     <div class="pb">
+      ${actToolbar('gann-host',{tf:'day'})}
       <div id="gann-host" style="width:100%;aspect-ratio:1560/560;min-height:320px"></div>
       <div style="font-size:10px;color:var(--tx3);margin-top:6px">
         View <b style="color:var(--acc)">${y0} → ${y1}</b> (${(spanY).toFixed(1)}y, sampled every ${stepDays}d) · ${priceNote}. Planetary price-line: price = k·cycle + (longitude/360)·cycle, cycle = <b>${cycle.toLocaleString()}</b> pts — each planet is a drifting ladder of harmonic lines; candles appear only where price data exists, planet lines & aspects span the whole window (drag the slider or pick years to go decades back/forward). Aspect time-lines: exact ${helio?'heliocentric':'geocentric'} perfections (${legend}). Chiron ±1–2° (two-body). All toggles live.
