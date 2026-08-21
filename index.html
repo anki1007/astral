@@ -4598,7 +4598,7 @@ function rHdr(){
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts2','📈 Charts'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts2','📈 Charts'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['plandec','🧭 Planet Dec'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
@@ -4607,7 +4607,7 @@ function rNav(){
 }
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts2:tCharts2,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts2:tCharts2,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,plandec:tPlanetDec,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();
@@ -7714,7 +7714,7 @@ function planFwd(){ return (S.planFwd==null)?180:S.planFwd; }
 function planBodies(){ return (S.planBodies||'Moon,Mercury,Venus,Mars,Jupiter,Saturn').split(',').filter(Boolean); }
 function planChartType(){ return S.planChart || 'candle'; }
 function planOrb(){ return S.planOrb || 6; }
-function planKind(){ return S.tab==='planlon'?'lon':'lat'; }
+function planKind(){ return S.tab==='planlon'?'lon':S.tab==='plandec'?'dec':'lat'; }
 
 function planJD(y,m,d,hUTC){ let Y=y,M=m; if(M<=2){Y--;M+=12;} const A=Math.floor(Y/100),B=2-A+Math.floor(A/4); return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+d+hUTC/24+B-1524.5; }
 function planJDfromMs(ms){ const d=new Date(ms); return planJD(d.getUTCFullYear(),d.getUTCMonth()+1,d.getUTCDate(), d.getUTCHours()+d.getUTCMinutes()/60); }
@@ -7837,7 +7837,7 @@ function planComputeData(kind){
   const spanDays=(t1-t0)/PLAN_DAYMS, nS=Math.max(40,Math.min(1800,Math.round(spanDays*4))), step=(t1-t0)/nS;
   const times=[], series={}, retro={}; bodies.forEach(b=>{series[b]=[];retro[b]=[];});
   for(let k=0;k<=nS;k++){ const ms=t0+k*step; times.push(ms); const J=planJDfromMs(ms);
-    for(const b of bodies){ if(kind==='lat') series[b].push(geoLat(b,J));
+    for(const b of bodies){ if(kind==='lat') series[b].push(geoLat(b,J)); else if(kind==='dec') series[b].push(declination(b,J));
       else { series[b].push(n360(geoLon(b,J))); const sp=(b==='Rahu'||b==='Ketu')?-0.05:planetSpeed(b,J); retro[b].push(sp<0); } } }
   let conj=[];
   if(kind==='lon'){ const orb=planOrb();
@@ -7960,7 +7960,7 @@ function planTogglePan(){ window.PLAN.panMode=!window.PLAN.panMode; planRedraw()
 function planMaximize(){ window.PLAN.maximized=!window.PLAN.maximized; if(window.PLAN.maximized) window.PLAN.minimized=false; planPaint(); setTimeout(planRedraw,40); }
 function planMinimize(){ window.PLAN.minimized=!window.PLAN.minimized; if(window.PLAN.minimized) window.PLAN.maximized=false; planPaint(); setTimeout(planRedraw,40); }
 
-function planRedraw(){ const wrap=document.getElementById('plan-svg-wrap'); if(!wrap||!window.PLAN.data)return; wrap.innerHTML=planDrawSVG(window.PLAN.data.kind); const tl=document.getElementById('plan-timeline'); if(tl) tl.innerHTML=planTimeline(); planAttachInteract(); }
+function planRedraw(){ if(typeof planRedrawEngine==='function' && planRedrawEngine()) return; const wrap=document.getElementById('plan-svg-wrap'); if(!wrap||!window.PLAN.data)return; wrap.innerHTML=planDrawSVG(window.PLAN.data.kind); const tl=document.getElementById('plan-timeline'); if(tl) tl.innerHTML=planTimeline(); planAttachInteract(); }
 
 let _planDrag=null, _planRAF=null;
 function planAttachInteract(){
@@ -8070,7 +8070,7 @@ function planTimeline(){
 function planChart(kind){
   const key=planInstKey()+'|'+planRange(); const st=window.PLAN.status, ohlc=window.PLAN.ohlc[key];
   if(st==='loading' || (!ohlc && st!=='error'))
-    return `<div style="padding:30px;text-align:center;color:var(--acc)"><div class="spin-anim" style="font-size:18px">⟳</div><div style="font-size:12px;margin-top:6px">Fetching ${planInstKey()} candles &amp; computing planet ${kind==='lat'?'latitudes':'longitudes'}…</div></div>`;
+    return `<div style="padding:30px;text-align:center;color:var(--acc)"><div class="spin-anim" style="font-size:18px">⟳</div><div style="font-size:12px;margin-top:6px">Fetching ${planInstKey()} candles &amp; computing planet ${kind==='lat'?'latitudes':kind==='dec'?'declinations':'longitudes'}…</div></div>`;
   if(st==='error')
     return `<div style="padding:18px;border:1px solid var(--bear2);border-radius:4px;background:var(--bear3)"><div style="color:var(--bear);font-weight:700;font-size:12px">⚠ Price data unavailable (${window.PLAN.err})</div>
       <div style="font-size:11.5px;color:var(--tx2);margin-top:6px">Yahoo CORS proxies are unreachable. Retry when online.</div>
@@ -8109,29 +8109,29 @@ function planChart(kind){
   }
   let raw=''; const rawOpen=!!S.planRaw; let rawBody='';
   if(rawOpen && D){ const prRows=D.ohlc.slice().reverse().map(r=>`<tr><td>${r.date}</td><td style="text-align:right">${r.o.toFixed(2)}</td><td style="text-align:right">${r.h.toFixed(2)}</td><td style="text-align:right">${r.l.toFixed(2)}</td><td style="text-align:right;color:var(--tx1)">${r.c.toFixed(2)}</td></tr>`).join('');
-    let plRows=''; for(let ms=D.t1; ms>=D.t0; ms-=PLAN_DAYMS){ const J=planJDfromMs(ms); let tds=''; for(const b of D.bodies){ const v=kind==='lat'?geoLat(b,J):n360(geoLon(b,J)); const rr=(kind==='lon'&&((b==='Rahu'||b==='Ketu')||(b!=='Sun'&&b!=='Moon'&&planetSpeed(b,J)<0)))?'<span style="color:var(--bear)">℞</span>':''; tds+=`<td style="text-align:right;color:${PLAN_COL[b]}">${v.toFixed(2)}°${rr}</td>`; } plRows+=`<tr><td>${planISO(ms)}</td>${tds}</tr>`; }
+    let plRows=''; for(let ms=D.t1; ms>=D.t0; ms-=PLAN_DAYMS){ const J=planJDfromMs(ms); let tds=''; for(const b of D.bodies){ const v=kind==='lat'?geoLat(b,J):kind==='dec'?declination(b,J):n360(geoLon(b,J)); const rr=(kind==='lon'&&((b==='Rahu'||b==='Ketu')||(b!=='Sun'&&b!=='Moon'&&planetSpeed(b,J)<0)))?'<span style="color:var(--bear)">℞</span>':''; tds+=`<td style="text-align:right;color:${PLAN_COL[b]}">${v.toFixed(2)}°${rr}</td>`; } plRows+=`<tr><td>${planISO(ms)}</td>${tds}</tr>`; }
     const plHead=D.bodies.map(b=>`<th style="text-align:right;color:${PLAN_COL[b]}">${b}</th>`).join('');
     rawBody=`<div class="pb"><div class="g2">
       <div><div style="font-size:10.5px;color:var(--acc);font-weight:700;margin-bottom:3px">PRICES (${D.ohlc.length} bars)</div><div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th><th style="text-align:right">Open</th><th style="text-align:right">High</th><th style="text-align:right">Low</th><th style="text-align:right">Close</th></tr></thead><tbody>${prRows}</tbody></table></div></div>
-      <div><div style="font-size:10.5px;color:var(--acc);font-weight:700;margin-bottom:3px">PLANET ${kind==='lat'?'LATITUDES':'LONGITUDES'} (daily${kind==='lon'?', ℞=retro':''})</div><div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th>${plHead}</tr></thead><tbody>${plRows}</tbody></table></div></div></div></div>`; }
+      <div><div style="font-size:10.5px;color:var(--acc);font-weight:700;margin-bottom:3px">PLANET ${kind==='lat'?'LATITUDES':kind==='dec'?'DECLINATIONS':'LONGITUDES'} (daily${kind==='lon'?', ℞=retro':''})</div><div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th>${plHead}</tr></thead><tbody>${plRows}</tbody></table></div></div></div></div>`; }
   raw=`<div class="pnl" style="margin-top:10px"><div class="ph" style="cursor:pointer" onclick="gs({planRaw:${!rawOpen}})"><span class="dot"></span>${rawOpen?'▾':'▸'} RAW DATA — prices &amp; planet positions ${rawOpen?'(click to hide)':'(click to show)'}</div>${rawBody}</div>`;
 
   const _hostStyle=_MAX?'position:fixed;inset:0;z-index:9999;background:var(--bg2);padding:10px 14px 18px;overflow:auto':'';
   const _chartBody=_MIN
     ? `<div style="padding:14px;border:1px dashed #104858;border-radius:4px;color:var(--tx3);font-size:11px;text-align:center">Chart minimized — click <b style="color:var(--tx1)">🗗 Restore</b> in the toolbar to expand.</div><div id="plan-svg-wrap" style="display:none"></div>`
-    : `<div id="plan-timeline">${planTimeline()}</div><div style="position:relative"><div id="plan-svg-wrap">${planDrawSVG(kind)}</div>
+    : `<div id="plan-timeline">${planTimeline()}</div><div style="position:relative"><div id="plan-svg-wrap"><div id="plan-oac-host" style="width:100%;aspect-ratio:1120/468;min-height:300px"></div></div>
     <div id="plan-tip" style="position:absolute;display:none;pointer-events:none;background:var(--bg2);border:1px solid var(--bd2);border-radius:4px;padding:5px 7px;font-size:11.5px;color:var(--tx1);z-index:5;white-space:nowrap"></div></div>${conjTable}${sjTable}${raw}`;
   return `<div id="plan-host" style="${_hostStyle}">${toolbar}${_chartBody}</div>`;
 }
 
 function planPaint(){
-  if(typeof S==='undefined') return; if(S.tab!=='planlat' && S.tab!=='planlon') return;
+  if(typeof S==='undefined') return; if(S.tab!=='planlat' && S.tab!=='planlon' && S.tab!=='plandec') return;
   const kind=planKind();
   const mt=document.getElementById('plan-metrics'); if(mt) mt.innerHTML=planMetrics();
   const el=document.getElementById('plan-chart'); if(el) el.innerHTML=planChart(kind);
-  planAttachInteract();
+  planMountChart();
 }
-if(!window.PLAN._rb){ window.PLAN._rb=true; let _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(function(){ if(typeof S!=='undefined'&&(S.tab==='planlat'||S.tab==='planlon')) planRedraw(); },200); }); }
+if(!window.PLAN._rb){ window.PLAN._rb=true; let _rt; window.addEventListener('resize',function(){ clearTimeout(_rt); _rt=setTimeout(function(){ if(typeof S!=='undefined'&&(S.tab==='planlat'||S.tab==='planlon'||S.tab==='plandec')) planRedraw(); },200); }); }
 
 function planBtn(active,onclick,label,col){ return `<button onclick="${onclick}" style="display:inline-block;padding:3px 9px;margin:0;font-family:inherit;font-size:11.5px;cursor:pointer;border-radius:3px;background:${active?'var(--bg3)':'var(--bg2)'};color:${active?(col||'var(--tx1)'):'var(--tx1)'};border:1px solid ${active?(col||'var(--acc)'):'#104858'};font-weight:${active?'800':'400'}">${label}</button>`; }
 function planControls(kind){
@@ -8177,6 +8177,11 @@ function tPlanetLat(){ setTimeout(planLoad,30);
   return `<div class="pnl"><div class="ph"><span class="dot"></span>PLANET LATITUDE — ${planInstKey()} candles vs planet ecliptic latitude (Shar)</div>
     <div class="pb">${planControls('lat')}<div id="plan-metrics">${planMetrics()}</div><div id="plan-chart">${planChart('lat')}</div>
       <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Top: ${planInstKey()} OHLC. Bottom: planet ecliptic latitude (N+ / S−). Zoom: Ctrl+wheel or ＋－ buttons (plain wheel scrolls the page) · Pan: shift-drag or Pan toggle · Reset: dbl-click · ⛶ Maximize / ▭ Minimize in toolbar. Port of planet.py.</div>
+    </div></div>${planScrollRail()}`; }
+function tPlanetDec(){ setTimeout(planLoad,30);
+  return `<div class="pnl"><div class="ph"><span class="dot"></span>PLANET DECLINATION — ${planInstKey()} candles vs planet declination (Kranti)</div>
+    <div class="pb">${planControls('dec')}<div id="plan-metrics">${planMetrics()}</div><div id="plan-chart">${planChart('dec')}</div>
+      <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Top: ${planInstKey()} OHLC. Bottom: planet declination (N+ / S−) — the Kranti the research engine studies for maxima, minima, reversals and zero-crossings; the Sun's ±23.4° annual swing is the reference the others cross. Wheel/drag to zoom and pan · ＋－ buttons · ⛶ Maximize / ▭ Minimize in toolbar.</div>
     </div></div>${planScrollRail()}`; }
 function tPlanetLon(){ setTimeout(planLoad,30);
   return `<div class="pnl"><div class="ph"><span class="dot"></span>PLANET LONGITUDE — ${planInstKey()} candles vs planet ecliptic longitude</div>
@@ -8601,6 +8606,8 @@ function ovBiasChart(D){
   const iv=Math.max(1,parseInt(S.ovInt,10)||15);
   const slots=ovBuildSlots(D);
   if(!slots || slots.length<2) return '';
+  // The engine draws this chart now (ovChartSpec); mount once the DOM exists.
+  setTimeout(()=>{ if(document.getElementById('ovbc-canvas')) acMount('ovbc-canvas', ()=>ovChartSpec(D)); },0);
   const W=1560,H=430,PLm=64,PRm=48,PT=20,PB=40,IW=W-PLm-PRm,IH=H-PT-PB;
   const x=m=>PLm+(m-SR.startMin)/Math.max(1,SR.endMin-SR.startMin)*IW;
   const BCOL={BULLISH:'var(--bull)',BEARISH:'var(--bear)',VOLATILE:'var(--sun)',NEUTRAL:'var(--tx3)'};
@@ -8799,13 +8806,8 @@ ${s.why}</title></circle>`).join('');
       </span>
     </div>
     <div class="pb">
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
-        <rect x="${PLm}" y="${PT}" width="${IW}" height="${IH}" fill="var(--bg2)" stroke="var(--bd)"/>
-        ${bandRects}${axis}${priceAxis}${bandLbls}
-        ${candleSvg}${noPriceSvg}
-        ${axisC}${slotSvg}${compSvg}${kpSvg}
-        ${nowMark}
-      </svg>
+      <div id="ovbc-canvas" style="width:100%;aspect-ratio:1560/430;min-height:280px"></div>
+      <div id="ovbc-tip" style="font-size:11px;margin-top:4px;min-height:14px;color:var(--tx2)"></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:10px;color:var(--tx2);margin-top:6px;align-items:center">
         <span style="font-weight:700"><span style="color:var(--bull)">▮</span><span style="color:var(--bear)">▮</span> ${ovInstKey()} ${iv}-min candles</span>
         ${showKp?'<span style="color:var(--acc);font-weight:700">▬ ✦ KP ASTRO SIGNAL — pure panel score (±100, right axis)</span>':''}
@@ -15210,7 +15212,8 @@ function chBandPrimitive(t0, t1, color, label){
     zOrder(){ return 'bottom'; },
     draw(ctx, rc){
       const ts=rc.timeScale, dl=rc.dataLayer; if(!ts||!dl) return;
-      const x0=ts.indexToX(dl.timeToIndexFloat(t0)), x1=ts.indexToX(dl.timeToIndexFloat(t1));
+      const _d=rc.dpr||1; // indexToX returns media px; the engine's markers multiply by dpr
+      const x0=ts.indexToX(dl.timeToIndexFloat(t0))*_d, x1=ts.indexToX(dl.timeToIndexFloat(t1))*_d;
       if(!isFinite(x0)||!isFinite(x1)) return;
       const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W0=rc.plotWidth*dpr;
       const L=Math.max(0,Math.min(x0,x1)), R=Math.min(W0,Math.max(x0,x1)), W=R-L;
@@ -15387,6 +15390,870 @@ function tCharts2(){
     '</div></div>';
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ASTRAL CHART — the one engine layer under every price chart in the terminal.
+
+   Gann SQ9, the Overview bias chart and the Planet Lat/Lon/Dec charts each
+   used to build their own SVG by hand: fixed 1560px viewBoxes, home-made
+   zoom, no crosshair, no drawings. They now describe WHAT they draw as a spec
+   and this layer draws it on the OpenAlgo Charts engine (global OAC), so all
+   of them get pan/zoom/crosshair/indicators/drawing tools from one place and
+   a fix here fixes every chart.
+
+   Everything the old SVGs drew maps onto four engine concepts:
+     series     candles (pane 0), planet curves (pane 1, own degree axis),
+                score lines (pane 0, 'left' ±100 axis)
+     whitespace {time} points that extend the time axis past the last price
+                bar, so planet lines and aspects can run decades ahead
+     primitives vertical bands, vertical lines, horizontal price segments,
+                shaded regions, dots and labels — drawn in device pixels via
+                rc.timeScale.indexToX / rc.priceScale.priceToY, the exact
+                idiom the engine's own drawings use
+     priceLines engine-native horizontal levels with axis tags
+
+   Times are UTC seconds everywhere in the spec. Callers convert from their
+   own clocks (ms epochs, IST minute-of-day) before handing data over.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function acTheme(){
+  const cs=getComputedStyle(document.body), v=n=>cs.getPropertyValue(n).trim();
+  const base=document.body.classList.contains('light')?OAC.lightTheme:OAC.darkTheme;
+  const acc=v('--acc')||'#3df1ff';
+  return Object.assign({}, base, {
+    background:v('--bg2')||base.background, grid:(v('--bd')||base.grid)+'66',
+    axisText:v('--tx2')||base.axisText, axisLine:v('--bd2')||base.axisLine,
+    paneSeparator:v('--bd2')||base.paneSeparator, crosshair:acc,
+    upColor:v('--bull2')||base.upColor, downColor:v('--bear')||base.downColor,
+    wickUpColor:v('--bull2')||base.wickUpColor, wickDownColor:v('--bear')||base.wickDownColor,
+    lineColor:acc, areaTopColor:acc+'66', areaBottomColor:acc+'05',
+    lastPriceUp:v('--bull2')||base.lastPriceUp, lastPriceDown:v('--bear')||base.lastPriceDown});
+}
+
+/* CSS variables cannot be handed to canvas fillStyle; resolve them once. */
+function acColor(c){
+  if(!c) return '#888';
+  const m=/^var\((--[a-zA-Z0-9-]+)\)$/.exec(String(c).trim());
+  if(!m) return c;
+  return getComputedStyle(document.body).getPropertyValue(m[1]).trim()||'#888';
+}
+function acAlpha(c,a){
+  const hex=acColor(c);
+  if(/^#[0-9a-f]{6}$/i.test(hex)) return hex+Math.round(Math.max(0,Math.min(1,a))*255).toString(16).padStart(2,'0');
+  if(/^#[0-9a-f]{3}$/i.test(hex)) return '#'+hex[1]+hex[1]+hex[2]+hex[2]+hex[3]+hex[3]+Math.round(a*255).toString(16).padStart(2,'0');
+  return hex;
+}
+
+/* ── primitives ──────────────────────────────────────────────────────────── */
+/* indexToX and priceToY return MEDIA px (the engine's own markers multiply by
+   rc.dpr before drawing), so both are scaled here — a primitive that forgets
+   this is right at dpr=1 and off by 2x on a HiDPI screen. */
+function acX(rc,t){ return rc.timeScale.indexToX(rc.dataLayer.timeToIndexFloat(t))*(rc.dpr||1); }
+function acY(rc,v){ return rc.priceScale.priceToY(v)*(rc.dpr||1); }
+
+function acBandPrim(b){            // vertical band between two times
+  return { zOrder(){ return 'bottom'; }, draw(ctx,rc){
+    const x0=acX(rc,b.t0), x1=acX(rc,b.t1); if(!isFinite(x0)||!isFinite(x1)) return;
+    const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W=rc.plotWidth*dpr;
+    const L=Math.max(0,Math.min(x0,x1)), R=Math.min(W,Math.max(x0,x1)); if(R<=L) return;
+    ctx.save(); ctx.fillStyle=acAlpha(b.color,b.alpha==null?0.12:b.alpha); ctx.fillRect(L,0,R-L,H);
+    if(b.label && R-L>30*dpr){ ctx.fillStyle=acAlpha(b.color,0.9); ctx.font=(700)+' '+(10*dpr)+'px ui-monospace,monospace'; ctx.textBaseline='top';
+      ctx.textAlign=b.labelAlign||'left'; ctx.fillText(b.label, b.labelAlign==='center'?(L+R)/2:L+4*dpr, 4*dpr); }
+    ctx.restore(); } };
+}
+function acVLinePrim(l){           // vertical line at a time, optional rotated label
+  return { zOrder(){ return l.top?'top':'bottom'; }, draw(ctx,rc){
+    const x=acX(rc,l.time); if(!isFinite(x)) return;
+    const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W=rc.plotWidth*dpr; if(x<0||x>W) return;
+    ctx.save(); ctx.strokeStyle=acAlpha(l.color,l.alpha==null?0.8:l.alpha); ctx.lineWidth=(l.width||1)*dpr;
+    if(l.dashed) ctx.setLineDash([4*dpr,3*dpr]); else if(l.dotted) ctx.setLineDash([2*dpr,4*dpr]);
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); ctx.setLineDash([]);
+    if(l.label){ ctx.fillStyle=acAlpha(l.color,0.95); ctx.font='700 '+(9.5*dpr)+'px ui-monospace,monospace';
+      if(l.rotate){ ctx.translate(x,H-4*dpr); ctx.rotate(-Math.PI/2); ctx.textAlign='left'; ctx.textBaseline='middle'; ctx.fillText(l.label,0,0); }
+      else { ctx.textAlign=l.labelAlign||'left'; ctx.textBaseline='top'; ctx.fillText(l.label, x+(l.labelAlign==='right'?-3:3)*dpr, (l.labelY==null?4:l.labelY)*dpr); } }
+    if(l.diamond){ ctx.fillStyle=acAlpha(l.color,1); ctx.beginPath(); const s=3.4*dpr, y=7*dpr; ctx.moveTo(x,y-s); ctx.lineTo(x+s,y); ctx.lineTo(x,y+s); ctx.lineTo(x-s,y); ctx.closePath(); ctx.fill(); }
+    ctx.restore(); } };
+}
+function acSegPrim(s){             // horizontal price segment between two times (pane 0)
+  return { zOrder(){ return 'top'; }, draw(ctx,rc){
+    const x0=acX(rc,s.t0), x1=acX(rc,s.t1); const y=acY(rc,s.price);
+    if(!isFinite(x0)||!isFinite(x1)||!isFinite(y)) return;
+    const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W=rc.plotWidth*dpr; if(y<0||y>H) return;
+    const L=Math.max(0,Math.min(x0,x1)), R=Math.min(W,Math.max(x0,x1)); if(R<=L) return;
+    ctx.save(); ctx.strokeStyle=acAlpha(s.color,s.alpha==null?0.9:s.alpha); ctx.lineWidth=(s.width||1.1)*dpr;
+    if(s.dashed!==false) ctx.setLineDash([6*dpr,3*dpr]);
+    ctx.beginPath(); ctx.moveTo(L,y); ctx.lineTo(R,y); ctx.stroke(); ctx.setLineDash([]);
+    if(s.label){ ctx.fillStyle=acAlpha(s.color,1); ctx.font='700 '+(9.5*dpr)+'px ui-monospace,monospace'; ctx.textBaseline='bottom'; ctx.textAlign='right'; ctx.fillText(s.label,R-3*dpr,y-2*dpr); }
+    ctx.restore(); } };
+}
+function acDotsPrim(d){            // dots with optional text, at (time, value) on this pane's own scale
+  return { zOrder(){ return 'top'; }, draw(ctx,rc){
+    const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W=rc.plotWidth*dpr;
+    ctx.save(); ctx.font='700 '+((d.fontPx||8)*dpr)+'px ui-monospace,monospace'; ctx.textBaseline='bottom';
+    for(const p of d.points){
+      const x=acX(rc,p.time), y=acY(rc,p.value); if(!isFinite(x)||!isFinite(y)||x<0||x>W||y<0||y>H) continue;
+      ctx.fillStyle=acAlpha(p.color||d.color,1);
+      ctx.beginPath(); ctx.arc(x,y,(p.r||d.r||2.4)*dpr,0,Math.PI*2); ctx.fill();
+      if(p.stroke||d.stroke){ ctx.strokeStyle=acAlpha(p.stroke||d.stroke,1); ctx.lineWidth=1.4*dpr; ctx.stroke(); }
+      if(p.text){ ctx.textAlign='left'; ctx.fillText(p.text,x+3*dpr,y-3*dpr); } }
+    ctx.restore(); } };
+}
+function acScorePrim(lines, axis){   // ±100 lines on pane 0 with their own y mapping
+  return { zOrder(){ return 'top'; }, draw(ctx,rc){
+    const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W=rc.plotWidth*dpr;
+    const yOf=v=>H/2-(Math.max(-100,Math.min(100,v))/100)*(H/2*0.92);
+    ctx.save();
+    if(axis){ ctx.strokeStyle=acAlpha('var(--tx3)',0.7); ctx.lineWidth=0.7*dpr; ctx.setLineDash([5*dpr,4*dpr]);
+      ctx.beginPath(); ctx.moveTo(0,yOf(0)); ctx.lineTo(W,yOf(0)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.font=(10*dpr)+'px ui-monospace,monospace'; ctx.textAlign='right'; ctx.textBaseline='middle';
+      ctx.fillStyle=acAlpha('var(--tx2)',0.9); ctx.fillText('+100',W-3*dpr,yOf(100)+6*dpr); ctx.fillText('−100',W-3*dpr,yOf(-100)-6*dpr);
+      ctx.fillStyle=acAlpha('var(--tx3)',0.9); ctx.fillText('0',W-3*dpr,yOf(0)-6*dpr); }
+    for(const s of lines){
+      const pts=s.points||[]; if(pts.length<2) continue;
+      const path=()=>{ ctx.beginPath(); let started=false;
+        for(let i=0;i<pts.length;i++){ const p=pts[i]; const x=acX(rc,p.time), y=yOf(p.value); if(!isFinite(x)) continue;
+          if(!started){ ctx.moveTo(x,y); started=true; }
+          else if(s.step){ ctx.lineTo(x,yOf(pts[i-1].value)); ctx.lineTo(x,y); }
+          else ctx.lineTo(x,y);
+          if(s.step && i===pts.length-1 && p.timeEnd){ const xe=acX(rc,p.timeEnd); if(isFinite(xe)) ctx.lineTo(xe,y); } } };
+      if(s.halo){ ctx.strokeStyle=acAlpha(s.color,0.16); ctx.lineWidth=4*dpr; ctx.lineJoin='round'; path(); ctx.stroke(); }
+      ctx.strokeStyle=acAlpha(s.color,s.alpha==null?0.95:s.alpha); ctx.lineWidth=(s.width||1.8)*dpr; ctx.lineJoin='round';
+      if(s.dashed) ctx.setLineDash([6*dpr,3*dpr]); path(); ctx.stroke(); ctx.setLineDash([]);
+      if(s.dots){ const ev=s.dotEvery||1;
+        for(let i=0;i<pts.length;i+=ev){ const p=pts[i]; const x=acX(rc,p.timeMid!=null?p.timeMid:p.time), y=yOf(p.value); if(!isFinite(x)||x<0||x>W) continue;
+          ctx.fillStyle=acAlpha(p.color||s.color,1); ctx.beginPath(); ctx.arc(x,y,(s.dotR||2.4)*dpr,0,Math.PI*2); ctx.fill();
+          if(s.dotStroke){ ctx.strokeStyle=acAlpha(s.dotStroke,1); ctx.lineWidth=1.4*dpr; ctx.stroke(); } } }
+      if(s.lastLabel!==false){ const p=pts[pts.length-1]; const x=acX(rc,p.time), y=yOf(p.value);
+        if(isFinite(x)){ ctx.fillStyle=acAlpha(s.color,1); ctx.font='700 '+(11*dpr)+'px ui-monospace,monospace'; ctx.textAlign='right'; ctx.textBaseline='top';
+          ctx.fillText((s.labelPrefix||'')+(p.value>0?'+':'')+Math.round(p.value), Math.min(W-2*dpr,x-4*dpr), y+(s.labelBelow===false?-16:4)*dpr); } }
+    }
+    ctx.restore(); } };
+}
+function acPolyPrim(lines){             // price-unit polylines on a pane, clipped by the plot
+  return { zOrder(){ return 'normal'; }, draw(ctx,rc){
+    const dpr=rc.dpr||1, H=rc.plotHeight*dpr, W=rc.plotWidth*dpr;
+    ctx.save(); ctx.beginPath(); ctx.rect(0,0,W,H); ctx.clip(); ctx.lineJoin='round';
+    for(const l of lines){
+      const pts=l.points||[]; if(pts.length<2) continue;
+      ctx.strokeStyle=acAlpha(l.color,l.alpha==null?0.8:l.alpha); ctx.lineWidth=(l.width||1.1)*dpr;
+      if(l.dashed) ctx.setLineDash([4*dpr,3*dpr]); else if(l.dotted) ctx.setLineDash([2*dpr,3*dpr]); else ctx.setLineDash([]);
+      ctx.beginPath(); let st=false;
+      for(const p of pts){ const x=acX(rc,p.time), y=acY(rc,p.value); if(!isFinite(x)||!isFinite(y)) { st=false; continue; }
+        if(!st){ ctx.moveTo(x,y); st=true; } else ctx.lineTo(x,y); }
+      ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.restore(); } };
+}
+function acTextPrim(t){            // free text anchored to a corner
+  return { zOrder(){ return 'top'; }, draw(ctx,rc){
+    const dpr=rc.dpr||1, W=rc.plotWidth*dpr, H=rc.plotHeight*dpr;
+    ctx.save(); ctx.fillStyle=acAlpha(t.color||'var(--tx2)',0.95); ctx.font=(t.bold?'700 ':'')+((t.fontPx||11)*dpr)+'px ui-monospace,monospace';
+    ctx.textAlign=t.align||'center'; ctx.textBaseline='top';
+    const x=t.align==='left'?6*dpr:t.align==='right'?W-6*dpr:W/2, y=(t.y==null?4:t.y)*dpr;
+    ctx.fillText(t.text,x,y); ctx.restore(); } };
+}
+
+/* ── the chart ───────────────────────────────────────────────────────────── */
+function astralChart(host, spec){
+  if(!host||typeof OAC==='undefined') return null;
+  host.innerHTML='';
+  const ch=OAC.createChart(host,{theme:acTheme(), crosshairMode:spec.magnet===false?'normal':'magnet',
+                                 legendOffset:{top:spec.legendTop==null?26:spec.legendTop,left:10},
+                                 raf:window.CH_RAF||undefined});
+  const prims=[];
+  const add=(p,pane)=>{ try{ ch.addPrimitive(p,pane||0); prims.push(p); }catch(e){} };
+
+  // ── time axis: bars ∪ whitespace, deduplicated and sorted ──
+  const bars=(spec.bars||[]).slice().sort((a,b)=>a.time-b.time);
+  const items=[]; const seen=new Set();
+  for(const b of bars){ if(seen.has(b.time)) continue; seen.add(b.time); items.push(b); }
+  if(spec.extend && spec.extend.step>0){
+    const [e0,e1]=[spec.extend.t0,spec.extend.t1];
+    for(let t=e0;t<=e1;t+=spec.extend.step){ const tt=Math.round(t); if(!seen.has(tt)){ seen.add(tt); items.push({time:tt}); } }
+    items.sort((a,b)=>a.time-b.time);
+  }
+  const times=items.map(i=>i.time);
+  const idxOf=t=>{ let lo=0,hi=times.length-1; while(lo<hi){ const m=(lo+hi)>>1; if(times[m]<t) lo=m+1; else hi=m; }
+    if(times[lo]===t||lo===0||lo>=times.length) return lo;
+    const a=times[lo-1], b=times[lo]; return lo-1+(t-a)/Math.max(1,b-a); };
+
+  // ── pane 0: price ──
+  const priceType=spec.priceType||'candlestick';
+  let price=null;
+  try{ price=ch.addSeries(priceType,{paneIndex:0, style:Object.assign({priceLineVisible:false,lastValueVisible:spec.lastValue!==false},spec.priceStyle||{})}); }
+  catch(e){ price=ch.addSeries('candlestick',{paneIndex:0}); }
+  price.setData(items);
+
+  // ── pane 0: ±100 score lines, drawn as primitives ──
+  // Primitives only see a pane's RIGHT scale, so a score series on a 'left'
+  // axis could not be decorated (dots, labels, halo). The old SVG mapped
+  // ±100 onto the plot midline ±92% of the half-height itself; doing the
+  // same here keeps every decoration and needs no second axis at all.
+  if(spec.scores && spec.scores.length){
+    add(acScorePrim(spec.scores, spec.scoreAxis!==false), 0);
+  }
+
+  // ── pane 1: planet curves on their own axis ──
+  let lowerIdx=null;
+  if(spec.lower && spec.lower.series && spec.lower.series.length){
+    lowerIdx=1;
+    const fmt=spec.lower.format||(v=>v.toFixed(1)+'°');
+    if(spec.lower.fixed){
+      const pin=ch.addSeries('line',{paneIndex:1, priceScaleId:'right', style:{color:'rgba(0,0,0,0)',lineWidth:0.1,priceLineVisible:false,lastValueVisible:false}, priceFormat:{type:'custom',formatter:fmt}});
+      pin.setData([{time:times[0],value:spec.lower.fixed[0]},{time:times[Math.min(times.length-1,1)],value:spec.lower.fixed[1]}]);
+    }
+    for(const s of spec.lower.series){
+      // a segment list lets longitude wrap at 360° and retro stretches dash without a join
+      const segs=s.segments||[s.points];
+      segs.forEach((pts,si)=>{
+        if(!pts||pts.length<2) return;
+        const dashed = s.dashedSeg? s.dashedSeg[si] : s.dashed;
+        const ser=ch.addSeries('line',{paneIndex:1, priceScaleId:'right',
+          style:{color:acColor(s.color),lineWidth:s.width||1.2,lineStyle:dashed?'dashed':'solid',priceLineVisible:false,lastValueVisible:si===segs.length-1&&s.lastValue!==false,title:si===0?(s.name||''):''},
+          priceFormat:{type:'custom',formatter:fmt}});
+        ser.setData(pts);
+      });
+      if(s.dots&&s.dots.length) add(acDotsPrim({points:s.dots,color:s.color,r:2.2,fontPx:7}),1);
+    }
+    if(spec.lower.zeroLine){
+      const z=ch.addSeries('line',{paneIndex:1, priceScaleId:'right', style:{color:acAlpha('var(--tx3)',0.7),lineWidth:0.8,lineStyle:'dashed',priceLineVisible:false,lastValueVisible:false}});
+      z.setData([{time:times[0],value:0},{time:times[times.length-1],value:0}]);
+    }
+    if(spec.lower.title) add(acTextPrim({text:spec.lower.title,align:'center',y:4,fontPx:11,bold:true,color:'var(--tx2)'}),1);
+    try{ ch.setPaneWeight(0, spec.lower.weightTop==null?1:spec.lower.weightTop); ch.setPaneWeight(1, spec.lower.weight==null?1:spec.lower.weight); }catch(e){}
+  }
+  const panesFor=p=>p==='all'?(lowerIdx!=null?[0,1]:[0]):[p||0];
+
+  // ── price-scale pins: a transparent series that fixes autoscale to a range,
+  //    so an ephemeris-only view (no candles) still has a scale to draw on ──
+  if(spec.pins && isFinite(spec.pins[0]) && isFinite(spec.pins[1])){
+    const pin=ch.addSeries('line',{paneIndex:0, priceScaleId:'right', style:{color:'rgba(0,0,0,0)',lineWidth:0.1,priceLineVisible:false,lastValueVisible:false}});
+    pin.setData([{time:times[0],value:spec.pins[0]},{time:times[Math.min(times.length-1,1)],value:spec.pins[1]}]);
+  }
+  // ── price-unit polylines (Gann ladder, S/R ladders) ──
+  if(spec.polylines && spec.polylines.length){
+    const byPane={}; spec.polylines.forEach(l=>{ const k=l.pane||0; (byPane[k]=byPane[k]||[]).push(l); });
+    Object.entries(byPane).forEach(([k,ls])=>add(acPolyPrim(ls),+k));
+  }
+
+  // ── decorations ──
+  (spec.shading||[]).forEach(s=>panesFor(s.pane||'all').forEach(pi=>add(acBandPrim(Object.assign({alpha:0.18},s)),pi)));
+  (spec.bands||[]).forEach(b=>panesFor(b.pane||0).forEach(pi=>add(acBandPrim(b),pi)));
+  (spec.vlines||[]).forEach(l=>panesFor(l.pane||'all').forEach((pi,k)=>add(acVLinePrim(Object.assign({},l,{label:k===0?l.label:'',diamond:k===0&&l.diamond})),pi)));
+  (spec.segments||[]).forEach(s=>add(acSegPrim(s),0));
+  (spec.dots||[]).forEach(d=>add(acDotsPrim(d),d.pane||0));
+  (spec.priceLines||[]).forEach(pl=>{ try{ ch.addPriceLine({price:pl.price,color:acColor(pl.color),lineWidth:pl.width||1,dashed:pl.dashed!==false,label:pl.label},0); }catch(e){} });
+  if(spec.title) add(acTextPrim({text:spec.title,align:'center',y:4,fontPx:11,bold:true,color:'var(--tx2)'}),0);
+  if(spec.todayTime!=null) panesFor('all').forEach((pi,k)=>add(acVLinePrim({time:spec.todayTime,color:'var(--neut2)',dashed:true,width:0.9,label:k===0?'◄ today':'',labelAlign:'right',top:true}),pi));
+
+  // ── view ──
+  const api={
+    chart:ch, times, idxOf,
+    setRange(t0,t1){ try{ ch.setVisibleLogicalRange({from:idxOf(t0)-0.5,to:idxOf(t1)+0.5}); }catch(e){} },
+    fit(){ try{ ch.fitContent(); }catch(e){} },
+    destroy(){ try{ ch.destroy(); }catch(e){} },
+  };
+  if(spec.view) api.setRange(spec.view[0],spec.view[1]); else api.fit();
+  if(spec.onHover) ch.subscribeCrosshairMove(e=>{ try{ spec.onHover(e); }catch(x){} });
+  if(spec.onRange && typeof ch.on==='function'){
+    try{ ch.on('drag:end',()=>{ try{ spec.onRange(api); }catch(x){} }); }catch(e){}
+  }
+  return api;
+}
+window.astralChart=astralChart;
+
+/* Mount helper: tabs call this after render() has placed the host. Keeps one
+   chart per host id and tears the old one down, since render() rebuilds DOM. */
+window.AC_MOUNTS=window.AC_MOUNTS||{};
+function acMount(hostId, specFn, _try){
+  const host=document.getElementById(hostId); if(!host) return null;
+  // A host inside a tab that is not laid out yet (hidden pane, collapsed
+  // panel, zero-width viewport) measures 0 wide, and a chart created then
+  // gets zero-size canvases. Wait for layout rather than mount into nothing.
+  if(host.clientWidth===0){
+    const n=(_try||0)+1;
+    if(n<=40) setTimeout(()=>{ if(document.getElementById(hostId)===host) acMount(hostId, specFn, n); }, 250);
+    return null;
+  }
+  const old=window.AC_MOUNTS[hostId]; if(old){ try{ old.destroy(); }catch(e){} }
+  let spec=null; try{ spec=specFn(); }catch(e){ host.innerHTML='<div style="padding:18px;color:var(--bear);font-size:11.5px">chart spec failed: '+reEsc(e.message)+'</div>'; return null; }
+  if(!spec) return null;
+  const api=astralChart(host,spec);
+  window.AC_MOUNTS[hostId]=api;
+  return api;
+}
+window.acMount=acMount;
+
+/* ── PLANET LAT / LON / DEC CHART on the shared engine ────────────────────
+   Two panes: price on top, the planet curves below on their own degree axis,
+   one shared time grid. Data is untouched — window.PLAN.data is exactly what
+   planComputeData built — only the drawing moved off the SVG.
+
+   The grid is the planet sample cadence (≈6h–17h), coarsened only when the
+   full span would exceed ~1100 indices, because the engine's time axis is
+   bar-indexed with a 1px minimum spacing. Daily candles and every sample are
+   snapped onto that grid so x stays linear in time across both panes. */
+function planChartSpec(kind){
+  const D=window.PLAN.data; if(!D) return null;
+  const w=window.PLAN.win||{t0:D.t0,t1:D.t1};
+  const spanSec=(D.t1-D.t0)/1000;
+  const cad=Math.max(1800, Math.round((D.times[1]-D.times[0])/1000));
+  const stepSec=Math.max(cad, Math.ceil(spanSec/1100/3600)*3600);
+  const g0=Math.floor(D.t0/1000/stepSec)*stepSec, g1=Math.ceil(D.t1/1000/stepSec)*stepSec;
+  const snap=ms=>g0+Math.round((ms/1000-g0)/stepSec)*stepSec;
+
+  // candles snapped (and bucketed if the grid is coarser than a day)
+  const bk=new Map();
+  for(const r of D.ohlc){ const t=snap(r.ms); const c=bk.get(t);
+    if(!c) bk.set(t,{time:t,open:r.o,high:r.h,low:r.l,close:r.c});
+    else { c.high=Math.max(c.high,r.h); c.low=Math.min(c.low,r.l); c.close=r.c; } }
+  const bars=[...bk.values()].sort((a,b)=>a.time-b.time);
+
+  // one point per grid time per series (samples denser than the grid collapse)
+  const dedup=pts=>{ const out=[]; for(const p of pts){ if(out.length&&out[out.length-1].time===p.time) out[out.length-1]=p; else out.push(p); } return out; };
+
+  const lower={series:[], zeroLine: kind!=='lon', fixed: kind==='lon'?[0,360]:null,
+               format:v=>v.toFixed(1)+'°', weight:1, weightTop:1,
+               title:`Planet ecliptic ${kind==='lat'?'latitude (°)':kind==='dec'?'declination (°)':'longitude (°)'}`};
+  for(const b of D.bodies){
+    const col=PLAN_COL[b]||'var(--tx1)', ys=D.series[b];
+    if(kind==='lon'){
+      const segs=[], dashedSeg=[]; let seg=[], sr=D.retro[b][0];
+      const flush=()=>{ const d=dedup(seg); if(d.length>1){ segs.push(d); dashedSeg.push(!!sr); } seg=[]; };
+      for(let i=0;i<ys.length;i++){ const wrap=i>0&&Math.abs(ys[i]-ys[i-1])>180;
+        if(wrap||D.retro[b][i]!==sr){ flush(); sr=D.retro[b][i]; }
+        seg.push({time:snap(D.times[i]),value:ys[i]}); }
+      flush();
+      const dots=[]; for(let i=1;i<ys.length;i++){ if(D.retro[b][i]!==D.retro[b][i-1]) dots.push({time:snap(D.times[i]),value:ys[i],text:D.retro[b][i]?'R':'D',color:col}); }
+      lower.series.push({name:b,color:col,segments:segs,dashedSeg,dots,width:1.2});
+    } else {
+      lower.series.push({name:b,color:col,points:dedup(ys.map((v,i)=>({time:snap(D.times[i]),value:v}))),width:1.2});
+    }
+  }
+
+  const vlines=[], bands=[], segments=[], shading=[];
+  if(D.tLastP<D.t1) shading.push({t0:snap(D.tLastP),t1:g1,color:'var(--neut3)',alpha:0.5,pane:'all'});
+  if(kind==='lon' && S.planConj!==false) D.conj.forEach(cj=>vlines.push({time:snap(cj.ms),color:'var(--acc)',dotted:true,width:0.5,alpha:0.4,pane:'all'}));
+  if(kind==='lon' && S.planSJ!==false && D.sjSegments && D.sjSegments.length){
+    for(const sg of D.sjSegments){ const col=SJ_ANGLE_COL[sg.angle]||'var(--neut2)';
+      bands.push({t0:snap(sg.monMs),t1:snap(sg.friMs),color:col,alpha:0.08,pane:0});
+      if(sg.support!=null){
+        segments.push({t0:snap(sg.from),t1:snap(sg.to),price:sg.resistance,color:'var(--bear)',dashed:true,width:1.1});
+        segments.push({t0:snap(sg.from),t1:snap(sg.to),price:sg.support,color:'var(--bull2)',dashed:true,width:1.1}); }
+      vlines.push({time:snap(sg.ms),color:col,dashed:true,width:1.2,alpha:0.92,label:`☉${sg.glyph}♃ ${sg.angle}°`,labelY:14,diamond:true,pane:'all'}); }
+  }
+  const todayMs=planMs((typeof todayStr==='function')?todayStr():D.ohlc[D.ohlc.length-1].date);
+
+  return {
+    bars, extend:{t0:g0,t1:g1,step:stepSec},
+    priceType: planChartType()==='line'?'line':'candlestick',
+    priceStyle: planChartType()==='line' ? {color:acColor('var(--acc)'),lineWidth:1.2}
+              : {upColor:'#00f07a',downColor:'#ff3355',wickUpColor:'#00f07a',wickDownColor:'#ff3355',borderVisible:false},
+    lower, vlines, bands, segments, shading, todayTime:snap(todayMs),
+    view:[w.t0/1000, w.t1/1000], lastValue:false, legendTop:22,
+    title:`${planInstKey()} — ${PLAN_INST[planInstKey()]}`,
+    // Tooltip: the nearest planet sample to the hovered time, like the SVG's
+    // crosshair dots, with the closest daily bar when one is within 2 days.
+    onHover:e=>{ const tip=document.getElementById('plan-tip'); if(!tip) return;
+      if(!e||e.time==null||!e.point){ tip.style.display='none'; return; }
+      const tms=e.time*1000;
+      let si=Math.round((tms-D.t0)/(D.t1-D.t0)*(D.times.length-1)); si=Math.max(0,Math.min(D.times.length-1,si));
+      let pr=null,bd=1e15; for(const r of D.ohlc){ const dd=Math.abs(r.ms-D.times[si]); if(dd<bd){bd=dd;pr=r;} } if(bd>2*PLAN_DAYMS) pr=null;
+      let rows=`<div style="color:var(--tx1);font-weight:700">${planFmtIST(D.times[si])}</div>`;
+      if(pr) rows+=`<div style="color:var(--tx1)">O ${Math.round(pr.o)} H ${Math.round(pr.h)} L ${Math.round(pr.l)} <b>C ${Math.round(pr.c)}</b></div>`;
+      for(const b of D.bodies){ const val=D.series[b][si]; if(val==null) continue;
+        const rr=(kind==='lon'&&D.retro[b]&&D.retro[b][si])?' ℞':''; rows+=`<div><span style="color:${PLAN_COL[b]}">${b}</span> ${val.toFixed(2)}°${rr}</div>`; }
+      tip.innerHTML=rows; tip.style.display='block';
+      const host=document.getElementById('plan-oac-host'); const cw=host?host.clientWidth:800;
+      tip.style.left=Math.min(e.point.x+12,cw-170)+'px'; tip.style.top='8px'; },
+    // Keep the year timeline in step with wheel/drag zooms made on the chart.
+    onRange:api=>{ try{ const r=api.chart.getVisibleLogicalRange(); if(!r) return;
+      const tAt=i=>{ const k=Math.max(0,Math.min(api.times.length-1,Math.round(i))); return api.times[k]*1000; };
+      window.PLAN.win={t0:Math.max(D.t0,tAt(r.from)), t1:Math.min(D.t1,tAt(r.to))};
+      window.PLAN.view={vt0:window.PLAN.win.t0, vt1:window.PLAN.win.t1};
+      const tl=document.getElementById('plan-timeline'); if(tl) tl.innerHTML=planTimeline(); }catch(x){} },
+  };
+}
+window.planChartSpec=planChartSpec;
+
+/* Mount / re-range glue. planPaint() calls planMountChart() where it used to
+   bind the SVG handlers; planRedraw() pushes the window into the live chart
+   instead of rebuilding markup. */
+function planMountChart(){
+  const kind=planKind();
+  if(!window.PLAN.data || window.PLAN.minimized){ const old=window.AC_MOUNTS&&window.AC_MOUNTS['plan-oac-host']; if(old){ try{ old.destroy(); }catch(e){} delete window.AC_MOUNTS['plan-oac-host']; } return; }
+  const api=acMount('plan-oac-host', ()=>planChartSpec(kind));
+  const w=window.PLAN.win||{t0:window.PLAN.data.t0,t1:window.PLAN.data.t1};
+  window.PLAN.view={vt0:w.t0, vt1:w.t1};        // planZoom() reads these
+  return api;
+}
+window.planMountChart=planMountChart;
+function planRedrawEngine(){
+  const api=window.AC_MOUNTS&&window.AC_MOUNTS['plan-oac-host'];
+  const D=window.PLAN.data; if(!D) return false;
+  const w=window.PLAN.win||{t0:D.t0,t1:D.t1};
+  window.PLAN.view={vt0:w.t0, vt1:w.t1};
+  if(api && document.getElementById('plan-oac-host')){ api.setRange(w.t0/1000, w.t1/1000); }
+  else planMountChart();
+  const tl=document.getElementById('plan-timeline'); if(tl) tl.innerHTML=planTimeline();
+  return true;
+}
+window.planRedrawEngine=planRedrawEngine;
+
+/* ── OVERVIEW BIAS CHART on the shared engine ─────────────────────────────
+   The SVG's x axis was clock time — minute-of-day in the instrument's market
+   clock — not bar index. The engine is bar-indexed, so the session becomes a
+   uniform grid of one whitespace point per slot (iv minutes) from session
+   open to close, and every candle, band and score point is placed on it.
+   The grid ends AT close: the old chart never drew past SR.endMin, and the
+   final step point is held to min(m+iv, endMin).
+
+   Candles arrive as {m,o,h,l,c} with m = open minute in the market clock;
+   bars coarser than iv (the hourly fallback) are centred over their own span
+   the way the SVG centred them (m + barIv/2). Scores (KP, composite, slot)
+   are primitives with their own ±100 mapping, exactly as the SVG mapped them. */
+function ovChartSpec(D){
+  const SR=ovSessionRange();
+  const iv=Math.max(1,parseInt(S.ovInt,10)||15);
+  const slots=ovBuildSlots(D); if(!slots||slots.length<2) return null;
+  const BCOL={BULLISH:'var(--bull)',BEARISH:'var(--bear)',VOLATILE:'var(--sun)',NEUTRAL:'var(--tx3)'};
+
+  // market-clock minute -> UTC seconds on the chart date
+  const tzOff=ovMkt().tz;                                   // hours east of UTC
+  const day0=Math.floor(Date.parse(S.date+'T00:00:00Z')/1000) - Math.round(tzOff*3600);
+  const T=m=>day0+Math.round(m*60);
+  const endM=SR.endMin;
+  const step=iv*60, g0=T(SR.startMin), g1=T(endM);
+
+  // bands: merge consecutive slots with the same bias + hour lord (SVG rule)
+  const bands=[];
+  for(const p of slots){ const last=bands[bands.length-1];
+    if(last && last.bias===p.bias && last.ph===p.ph) last.to=Math.min(p.m+iv,endM);
+    else bands.push({from:p.m,to:Math.min(p.m+iv,endM),bias:p.bias,arrow:p.arrow,ph:p.ph,score:p.score,why:p.why,col:BCOL[p.bias]||'var(--tx3)'}); }
+
+  // candles
+  const PK=ovPriceKey(), _ov=window.OVBC||{};
+  const raw=(_ov.key===PK && _ov.bars)?_ov.bars.filter(b=>b.m>=SR.startMin&&b.m<endM):[];
+  const barIv=raw.length>1?Math.max(1,raw[1].m-raw[0].m):iv;
+  const bars=raw.map(b=>({time:T(b.m+barIv/2-iv/2), open:b.o, high:b.h, low:b.l, close:b.c}));
+  // snap candle times onto the grid so the axis stays uniform
+  for(const b of bars){ b.time=g0+Math.round((b.time-g0)/step)*step; }
+
+  // forecast vs real (graded on raw bars exactly as before)
+  let scored=0,hits=0;
+  if(raw.length>=2){ const THR=0.08;
+    bands.forEach(bd=>{ const bb=raw.filter(b=>b.m>=bd.from&&b.m<bd.to); bd.res=null;
+      if(bb.length<2 || bb[bb.length-1].m < bd.to-Math.max(iv,10)) return;
+      const o=bb[0].o, c=bb[bb.length-1].c, net=(c-o)/o*100;
+      const hi=Math.max(...bb.map(b=>b.h)), lo=Math.min(...bb.map(b=>b.l)); const range=(hi-lo)/o*100;
+      let hit=null;
+      if(bd.bias==='BULLISH') hit=net>THR; else if(bd.bias==='BEARISH') hit=net<-THR;
+      else if(bd.bias==='NEUTRAL') hit=Math.abs(net)<=THR; else if(bd.bias==='VOLATILE') hit=(range>2*Math.abs(net)&&range>2*THR);
+      bd.res=hit; bd.net=net; if(hit!==null){ scored++; if(hit) hits++; } }); }
+  window.OVBC_GRADE={scored,hits};
+
+  const specBands=bands.map(bd=>({t0:T(bd.from),t1:T(bd.to),color:bd.col,alpha:bd.bias==='NEUTRAL'?0.06:0.15,
+    label:(T(bd.to)-T(bd.from))/step>=3 ? `${bd.arrow} ${bd.ph}${bd.res==null?'':bd.res?' ✓':' ✗'}` : '', labelAlign:'center', pane:0}));
+
+  // ±100 score lines
+  const scores=[];
+  const showComp=window.OV_COMP!==false, showKp=window.OV_KP!==false, showSlot=window.OV_SLOT===true;
+  if(showSlot){ const sMax=Math.max(3,...slots.map(s=>Math.abs(s.score||0)));
+    scores.push({name:'⌁ slot',color:'var(--sun)',width:1.3,dashed:true,step:true,dots:true,dotR:2.3,
+      labelPrefix:'⌁ ',points:slots.map(s=>({time:T(s.m),timeEnd:T(Math.min(s.m+iv,endM)),timeMid:T(s.m+iv/2),value:(s.score||0)/sMax*100}))}); }
+  if(showComp) scores.push({name:'◈ composite',color:'var(--moon)',width:2.2,dots:true,dotEvery:Math.max(1,Math.round(slots.length/24)),dotR:2.4,
+      labelBelow:false,points:slots.map(s=>({time:T(s.m),value:s.comp||0}))});
+  if(showKp){ let kp=null; try{ kp=ovKpSignalSlots(); }catch(e){ kp=null; }
+    if(kp&&kp.length>=2) scores.push({name:'✦ KP',color:'var(--acc)',width:1.9,step:true,halo:true,dots:true,dotR:3.2,dotStroke:'var(--acc)',labelPrefix:'✦ ',
+      points:kp.map(s=>({time:T(s.m),timeEnd:T(Math.min(s.m+iv,endM)),timeMid:T(s.m+iv/2),value:s.score,color:BCOL[s.bias]||'var(--acc)'}))}); }
+
+  // TIME marker in the market clock
+  const _cmLoc=parseFloat(S.time)*60, _mkSh=(IST-tzOff)*60;
+  const cm=[_cmLoc-_mkSh,_cmLoc-_mkSh-1440,_cmLoc-_mkSh+1440].find(v=>v>=SR.startMin&&v<=endM);
+  const vlines=(cm!=null)?[{time:T(cm),color:'var(--acc)',width:1.3,alpha:1,label:'▼ '+mtt(cm),labelAlign:'center',top:true,pane:0}]:[];
+
+  // price pins when no candles, so the bands still have a plane to sit on
+  const pins = bars.length ? null : [0,1];
+
+  return { bars, extend:{t0:g0,t1:g1,step}, pins, bands:specBands, scores, scoreAxis:(showComp||showKp),
+           vlines, view:[g0,g1], magnet:false, lastValue:false, legendTop:30,
+           priceStyle:{upColor:acColor('var(--bull)'),downColor:acColor('var(--bear)'),wickUpColor:acColor('var(--bull)'),wickDownColor:acColor('var(--bear)')},
+           onHover:e=>{ const el=document.getElementById('ovbc-tip'); if(!el) return;
+             if(!e||e.time==null){ el.textContent=''; return; }
+             const m=Math.round((e.time-day0)/60); const bd=bands.find(b=>m>=b.from&&m<b.to);
+             const bar=e.bar&&isFinite(e.bar.open)?e.bar:null;
+             el.innerHTML=`<span style="color:var(--acc)">${mtt(Math.max(SR.startMin,Math.min(endM,m)))}</span>`+
+               (bar?` · O ${bar.open.toFixed(1)} H ${bar.high.toFixed(1)} L ${bar.low.toFixed(1)} C <b>${bar.close.toFixed(1)}</b>`:'')+
+               (bd?` · <span style="color:${bd.col};font-weight:700">${bd.ph} hour · ${bd.bias} (${bd.score>0?'+':''}${bd.score})</span>${bd.res!=null?' · '+(bd.res?'✓ matched':'✗ missed')+' (net '+(bd.net>0?'+':'')+bd.net.toFixed(2)+'%)':''}<div style="color:var(--tx3);font-size:10px;white-space:normal">${reEsc(bd.why||'')}</div>`:''); } };
+}
+window.ovChartSpec=ovChartSpec;
+
+/* ── GANN ASTRO CHART on the shared engine ────────────────────────────────
+   Same data, same controls, same ladder arithmetic as the SVG it replaces —
+   only the drawing moved. Everything here is a spec for astralChart().
+
+   The one structural change is the time grid. The engine's axis is
+   bar-indexed with a 1px minimum bar spacing, so a daily grid cannot show a
+   5y↔5y or 20y-forward window. The SVG already sampled planets every
+   `stepDays = ceil(span/1100)`; candles are now bucketed onto that same grid
+   (weekly at ~20y, monthly at ~90y), so the whole chart sits on ONE uniform
+   grid and x stays linear in time — the engine's one hard requirement. */
+function gannChartSpec(){
+  const _px=window.GANNPX||{}, helio=!!S.gannHelio;
+  const {v0,v1}=gannViewMs();
+  const allBars=(_px.status==='ready'&&_px.bars)?_px.bars:[];
+  const spanDays=(v1-v0)/86400000;
+  const stepDays=Math.max(1,Math.ceil(spanDays/1100));
+  const stepSec=stepDays*86400;
+  const g0=Math.floor(v0/1000/stepSec)*stepSec, g1=Math.ceil(v1/1000/stepSec)*stepSec;
+
+  // candles bucketed onto the grid
+  const bk=new Map();
+  for(const b of allBars){
+    if(b.ms<v0-stepSec*1000||b.ms>v1+stepSec*1000) continue;
+    const t=Math.floor(b.ms/1000/stepSec)*stepSec;
+    const c=bk.get(t);
+    if(!c) bk.set(t,{time:t,open:b.o,high:b.h,low:b.l,close:b.c});
+    else { c.high=Math.max(c.high,b.h); c.low=Math.min(c.low,b.l); c.close=b.c; }
+  }
+  const bars=[...bk.values()].sort((a,b)=>a.time-b.time);
+
+  // price scale from visible bars, else from the whole history (SVG rule)
+  const psrc=bars.length?bars.map(b=>({h:b.high,l:b.low})):allBars.map(b=>({h:b.h,l:b.l}));
+  let pLo=0,pHi=100;
+  if(psrc.length){ pLo=Math.min(...psrc.map(b=>b.l)); pHi=Math.max(...psrc.map(b=>b.h)); }
+  const pad=(pHi-pLo)*0.06||1;
+  const cycle=(S.gannCycle&&S.gannCycle>0)?S.gannCycle
+    :(()=>{ const span=Math.max(1,pHi-pLo); const mag=Math.pow(10,Math.floor(Math.log10(span))); return Math.max(mag,Math.round(span/mag)*mag); })();
+
+  const times=[]; for(let t=g0;t<=g1;t+=stepSec) times.push(t);
+  const lonCache={};
+  const lonSeries=body=>lonCache[body]||(lonCache[body]=times.map(t=>{
+    const dp=planISO(t*1000).split('-').map(Number); const J=JD(dp[0],dp[1],dp[2],9.25); return gannBodyLon(body,J,helio); }));
+
+  // planetary price-lines: price = k·cycle + (lon/360)·cycle, one polyline per visible k-run
+  const polylines=[], labels=[];
+  gannPlanetSet().forEach(body=>{
+    const col=pc(body), lon=lonSeries(body);
+    const kMin=Math.floor((pLo-pad)/cycle)-1, kMax=Math.ceil((pHi+pad)/cycle)+1;
+    for(let k=kMin;k<=kMax;k++){
+      let seg=[];
+      const flush=()=>{ if(seg.length>1){ polylines.push({color:col,points:seg,width:1.1,alpha:0.7});
+        const last=seg[seg.length-1]; labels.push({time:last.time,value:last.value,text:PA[body],color:col}); } seg=[]; };
+      for(let i=0;i<times.length;i++){ const price=k*cycle+(lon[i]/360)*cycle;
+        if(price>=pLo-pad&&price<=pHi+pad) seg.push({time:times[i],value:price}); else flush(); }
+      flush();
+    }
+  });
+
+  // aspect time-lines: crossing detection at every grid step
+  const vlines=[];
+  if(S.gannShowAsp && gannAspSet().length>=2){
+    const ab=gannAspSet(); const lonB={}; ab.forEach(b=>lonB[b]=lonSeries(b));
+    const marks=[];
+    for(let a=0;a<ab.length;a++) for(let b2=a+1;b2<ab.length;b2++){
+      const A=lonB[ab[a]], B=lonB[ab[b2]];
+      const sepAt=i=>{ let s=Math.abs(n360(A[i]-B[i])); return s>180?360-s:s; };
+      for(let i=1;i<times.length;i++){ const s0=sepAt(i-1), s1=sepAt(i);
+        for(const asp of GANN_ASPECTS){ const d0=s0-asp.d, d1=s1-asp.d;
+          if((d0<=0&&d1>=0)||(d0>=0&&d1<=0)){ if(Math.abs(s1-s0)>30) continue;
+            const frac=Math.abs(d0)/(Math.abs(d0)+Math.abs(d1)+1e-9);
+            marks.push({t:times[i-1]+frac*(times[i]-times[i-1]), a:ab[a], b:ab[b2], asp}); } } }
+    }
+    marks.sort((m,n)=>m.t-n.t);
+    const minGap=(g1-g0)/110; let lastLbl=-Infinity;
+    for(const m of marks){ const lbl=(m.t-lastLbl>minGap); if(lbl) lastLbl=m.t;
+      vlines.push({time:m.t,color:m.asp.c,dashed:true,width:0.9,alpha:0.6,pane:0,
+                   label:lbl?(PA[m.a]+m.asp.g+PA[m.b]):'',rotate:true}); }
+  }
+
+  const todayMs=planMs((typeof todayStr==='function')?todayStr():S.date);
+  window.GANN_LAST={bars:bars.length,stepDays,cycle,spanDays};
+  return {
+    bars, extend:{t0:g0,t1:g1,step:stepSec},
+    pins:[pLo-pad,pHi+pad],
+    polylines, dots:[{points:labels,r:0.01,fontPx:10,pane:0}],
+    vlines, todayTime:todayMs/1000,
+    view:[v0/1000,v1/1000],
+    title:`${gannInstKey()} · ${helio?'HELIOCENTRIC':'GEOCENTRIC'} · cycle ${cycle.toLocaleString()}${stepDays>1?' · '+stepDays+'d bars':''}`,
+    lastValue:false,
+  };
+}
+window.gannChartSpec=gannChartSpec;
+
+/* ── RULEBOOK SECTOR RULES ────────────────────────────────────────────────
+   The Sector tab scored planets from the Vyapaar Ratna yogas plus dignity,
+   Shar, retrogression, combustion, Ashtakavarga, Vargesha and activation.
+   The book's own sectoral sections (Tech Astro Analysis — SECTORAL
+   REPRESENTATION, NATURE OF PLANETS, BULLISH/BEARISH DEGREES, MANY IMPORTANT
+   OBSERVATIONS, DAYS AND THEIR LORDS, MERCURY PAAP KARTARI) were transcribed
+   into TA_* tables for the Astral Forecast engine but never reached the
+   sector scores. These are the ones that compute cleanly from a day's chart;
+   every adjustment carries its source section so the card can show why.
+
+   Weights are deliberately modest (±0.25 … ±0.8 on a score whose bias gates
+   sit at ±0.5): a rule tips a planet or sector, it does not decide it. The
+   measured side of the tab (SECTOR RESEARCH) is where evidence lives; this
+   is the rulebook, labelled as such. */
+
+const SRB_BEN=new Set(['Moon','Mercury','Jupiter','Venus']);
+/* SECTOR_RULERS names → keywords that appear in TA_SIGN_SECTORS strings */
+const SRB_KEYS={
+  'Banking & Finance / BFSI':['Banking','Finance','Equities','Shares'], 'PSU Banks':['Banking','Government'],
+  'PSU / PSE (Govt)':['PSE','PSU','Government'], 'Semiconductors':['Semi-Conductor'], 'Telecom':['Telecommunications','Wireless'],
+  'Pharma / Healthcare':['Pharmaceuticals','Drugs','Medicine','Surgical'], 'FMCG':['Cosmetics','Branded'],
+  'Gold':['Gold'], 'Silver':['Silver'], 'Metals · Iron & Steel':['Steel','Iron','Metals','Nickel'], 'Copper':['Copper'],
+  'Oil & Gas / Crude':['Oil'], 'Power · Renewable / Solar':['Power','Electrical'], 'Automobiles':['Cars','Trucks','Automobile'],
+  'Defense':['Defence','Armoury','Missiles'], 'Railways':['Railways','Railroads'], 'Shipping & Navigation':['Shipping','Shipyard','Navigation'],
+  'Aviation':['Aviation'], 'Realty / Real Estate':['Fixed Assets'], 'Mining / Coal':['Coal'], 'Infrastructure':['Infrastructure','Machinery'],
+  'Logistics':['Logistics'], 'Sugar':['Sugar','Jaggery'], 'Cotton / Textile':['Cotton','Textile','Cloth','Silk','Jute'],
+  'Chemicals':['Chemicals','Paints'], 'Fertilizer / Pesticide':['Agriculture'], 'Electrical Goods':['Electrical goods','Electrical'],
+  'Tea / Coffee':['Tea'], 'Rubber':['Rubber'], 'Luxury / Watches':['Watches','Diamonds','Pearl','Perfumes'],
+  'IT / Technology':['Information Technology','Computer'], 'Artificial Intelligence / Drones':['Drones'], 'Cement':['Marble','Glass'],
+  'Liquor / Distilleries':[], 'Hydel / Water Power':['Power'], 'Wind Power':['Power'], 'Media & Entertainment':['Film','Publications'],
+};
+function srbSignSectors(sign){
+  const txt=(typeof TA_SIGN_SECTORS!=='undefined'&&TA_SIGN_SECTORS[sign])||'';
+  const hit=[];
+  for(const [sec,keys] of Object.entries(SRB_KEYS)){ if(keys.some(k=>txt.toLowerCase().includes(k.toLowerCase()))) hit.push(sec); }
+  return hit;
+}
+
+/* Per-planet adjustments. `pl` is the D.planets entry, `D` the day. */
+function srRulebookPlanet(n, D, pl){
+  const out={delta:0, flags:[]};
+  if(!pl||!D) return out;
+  const add=(d,t,c,sec)=>{ out.delta+=d; out.flags.push({t, c, sec}); };
+  // § NATURE OF PLANETS PURELY ONLY PLACEMENT BASIS — bullish / bearish signs
+  try{ const P=(typeof TA_PLACEMENT!=='undefined')?TA_PLACEMENT[n]:null;
+    if(P&&pl.sign){ const w=(P.w||1)*(P.soft?0.25:0.4);
+      if((P.bull||[]).includes(pl.sign)) add(+w,'§placement ▲','var(--bull)','NATURE OF PLANETS — placement');
+      else if((P.bear||[]).includes(pl.sign)) add(-w,'§placement ▼','var(--bear)','NATURE OF PLANETS — placement'); } }catch(e){}
+  // § BULLISH / BEARISH DEGREES — 6°40′ bands within the sign
+  try{ if(typeof TA_DEG_BANDS!=='undefined'&&pl.deg!=null){ const b=TA_DEG_BANDS.find(x=>pl.deg>=x.lo&&pl.deg<x.hi);
+    if(b) add(b.dir*0.25, b.dir>0?'§deg ▲':'§deg ▼', b.dir>0?'var(--bull)':'var(--bear)', 'BULLISH / BEARISH DEGREES'); } }catch(e){}
+  // § MANY IMPORTANT OBSERVATION 1-2 — atichari: benefic faster than normal = bullish, malefic = bearish
+  try{ if(typeof TA_NORMAL_SPEED!=='undefined'&&TA_NORMAL_SPEED[n]&&typeof planetSpeed==='function'&&D.J){
+    const sp=Math.abs(planetSpeed(n,D.J)); const norm=TA_NORMAL_SPEED[n];
+    if(sp>norm*1.15){ const ben=SRB_BEN.has(n); add(ben?+0.4:-0.4,'§atichari '+(ben?'▲':'▼'),ben?'var(--bull)':'var(--bear)','MANY IMPORTANT OBSERVATION — atichari'); } } }catch(e){}
+  // § MANY IMPORTANT OBSERVATION 50 — Mars retrograde in any sign: bullish for its sectors
+  if(n==='Mars'&&pl.retro) add(+0.6,'§Mars ℞ ▲','var(--bull)','MANY IMPORTANT OBSERVATION 50 — Mars retrograde');
+  // § DAYS AND THEIR LORDS — day lord and Moon-nakshatra lord the same: that lord's sectors bullish
+  try{ const moon=(D.planets||[]).find(p=>p.name==='Moon'); const nakL=moon&&moon.nakL;
+    if(nakL&&D.dayLord&&nakL===D.dayLord&&n===nakL) add(+0.5,'§day=nak lord ▲','var(--bull)','DAYS AND THEIR LORDS'); }catch(e){}
+  // § MERCURY PAAP KARTARI YOG — Mercury hemmed by malefics: bearish, banks in particular (applied at sector level too)
+  try{ if(n==='Mercury'&&typeof papaKartari==='function'){ const pk=papaKartari(D.planets||[]).find(x=>x.target==='Mercury');
+    if(pk) add(pk.tight?-0.8:-0.4,'§paap kartari ▼','var(--bear)','MERCURY PAAP KARTARI YOG'); } }catch(e){}
+  out.delta=Math.round(out.delta*100)/100;
+  return out;
+}
+window.srRulebookPlanet=srRulebookPlanet;
+
+/* Per-sector adjustments that do not route through a ruling planet. */
+function srRulebookSector(sector, D){
+  const out={delta:0, notes:[]};
+  if(!D||!D.planets) return out;
+  const add=(d,t)=>{ out.delta+=d; out.notes.push(t); };
+  const dp=Object.fromEntries(D.planets.map(p=>[p.name,p]));
+  // § RAHU / KETU - BULLISH — Rahu helps the sectors of the sign it occupies
+  try{ const r=dp.Rahu; if(r&&r.sign&&srbSignSectors(r.sign).includes(sector)) add(+0.4,'Rahu in '+r.sign+' helps this sector (§RAHU / KETU - BULLISH)'); }catch(e){}
+  // § SECTORAL REPRESENTATION - PLANET WISE — Pluto rules every commodity of its sign; follows Pluto's polarity by sign nature
+  try{ const p=dp.Pluto; if(p&&p.sign&&srbSignSectors(p.sign).includes(sector)&&typeof TA_SIGN_NATURE!=='undefined'){
+    const sn=TA_SIGN_NATURE.find(x=>x.sign===p.sign); if(sn&&sn.base) add(Math.sign(sn.base)*0.3,'Pluto in '+p.sign+' ('+sn.note+') (§SECTORAL REPRESENTATION - PLANET WISE)'); } }catch(e){}
+  // § SECTORAL REPRESENTATION - ZODIAC SIGNS + § NATURE OF SIGNS — occupied sign's base nature tilts its sectors
+  try{ if(typeof TA_SIGN_NATURE!=='undefined'){
+    for(const sn of TA_SIGN_NATURE){ if(!sn.base) continue; if(!srbSignSectors(sn.sign).includes(sector)) continue;
+      const occ=D.planets.filter(p=>p.sign===sn.sign&&!['Uranus','Neptune','Pluto'].includes(p.name)).map(p=>p.name);
+      if(occ.length) add(Math.sign(sn.base)*Math.min(0.45,0.15*occ.length),(occ.join('+'))+' in '+sn.sign+' — '+sn.note+' sign (§SECTORAL REPRESENTATION - ZODIAC SIGNS)'); } } }catch(e){}
+  // § MERCURY PAAP KARTARI YOG — banks in particular
+  try{ if(/Bank|BFSI/i.test(sector)&&typeof papaKartari==='function'){ const pk=papaKartari(D.planets).find(x=>x.target==='Mercury');
+    if(pk) add(pk.tight?-0.6:-0.3,'Mercury hemmed by '+pk.left+' & '+pk.right+' — banks bearish (§MERCURY PAAP KARTARI YOG)'); } }catch(e){}
+  // § MANY IMPORTANT OBSERVATION 50 — Mars retrograde: metals, gold, pharma
+  try{ if(dp.Mars&&dp.Mars.retro&&/Metal|Steel|Gold|Pharma|Copper/i.test(sector)) add(+0.4,'Mars retrograde — bullish for metals/gold/pharma (§MANY IMPORTANT OBSERVATION 50)'); }catch(e){}
+  out.delta=Math.round(out.delta*100)/100;
+  return out;
+}
+window.srRulebookSector=srRulebookSector;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTOR RESEARCH — the Research Engine's method applied to sectors.
+
+   The Research Engine PRD ("# Financial Astrology Research Engine.md") has no
+   sector rules of its own; what it lays down is a METHOD: research every
+   instrument independently, never pool them, count historical occurrences,
+   report sample size / win rate / precision / lift / confidence, flag
+   anything with too few samples, and explain every call by the historical
+   combination behind it. The Sector Forecast tab's existing calls come from
+   the karakatva rulebook (planet → sector tables, live-scored); they are
+   opinions, not measurements. This layer adds the measured side.
+
+   A sector is researched through its F&O constituents (SECTOR_STOCKS), each
+   with its own swing model from reBuildModel under the stock rule (>5% minor,
+   ≥15% major) — the PRD's "each instrument should have its own statistical
+   model" — and the sector reading is the agreement across those models:
+   mean reversal-probability score, how many lean top vs bottom, the
+   calibrated hit-rate at today's score bucket, and the best historical
+   combination each model matched. Per the PRD, constituents whose calibration
+   bucket or swing count is thin are flagged and the sector is flagged when
+   most of its constituents are.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+window.SR = window.SR || { status:'idle', prog:0, msg:'', err:'', sector:null, done:{}, fwd:{} };
+const SR_MAX_CONSTITUENTS = 6;       // models take ~20-40 s each from baked history
+const SR_THIN_CALIB = 20, SR_THIN_SWINGS = 30, SR_HI_RPS = 70;
+
+/* company name in SECTOR_STOCKS → RE_UNIV key (the F&O tradingsymbol) */
+function srKeyFor(name){
+  const tk=(typeof FNO_INST!=='undefined')?FNO_INST[name]:null;
+  if(tk){ const k=Object.keys(RE_UNIV).find(k=>RE_UNIV[k].sym===tk); if(k) return k; }
+  const k2=Object.keys(RE_UNIV).find(k=>RE_UNIV[k].label===name||String(RE_UNIV[k].label).startsWith(name+' · '));
+  return k2||null;
+}
+function srConstituents(sector){
+  return (SECTOR_STOCKS[sector]||[]).map(n=>({name:n,key:srKeyFor(n)})).filter(x=>x.key);
+}
+
+/* Build (or reuse) the swing model for up to SR_MAX_CONSTITUENTS names. */
+async function srRunSector(sector){
+  if(window.SR.status==='running') return;
+  const cons=srConstituents(sector).slice(0,SR_MAX_CONSTITUENTS);
+  if(!cons.length){ window.SR.err='no researchable F&O constituents for '+sector; srPaint(); return; }
+  window.SR.status='running'; window.SR.err=''; window.SR.sector=sector; window.SR.log=[];
+  srPaint();
+  for(let i=0;i<cons.length;i++){
+    const c=cons[i];
+    window.SR.prog=Math.round(i/cons.length*100); window.SR.msg=`[${i+1}/${cons.length}] ${c.name}`; srPaint();
+    if(window.RE.models[c.key]){ window.SR.log.push({name:c.name,ok:true,msg:'model cached'}); continue; }
+    try{
+      // reBuildModel paints the Research tab's own progress bar; harmless here.
+      const prevStatus=window.RE.status; window.RE.status='running';
+      const m=await reBuildModel(c.key, reOpts());
+      window.RE.status=prevStatus==='running'?prevStatus:(Object.keys(window.RE.models).length?'ready':'idle');
+      window.SR.log.push({name:c.name,ok:true,msg:`${m.swings.length} swings · ${m.nBars} bars`});
+    }catch(e){ window.SR.log.push({name:c.name,ok:false,msg:(e&&e.message)||'failed'}); }
+  }
+  window.SR.done[sector]=true;
+  window.SR.prog=100; window.SR.msg='done'; window.SR.status='ready';
+  try{ window.SR.fwd[sector]=srForward(sector, S.date, 30); }catch(e){ window.SR.fwd[sector]=[]; }
+  srPaint();
+}
+window.srRunSector=srRunSector;
+
+/* Today's measured picture for a sector, from whatever models exist. */
+function srScoreSector(sector, ds){
+  const rows=[];
+  for(const c of srConstituents(sector)){
+    const m=window.RE.models[c.key]; if(!m) continue;
+    let sc; try{ sc=reScoreDate(m,ds); }catch(e){ continue; }
+    const wfLift = m.wf && (m.wf.lift!=null ? m.wf.lift : (m.wf.liftExact!=null? m.wf.liftExact : null));
+    rows.push({name:c.name, key:c.key, rps:sc.rps, calibRate:sc.calibRate, calibN:sc.calibN,
+               label:sc.label, bias:sc.bias, grade:sc.grade, best:sc.bestCombo,
+               base:m.base, nSw:m.swings.length, nBars:m.nBars, from:m.from, wfLift,
+               thin:(sc.calibN<SR_THIN_CALIB)||(m.swings.length<SR_THIN_SWINGS)});
+  }
+  if(!rows.length) return null;
+  const avg=rows.reduce((s,r)=>s+r.rps,0)/rows.length;
+  const tops=rows.filter(r=>r.bias==='TOP').length, bottoms=rows.length-tops;
+  const good=rows.filter(r=>!r.thin);
+  const calibMean=good.length? good.reduce((s,r)=>s+r.calibRate,0)/good.length : null;
+  const baseMean=rows.reduce((s,r)=>s+(r.base||0),0)/rows.length;
+  return {sector, n:rows.length, rows, rps:Math.round(avg),
+          lean: tops>bottoms?'TOP':bottoms>tops?'BOTTOM':'SPLIT',
+          agree: Math.max(tops,bottoms)/rows.length, tops, bottoms,
+          calibMean, baseMean, thin:rows.length-good.length,
+          flagged:(rows.length-good.length)>rows.length/2};
+}
+
+/* Forward reversal calendar: per trading day, the mean score across the
+   sector's models and how many of them sit in the high bucket. */
+function srForward(sector, fromDs, nDays){
+  const models=srConstituents(sector).map(c=>window.RE.models[c.key]).filter(Boolean);
+  if(!models.length) return [];
+  const per=models.map(m=>{ try{ return reForecast(m,fromDs,nDays); }catch(e){ return []; } }).filter(a=>a.length);
+  if(!per.length) return [];
+  const len=Math.min(...per.map(a=>a.length)), out=[];
+  for(let i=0;i<len;i++){
+    const col=per.map(a=>a[i]).filter(Boolean);
+    const rps=col.reduce((s,x)=>s+x.rps,0)/col.length;
+    const tops=col.filter(x=>x.bias==='TOP').length;
+    out.push({date:col[0].date, rps:Math.round(rps), hi:col.filter(x=>x.rps>=SR_HI_RPS).length, n:col.length,
+              lean: tops*2>col.length?'TOP':tops*2<col.length?'BOTTOM':'SPLIT'});
+  }
+  return out;
+}
+
+function srComboText(c){
+  if(!c) return '—';
+  const toks=(c.toks||(c.ids||[]).map(id=>reTokName(id))).slice(0,4);
+  // combos carry nSw (swing days it was live) over nBase (all days it was live)
+  const stat = (c.nBase>0)? ` · ${c.nSw}/${c.nBase} = ${(c.nSw/c.nBase*100).toFixed(0)}%${c.nEp!=null?' · '+c.nEp+' ep':''}` : '';
+  return reEsc(toks.join(' + '))+stat+(c.reliable?'':' <span style="color:var(--sun)" title="did not clear the significance bar">⚠</span>');
+}
+
+function srPaint(){ const el=document.getElementById('sr-host'); if(el) el.innerHTML=srPanelHTML(window.SR._rows||[]); }
+
+/* The panel. `rows` is computeSectorRows(D) so the default picks are the
+   rulebook's own top and bottom sectors — the ones worth measuring first. */
+function srPanelHTML(rows){
+  window.SR._rows=rows;
+  const R=window.SR, pc=x=>(x*100).toFixed(0)+'%';
+  const sectors=Object.keys(SECTOR_RULERS);
+  const bull=rows.filter(r=>r.bias==='BULL').slice(0,3).map(r=>r.sector), bear=rows.filter(r=>r.bias==='BEAR').slice(0,3).map(r=>r.sector);
+  const pick=R.sector||bull[0]||sectors[0];
+  const cons=srConstituents(pick);
+  const sel=`<select class="ci" style="width:250px" onchange="window.SR.sector=this.value;srPaint()">`+
+    sectors.map(s=>`<option value="${reEsc(s)}" ${s===pick?'selected':''}>${reEsc(s)}${bull.includes(s)?' ▲':bear.includes(s)?' ▼':''}</option>`).join('')+`</select>`;
+  const running=R.status==='running';
+  const prog=running?`<div style="margin-top:8px"><div style="font-size:11px;color:var(--acc)">⟳ ${reEsc(R.msg||'')}</div>
+      <div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:4px"><div style="height:100%;width:${R.prog}%;background:linear-gradient(90deg,var(--acc3),var(--acc))"></div></div></div>`:'';
+
+  const sc=srScoreSector(pick, S.date);
+  let body='';
+  if(!sc){
+    body=`<div style="font-size:11.5px;color:var(--tx3);margin-top:8px">${cons.length} researchable constituents: ${cons.slice(0,SR_MAX_CONSTITUENTS).map(c=>reEsc(c.name)).join(', ')}${cons.length>SR_MAX_CONSTITUENTS?' (+'+(cons.length-SR_MAX_CONSTITUENTS)+' more)':''}.
+      No swing models built yet — press RUN to research each one under the stock rule (minor &gt;5%, major ≥15%) from inception.</div>`;
+  } else {
+    const leanCol=sc.lean==='TOP'?'var(--bear)':sc.lean==='BOTTOM'?'var(--bull)':'var(--neut)';
+    const tiles=`<div style="display:flex;gap:9px;flex-wrap:wrap;margin:10px 0">
+      <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">SECTOR REVERSAL SCORE</div><div style="font-size:19px;font-weight:800;color:${sc.rps>=SR_HI_RPS?'var(--sun)':'var(--tx1)'}">${sc.rps}<span style="font-size:11px;color:var(--tx3)"> /100</span></div><div style="font-size:10px;color:var(--tx3)">mean of ${sc.n} constituent models</div></div>
+      <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">LEAN</div><div style="font-size:17px;font-weight:800;color:${leanCol}">${sc.lean==='TOP'?'▼ TOP':sc.lean==='BOTTOM'?'▲ BOTTOM':'SPLIT'}</div><div style="font-size:10px;color:var(--tx3)">${sc.tops} top / ${sc.bottoms} bottom · agreement ${pc(sc.agree)}</div></div>
+      <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">CALIBRATED HIT-RATE</div><div style="font-size:17px;font-weight:800;color:${sc.calibMean!=null&&sc.calibMean>sc.baseMean?'var(--bull)':'var(--tx3)'}">${sc.calibMean!=null?pc(sc.calibMean):'—'}</div><div style="font-size:10px;color:var(--tx3)">at today's bucket · base ${pc(sc.baseMean)}</div></div>
+      <div class="pc"><div style="font-size:10.5px;color:var(--tx3)">SAMPLE CHECK</div><div style="font-size:17px;font-weight:800;color:${sc.flagged?'var(--bear)':'var(--bull)'}">${sc.flagged?'FLAGGED':'OK'}</div><div style="font-size:10px;color:var(--tx3)">${sc.thin} of ${sc.n} thin (&lt;${SR_THIN_CALIB} in bucket or &lt;${SR_THIN_SWINGS} swings)</div></div>
+    </div>`;
+    const trs=sc.rows.slice().sort((a,b)=>b.rps-a.rps).map(r=>`<tr style="${r.thin?'opacity:.75':''}">
+      <td style="font-weight:700;color:var(--tx1)">${reEsc(r.name)}${r.thin?' <span style="color:var(--sun)" title="thin sample — not promoted">⚠</span>':''}</td>
+      <td style="text-align:right">${r.nSw}<span style="color:var(--tx3)"> / ${r.nBars}</span></td>
+      <td style="text-align:right;color:var(--tx3)">${pc(r.base)}</td>
+      <td style="text-align:right;font-weight:800;color:${r.rps>=SR_HI_RPS?'var(--sun)':'inherit'}">${r.rps}</td>
+      <td style="text-align:right;color:${r.calibRate>r.base?'var(--bull)':'var(--tx3)'}">${pc(r.calibRate)} <span style="color:var(--tx3)">(n=${r.calibN})</span></td>
+      <td style="color:${r.bias==='TOP'?'var(--bear)':'var(--bull)'};font-weight:700;white-space:nowrap">${reEsc(r.label)}</td>
+      <td style="font-size:10.5px;color:var(--tx2)">${srComboText(r.best)}</td></tr>`).join('');
+    const fw=R.fwd[pick]||[];
+    const fwHtml=fw.length?`<div style="margin-top:10px"><div style="font-size:10.5px;color:var(--tx3);margin-bottom:4px">FORWARD REVERSAL CALENDAR · next ${fw.length} sessions · mean score across the sector's models (● = ≥${SR_HI_RPS} in most)</div>
+      <div style="display:flex;gap:3px;flex-wrap:wrap">${fw.map(d=>{ const hot=d.rps>=SR_HI_RPS, most=d.hi*2>d.n;
+        const col=d.lean==='TOP'?'var(--bear)':d.lean==='BOTTOM'?'var(--bull)':'var(--neut)';
+        return `<div title="${d.date} · score ${d.rps} · ${d.hi}/${d.n} models ≥${SR_HI_RPS} · lean ${d.lean}" style="min-width:34px;padding:3px 4px;border-radius:3px;text-align:center;font-size:9.5px;border:1px solid ${hot?col:'var(--bd)'};background:${hot?col+'22':'var(--bg2)'};color:${hot?col:'var(--tx3)'};font-weight:${hot?'800':'500'}">${d.date.slice(5)}<br>${d.rps}${most?' ●':''}</div>`; }).join('')}</div></div>`:'';
+    body=tiles+`<div class="ts" style="max-height:360px;overflow:auto"><table class="tbl"><thead><tr>
+      <th>Constituent</th><th style="text-align:right">Swings / bars</th><th style="text-align:right">Base</th><th style="text-align:right">Score</th><th style="text-align:right">Calibrated</th><th>Reading</th><th>Historical match (why)</th>
+      </tr></thead><tbody>${trs}</tbody></table></div>`+fwHtml+
+      `<div style="font-size:10.5px;color:var(--tx3);margin-top:8px;line-height:1.5">Each constituent is its own model under the stock rule, from its first available bar — instruments are never pooled.
+      <b>Score</b> is the reversal-probability percentile of today's astro window against that model's own history; <b>Calibrated</b> is how often days in that score bucket actually were swing days (n = days in the bucket), beside the model's base rate.
+      ⚠ marks thin samples, which the PRD says must not be promoted. The sector is <b>FLAGGED</b> when most constituents are thin.
+      The rulebook ranking above is unchanged; this panel is the measured check beside it.</div>`;
+  }
+  const log=(R.log||[]).length?`<div style="font-size:10px;color:var(--tx3);margin-top:6px">${R.log.map(l=>`<span style="color:${l.ok?'var(--tx3)':'var(--bear)'}">${reEsc(l.name)}: ${reEsc(l.msg)}</span>`).join(' · ')}</div>`:'';
+  return `<div class="pnl"><div class="ph"><span class="dot" style="background:var(--acc)"></span>⚖ SECTOR RESEARCH — measured per constituent (Research Engine method)</div>
+    <div class="pb">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="cg"><span class="cl">SECTOR</span>${sel}</div>
+        <button onclick="srRunSector(window.SR.sector||'${reEsc(pick)}')" ${running?'disabled':''}
+          style="background:var(--acc3);color:#001318;border:1px solid var(--acc);padding:6px 15px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">▶ RUN${sc?' AGAIN':''}</button>
+        <span style="font-size:10.5px;color:var(--tx3)">${cons.length} researchable · first ${Math.min(SR_MAX_CONSTITUENTS,cons.length)} modelled · ~30 s each from baked history${R.err?' · <span style="color:var(--bear)">'+reEsc(R.err)+'</span>':''}</span>
+      </div>${prog}${body}${log}
+    </div></div>`;
+}
+window.srPanelHTML=srPanelHTML;
+
 function tPanchak(){
   const D=DATA;
   const P=panchakEngine(S.date, D.ay);
@@ -15595,6 +16462,8 @@ function sectorPlanetScores(D){
     if(n===dayLord){ activ+=0.6; aTags.push('वार-स्वामी'); }
     if(n===horaLord){ activ+=0.5; aTags.push('होरा-स्वामी'); }
     sc+= (activ>0? (sc>=0?activ:-activ) : 0);   // activation amplifies the planet's own polarity
+    // rulebook sector rules (Tech Astro sections) — each flag names its source section
+    const rb=srRulebookPlanet(n,D,pl); sc+=rb.delta; rb.flags.forEach(f=>flags.push({t:f.t,c:f.c,sec:f.sec}));
     const score=Math.round(sc*100)/100;
     const bias= score>0.5?'BULL': score<-0.5?'BEAR':'NEUT';
     out[n]={name:n,score,bias,base:Math.round((base[n]||0)*100)/100,flags,activ:Math.round(activ*100)/100,aTags,
@@ -15661,10 +16530,11 @@ function computeSectorRows(D){
     const parts=rulers.map(n=>({n,s:(sc[n]?sc[n].score:0)}));
     let net=parts.reduce((a,b)=>a+b.s,0)/parts.length;
     const ov=m4For(sector); if(ov) net+=ov.score*0.5;
+    const rb=srRulebookSector(sector,D); net+=rb.delta;
     net=Math.round(net*100)/100;
     const drv=parts.slice().sort((a,b)=>Math.abs(b.s)-Math.abs(a.s))[0];
     const bias= net>0.4?'BULL': net<-0.4?'BEAR':'NEUT';
-    return {sector,rulers,net,drv,bias,parts,m4:ov,sc};
+    return {sector,rulers,net,drv,bias,parts,m4:ov,rb,sc};
   }).sort((a,b)=>b.net-a.net);
 }
 function tSector(){
@@ -15698,7 +16568,7 @@ function tSector(){
   const secRows=rows.map(r=>{ const col=sectorBiasCol(r.bias); const w=Math.round(Math.abs(r.net)/maxAbs*100);
     const ov=r.m4; const ovTxt=ov?`<span title="Module-4 pair yoga confirms (blended into Net)" style="color:${ov.score>0?'var(--bull)':ov.score<0?'var(--bear)':'var(--tx3)'};font-size:9px">◆${ov.score>0?'+':''}${ov.score}</span>`:'';
     return `<tr class="${r.bias==='BULL'?'tr-b':r.bias==='BEAR'?'tr-r':'tr-n'}">
-      <td style="font-weight:700;color:var(--tx1)">${r.sector} ${ovTxt}</td>
+      <td style="font-weight:700;color:var(--tx1)">${r.sector} ${ovTxt}${r.rb&&r.rb.notes&&r.rb.notes.length?` <span title="${reEsc(r.rb.notes.join(String.fromCharCode(10)))}" style="color:${r.rb.delta>0?'var(--bull)':r.rb.delta<0?'var(--bear)':'var(--tx3)'};font-size:9px;cursor:help">§${r.rb.delta>0?'+':''}${r.rb.delta}</span>`:''}</td>
       <td style="font-size:10.5px">${rulerChips(r.rulers)}</td>
       <td style="min-width:90px"><div style="background:var(--bg2);height:8px;border-radius:2px;overflow:hidden;position:relative"><div style="position:absolute;${r.net>=0?'left:50%':'right:50%'};width:${w/2}%;height:100%;background:${col}"></div><div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--bd3)"></div></div></td>
       <td style="text-align:right;font-family:monospace;color:${col};font-weight:700">${r.net>0?'+':''}${r.net}</td>
@@ -15711,7 +16581,7 @@ function tSector(){
   // ── per-planet karakatva cards (mirrors the classical table, live-scored) ──
   const cards=VR_NAMES.filter(n=>SECTOR_PLANET_MAP[n]).map(n=>{
     const p=sc[n]; const col=sectorBiasCol(p.bias);
-    const flags=(p.flags||[]).map(f=>`<span style="font-size:9px;background:${f.c}22;color:${f.c};border:1px solid ${f.c}66;border-radius:3px;padding:0 4px">${f.t}</span>`).join(' ');
+    const flags=(p.flags||[]).map(f=>`<span title="${f.sec?reEsc(f.sec):''}" style="font-size:9px;background:${f.c}22;color:${f.c};border:1px solid ${f.c}66;border-radius:3px;padding:0 4px;${f.sec?'cursor:help':''}">${f.t}</span>`).join(' ');
     const act=(p.aTags||[]).length?`<span style="font-size:9px;background:var(--acc)22;color:var(--acc);border:1px solid var(--acc)66;border-radius:3px;padding:0 4px">◉ ${p.aTags.join(', ')}</span>`:'';
     const items=SECTOR_PLANET_MAP[n].map(s=>`<span style="display:inline-block;font-size:10.5px;background:var(--bg2);border:1px solid var(--bd);border-radius:3px;padding:1px 6px;margin:2px 2px 0 0;color:var(--tx2)">${s}</span>`).join('');
     return `<div class="pnl" style="border-color:${col}44">
@@ -15768,7 +16638,7 @@ function tSector(){
     </div>
     <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">क्षेत्र के घटक F&amp;O शेयर। किसी नाम पर क्लिक करें → वह शेयर ★ Vyapaar Ratna चार्ट में price + तेजी/मंदी overlay के साथ खुलेगा। मैपिंग सूचक है, exhaustive नहीं।</div></div></div>`;
 
-  return `<div style="display:flex;flex-direction:column;gap:10px">${hdr}${fwdPanel}${tablePanel}${watchPanel}${cardsPanel}
+  return `<div style="display:flex;flex-direction:column;gap:10px">${hdr}<div id="sr-host">${srPanelHTML(rows)}</div>${fwdPanel}${tablePanel}${watchPanel}${cardsPanel}
     <div style="font-size:10.5px;color:var(--tx3)">स्रोत: व्यापार-रत्न दृष्टि-योग इंजन + अष्टकवर्ग + वर्षेश + ग्रह-गरिमा + नक्षत्र-गति, terminal के मौजूदा इंजनों से संकलित। अध्ययन-सहायक, निवेश-सलाह नहीं।</div></div>`;
 }
 
@@ -15882,6 +16752,8 @@ function gannAstroChart(){
       <div><span style="color:var(--acc);font-weight:700">ASPECT BODIES:</span> ${aspChips}</div>
     </div>`;
   const {v0,v1}=gannViewMs();
+  // The engine draws this chart now (gannChartSpec); mount once the DOM exists.
+  setTimeout(()=>{ if(document.getElementById('gann-host')) acMount('gann-host', gannChartSpec); },0);
   const allBars=(_px.status==='ready'&&_px.bars)?_px.bars:[];
   const bars=allBars.filter(b=>b.ms>=v0&&b.ms<=v1);
   const priceLoading=_px.status==='loading', priceErr=_px.status==='error';
@@ -15935,7 +16807,7 @@ function gannAstroChart(){
   // ── PLANETARY PRICE LINES ──
   const cycle=(S.gannCycle&&S.gannCycle>0)?S.gannCycle:(()=>{const span=Math.max(1,pHi-pLo);const mag=Math.pow(10,Math.floor(Math.log10(span)));return Math.max(mag,Math.round(span/mag)*mag);})();
   let planetLines='',planetLbls='';
-  gannPlanetSet().forEach(body=>{
+  [].forEach(body=>{            // ladder now drawn by gannChartSpec
     const col=pc(body), lon=lonSeries(body);
     const kMin=Math.floor((pLo-pad)/cycle)-1, kMax=Math.ceil((pHi+pad)/cycle)+1;
     for(let k=kMin;k<=kMax;k++){
@@ -15949,7 +16821,7 @@ function gannAstroChart(){
   });
   // ── ASPECT TIME-LINES (crossing detection — catches perfections at any step) ──
   let aspLines='';
-  if(S.gannShowAsp && gannAspSet().length>=2){
+  if(false && S.gannShowAsp && gannAspSet().length>=2){   // aspect lines now drawn by gannChartSpec
     const abodies=gannAspSet(); const lonB={}; abodies.forEach(b=>lonB[b]=lonSeries(b));
     const marks=[];
     for(let a=0;a<abodies.length;a++)for(let b2=a+1;b2<abodies.length;b2++){
@@ -15974,10 +16846,7 @@ function gannAstroChart(){
   const legend=GANN_ASPECTS.map(a=>`<span style="color:${a.c};font-weight:700">${a.g}${a.d}°</span>`).join(' · ');
   return `<div class="pnl">${controls}${togglesUI}${gannTimeline()}
     <div class="pb">
-      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
-        <rect x="${PL}" y="${PT}" width="${IW}" height="${IH}" fill="var(--bg2)" stroke="var(--bd)"/>
-        ${axis}${aspLines}${planetLines}${candles}${planetLbls}
-      </svg>
+      <div id="gann-host" style="width:100%;aspect-ratio:1560/560;min-height:320px"></div>
       <div style="font-size:10px;color:var(--tx3);margin-top:6px">
         View <b style="color:var(--acc)">${y0} → ${y1}</b> (${(spanY).toFixed(1)}y, sampled every ${stepDays}d) · ${priceNote}. Planetary price-line: price = k·cycle + (longitude/360)·cycle, cycle = <b>${cycle.toLocaleString()}</b> pts — each planet is a drifting ladder of harmonic lines; candles appear only where price data exists, planet lines & aspects span the whole window (drag the slider or pick years to go decades back/forward). Aspect time-lines: exact ${helio?'heliocentric':'geocentric'} perfections (${legend}). Chiron ±1–2° (two-body). All toggles live.
       </div>
