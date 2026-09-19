@@ -12,12 +12,20 @@ name: Upstox NSE history
 
 on:
   schedule:
-    # Daily, 11:07 UTC = 16:37 IST — after the NSE close, so the session that
-    # just ended is complete. Weekly was too thin a margin for a scheduler that
-    # drops firings: this job's cron had not fired once since it was added, and
-    # a missed weekly slot left the app ten days stale with no NSE source for
-    # the current session at all. Daily means a dropped slot costs a day.
-    - cron: "7 11 * * 1-5"
+    # Twice daily, after the NSE close (15:30 IST = 10:00 UTC).
+    #
+    # GitHub's shared scheduler does not fire on time: the single 11:07 UTC
+    # slot was observed landing at 15:00 UTC, four hours late, and the bake
+    # itself only ever reached T-1 because the historical endpoint does not
+    # return the session that has just closed. Together that left every chart
+    # two sessions behind for the whole of each trading day.
+    #
+    # The script now folds the current session in from the intraday endpoint,
+    # so a run right after the close is complete. Two slots rather than one
+    # because a dropped or late firing then costs hours, not a day; the
+    # concurrency group below stops them overlapping.
+    - cron: "37 10 * * 1-5"
+    - cron: "23 13 * * 1-5"
   workflow_dispatch:
     inputs:
       stocks:

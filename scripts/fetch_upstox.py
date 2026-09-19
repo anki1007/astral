@@ -43,6 +43,19 @@ INSTRUMENTS_URL = "https://assets.upstox.com/market-quote/instruments/exchange/c
 START = "2000-01-01"          # Upstox's own floor for day/week/month candles
 OUT_DIR = os.path.join("data", "nse")
 
+# The Actions runner keeps UTC. NSE keeps IST. date.today() on the runner is
+# the wrong calendar day for five and a half hours out of every twenty-four,
+# so every "today" in this file is the IST one.
+IST = timedelta(hours=5, minutes=30)
+
+
+def ist_now() -> datetime:
+    return datetime.utcnow() + IST
+
+
+def ist_today() -> str:
+    return ist_now().date().isoformat()
+
 # Indices carry Upstox's own names and live in a different segment from equities.
 INDICES = {
     "NIFTY":      "NSE_INDEX|Nifty 50",
@@ -116,10 +129,68 @@ def resolve(sym: str) -> str:
     return _master[s]
 
 
+def _ohlc(c):
+    """One Upstox candle row -> (o, h, l, c) floats, or None when unusable."""
+    try:
+        o, h, l, cl = float(c[1]), float(c[2]), float(c[3]), float(c[4])
+    except (TypeError, ValueError, IndexError):
+        return None
+    if cl <= 0 or h < l:
+        return None
+    return o, h, l, cl
+
+
+def intraday_rows(key: str, tok: str):
+    """The CURRENT session's 5-minute candles, oldest first, as compact rows.
+
+    /historical-candle/ stops at the previous session: it does not return the
+    day that is trading (or has just closed) until the following day. That one
+    gap is why every baked file used to end at T-1, and at T-2 for the whole of
+    day T until the evening bake landed. The intraday endpoint is the only
+    place the current session exists, so it is folded in here.
+    """
+    try:
+        j = get(f"{UPSTOX}/v3/historical-candle/intraday/{quote(key, safe='')}/minutes/5", tok)
+    except Exception as e:                                   # never fatal
+        print(f"  intraday {key}: {e}", file=sys.stderr)
+        return []
+    rows = []
+    for c in (j.get("data") or {}).get("candles") or []:
+        v = _ohlc(c)
+        if v is None:
+            continue
+        t = str(c[0])
+        rows.append([t[:10] + " " + t[11:16]] + [round(x, 2) for x in v])
+    rows.sort(key=lambda r: r[0])
+    return rows
+
+
+def session_bar(key: str, tok: str, five=None):
+    """Today's DAILY candle [date, o, h, l, c], or None before the first print.
+
+    Asked of the intraday endpoint at days/1 first; if that unit is refused the
+    same bar is rebuilt from the 5-minute candles, which is exact for OHLC.
+    """
+    try:
+        j = get(f"{UPSTOX}/v3/historical-candle/intraday/{quote(key, safe='')}/days/1", tok, tries=2)
+        for c in (j.get("data") or {}).get("candles") or []:
+            v = _ohlc(c)
+            if v is not None:
+                return [str(c[0])[:10]] + [round(x, 2) for x in v]
+    except Exception:
+        pass
+    five = five if five is not None else intraday_rows(key, tok)
+    if not five:
+        return None
+    day = five[-1][0][:10]
+    rows = [r for r in five if r[0][:10] == day]
+    return [day, rows[0][1], max(r[2] for r in rows), min(r[3] for r in rows), rows[-1][4]]
+
+
 def candles(key: str, unit: str, interval: str, start: str, tok: str):
     """Upstox caps a daily request at one decade, so walk backwards in chunks
     and stitch. Weekly and monthly have no cap but the same loop is harmless."""
-    today = date.today().isoformat()
+    today = ist_today()
     out, cursor_to, guard = [], today, 0
     while guard < 12:
         guard += 1
@@ -156,6 +227,14 @@ def candles(key: str, unit: str, interval: str, start: str, tok: str):
             continue
         # compact rows: [date, o, h, l, c] — objects would triple the file size
         asc.append([d, round(o, 2), round(h, 2), round(l, 2), round(cl, 2)])
+
+    # The session that is trading or has just closed - see intraday_rows().
+    # Run mid-session this bar is partial; it heals itself, because the next
+    # bake rebuilds the series and by then the historical endpoint has it.
+    if unit == "days" and str(interval) == "1" and asc:
+        bar = session_bar(key, tok)
+        if bar and asc[-1][0] < bar[0] <= today:
+            asc.append(bar)
     return asc
 
 
@@ -170,7 +249,9 @@ def bake_intraday(sym, tok, start_year=2022):
     month, so each year is walked month by month.
     """
     key = resolve(sym)
-    this_year = date.today().year
+    today = ist_today()
+    this_year = int(today[:4])
+    live5 = intraday_rows(key, tok)          # the current session, see above
     written = []
     for yr in range(start_year, this_year + 1):
         rows, m = [], 1
@@ -178,10 +259,10 @@ def bake_intraday(sym, tok, start_year=2022):
             frm = f"{yr}-{m:02d}-01"
             nxt = date(yr + 1, 1, 1) if m == 12 else date(yr, m + 1, 1)
             to = (nxt - timedelta(days=1)).isoformat()
-            if frm > date.today().isoformat():
+            if frm > today:
                 break
             url = (f"{UPSTOX}/v3/historical-candle/{quote(key, safe='')}"
-                   f"/minutes/5/{min(to, date.today().isoformat())}/{frm}")
+                   f"/minutes/5/{min(to, today)}/{frm}")
             try:
                 body = get(url, tok)
                 for c in ((body or {}).get("data") or {}).get("candles") or []:
@@ -198,6 +279,8 @@ def bake_intraday(sym, tok, start_year=2022):
                 print(f"  {sym} {yr}-{m:02d} skipped: {e}", file=sys.stderr)
             m += 1
             time.sleep(0.3)
+        if yr == this_year:
+            rows.extend(r for r in live5 if r[0][:4] == str(yr))
         if len(rows) < 200:
             print(f"  {sym} 5m {yr}: only {len(rows)} bars, skipped", file=sys.stderr)
             continue
@@ -241,7 +324,7 @@ def split_write(sym, key, rows):
     every run — tens of MB a week. Splitting at the year boundary means the
     base is rewritten once a year and only the small recent file churns.
     """
-    cut = f"{date.today().year}-01-01"
+    cut = f"{ist_today()[:4]}-01-01"
     base = [r for r in rows if r[0] < cut]
     recent = [r for r in rows if r[0] >= cut]
     if base:
@@ -268,9 +351,9 @@ def bake_live(symbols, tok):
     reaches it — the token stays in Actions and only the resulting prices are
     published. Latency is the cron interval, not a tick feed.
     """
-    today = date.today().isoformat()
+    today = ist_today()
     out = {"generated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-           "source": "upstox", "date": today, "quotes": {}, "intraday": {}}
+           "source": "upstox", "date": today, "quotes": {}, "intraday": {}, "daily": {}}
     keys = {}
     for sym in symbols:
         try:
@@ -299,10 +382,19 @@ def bake_live(symbols, tok):
                 if v is None:
                     continue
                 o = v.get("ohlc") or {}
+                last, chg = v.get("last_price"), v.get("net_change")
+                # ohlc.close is THIS session's close once the market has shut,
+                # so it equalled last_price all evening and the page showed a
+                # flat 0.00% day. net_change is measured from the true previous
+                # close, so that is where the previous close comes from.
+                prev = o.get("close")
+                if isinstance(last, (int, float)) and isinstance(chg, (int, float)):
+                    prev = round(last - chg, 2)
                 out["quotes"][sym] = {
-                    "last": v.get("last_price"), "open": o.get("open"),
+                    "last": last, "open": o.get("open"),
                     "high": o.get("high"), "low": o.get("low"),
-                    "prevClose": o.get("close"), "ts": v.get("last_trade_time"),
+                    "prevClose": prev, "netChange": chg,
+                    "ts": v.get("last_trade_time"),
                 }
             print(f"quotes: {len(out['quotes'])}/{len(keys)}")
         except Exception as e:
@@ -311,17 +403,23 @@ def bake_live(symbols, tok):
     # Intraday: the current session's 5-minute candles.
     for sym, k in keys.items():
         try:
-            j = get(f"{UPSTOX}/v3/historical-candle/intraday/{quote(k, safe='')}/minutes/5", tok)
-            rows = []
-            for c in reversed((j.get("data") or {}).get("candles") or []):
-                rows.append([str(c[0])[:16].replace("T", " "),
-                             c[1], c[2], c[3], c[4]])
+            rows = intraday_rows(k, tok)
             if rows:
                 out["intraday"][sym] = rows
+                # The session's own daily bar, so the page can put today on a
+                # DAILY chart without waiting for the evening history bake.
+                day = rows[-1][0][:10]
+                d = [r for r in rows if r[0][:10] == day]
+                out["daily"][sym] = [day, d[0][1], max(r[2] for r in d),
+                                     min(r[3] for r in d), d[-1][4]]
                 print(f"{sym:<12} {len(rows):>4} intraday bars  {rows[0][0]} -> {rows[-1][0]}")
         except Exception as e:
             print(f"{sym:<12} intraday FAILED: {e}", file=sys.stderr)
         time.sleep(0.25)
+    if out["intraday"]:
+        # Stamp the file with the session it actually holds, not the wall clock:
+        # a run before the open would otherwise label yesterday's bars as today.
+        out["date"] = max(r[-1][0][:10] for r in out["intraday"].values())
 
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "_live.json"), "w", encoding="utf-8") as f:

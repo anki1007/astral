@@ -22,7 +22,7 @@ on:
       symbols:
         description: "Symbols for the snapshot"
         required: false
-        default: "NIFTY,BANKNIFTY,FINNIFTY,SENSEX"
+        default: "NIFTY,BANKNIFTY,FINNIFTY,MIDCPNIFTY,NIFTYNXT50,SENSEX"
 
 permissions:
   contents: write
@@ -48,7 +48,7 @@ jobs:
           if [ -z "$UPSTOX_ACCESS_TOKEN" ]; then
             echo "::error::UPSTOX_ACCESS_TOKEN is not set."; exit 1
           fi
-          python scripts/fetch_upstox.py --live "${{ inputs.symbols || 'NIFTY,BANKNIFTY,FINNIFTY,SENSEX' }}"
+          python scripts/fetch_upstox.py --live "${{ inputs.symbols || 'NIFTY,BANKNIFTY,FINNIFTY,MIDCPNIFTY,NIFTYNXT50,SENSEX' }}"
 
       - name: Commit & push
         run: |

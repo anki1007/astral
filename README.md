@@ -51,13 +51,18 @@ The **Reversal Probability Score** is a ranking metric (percentile of the day's 
 
 ### ✦ Astral Forecast — technical-astrology rule engine
 
-Every rule carries a citation to its source section and the source's own wording, and a **Rule Audit** view lists all 66 sections with implemented/firing status.
+Rebuilt against the updated edition of the rulebook: where it speaks it wins, and rules it is silent on are kept and labelled *prior edition* rather than dropped. Every rule carries a citation to its section, and a **Rule Audit** view lists the 75 entries of the book's own index with implemented / firing status and how each graded.
+
+Rules written for one commodity (the Gold, Silver and Sugar configurations) count only for that commodity and never inside an index score. Weekly and monthly reads average several days of the period instead of scoring one Monday snapshot as the whole week. Every graded number sits next to the two trivial callers — always-bullish and always-neutral — and the score's derivation (bullish sum, bearish sum, median, z) is shown rather than hidden.
+
+**Approaching turn dates** lists the next dated turning events (exact aspects the book calls turning points, stations, latitude and declination reversals) and labels a window Major/Minor Top/Bottom only from how that event type has actually lined up with swings on the chosen instrument, with the chance rate beside it.
 
 Encoded: the full pair matrix (40 planet pairs × 7 sign-distance aspects, with each conditional qualifier evaluated rather than assumed), sign and degree tables, placement natures, the normal-speed table (Mand/Atichari), Shar, strong bullish/bearish permutations, Dwidwadash and Shadashtak by sign, day × nakshatra, Vargottam, Gandanta, Panchak, Sankranti, Khappar, Bhadra, D9 conjunctions, combustion and rise rules, Saturn shadow speed, the SBC Vedh table, the yearly cabinet, sector attribution, 137 numbered observations, and a chapter of pure price/time technical rules.
 
 Three horizons, forward and backward:
 
-- **Intraday** — 09:15 → 15:30 in 5-minute slots, scored on each instant's own sky including the rising sign at that slot
+- **Intraday** — the instrument's own session in 5-minute slots, scored on each instant's own sky including the rising sign at that slot
+- **Daily** — the next sessions, one read per day
 - **Weekly** — next 26 weeks
 - **Monthly** — next 18 months
 
@@ -67,11 +72,21 @@ The headline score is the period's deviation from the **rulebook's own median/MA
 
 The backward test grades the rulebook against real prices **section by section**, so you can see which parts carry the forecast and which do not. Technical rules read only completed bars plus the predicted bar's open — never the close they are graded against.
 
+### ☉ Day Forecast and ⏱ 15-min Timing
+
+Both now run on the same rulebook engine. Day Forecast shows the book's four stages (prophecies, contra prophecies, net, chart corroboration), tithi + weekday as a separate overriding verdict, per-index reads using the book's sector-lords table, and a ten-session strip ahead. Timing scores every 15-minute slot, and lists the exact instants inside the session when the Moon changes sign, nakshatra or pada, the tithi changes, or Bhadra starts and ends, under the instrument's own 5/15-minute bars. The older KP hora views are kept below, labelled as not from the book.
+
+### ◭ Sector Forecast, ◔ Panchak, ⬡ SBC
+
+Sectors are scored from the book's planet, sign, sector-lord and technology-lord tables, with vedh on a sign or nakshatra routed to its lord's sectors, and the sector calls are backtested on their constituents. Panchak uses exact start and end instants and real sunrise for its ghadi rules, shows the range and breakouts, and grades every past Panchak. The SBC grid follows the Tech-Astro rulebook wherever both books cover the same vedh rule and says which book each rule came from.
+
 ---
 
 ## Universe
 
-223 instruments: the NSE F&O list (`F&o.csv`), Indian and global indices, and commodities. Prices come from Yahoo Finance through public CORS proxies, which are occasionally slow or rate-limited; a failed fetch is reported, never silently substituted.
+The NSE F&O list (`F&o.csv`), Indian and global indices, US large caps and commodities.
+
+**Prices.** NSE history is baked from Upstox into `data/nse/` by a GitHub Action after each close, and a second Action publishes the session in progress every 15 minutes. Every chart joins the two: the baked history plus today's bar from the live snapshot (F&O stocks take it from a delayed public quote board), marked *live, provisional* until the evening bake replaces it. Provisional bars are drawn but never graded. US instruments and commodities come from Yahoo Finance through public CORS proxies, which are occasionally slow or rate-limited; a failed fetch is reported, never silently substituted.
 
 ---
 
