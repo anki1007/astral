@@ -21589,8 +21589,12 @@ async function dsLiveDailyBar(univKey){
       if(_dsOkBar(o,h,l,c)) return {date:day,o,h,l,c,src:'Upstox live'};
     }
     const q=j.quotes&&j.quotes[univKey];
-    if(q&&/^\d{4}-\d{2}-\d{2}$/.test(j.date||'')&&_dsOkBar(q.open,q.high,q.low,q.last))
-      return {date:j.date,o:q.open,h:q.high,l:q.low,c:q.last,src:'Upstox quote'};
+    // Date a bare quote by its own trade time, never by the file's stamp: on a
+    // weekend the snapshot is written with no session and yesterday's quote.
+    const qd=(q&&+q.ts>0)?new Date(+q.ts+5.5*3600000).toISOString().slice(0,10):(j.date||'');
+    const qwd=/^\d{4}-\d{2}-\d{2}$/.test(qd)?new Date(qd+'T00:00:00Z').getUTCDay():0;
+    if(q&&qwd>=1&&qwd<=5&&_dsOkBar(q.open,q.high,q.low,q.last))
+      return {date:qd,o:q.open,h:q.high,l:q.low,c:q.last,src:'Upstox quote'};
   }
   const u=(typeof RE_UNIV!=='undefined')&&RE_UNIV[univKey];
   if(u&&u.kind==='stock'){

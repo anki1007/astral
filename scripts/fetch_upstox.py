@@ -420,6 +420,17 @@ def bake_live(symbols, tok):
         # Stamp the file with the session it actually holds, not the wall clock:
         # a run before the open would otherwise label yesterday's bars as today.
         out["date"] = max(r[-1][0][:10] for r in out["intraday"].values())
+    else:
+        # No session today (weekend / holiday / before the open): the quotes
+        # are the last session's, so date the file by their trade time.
+        stamps = []
+        for q in out["quotes"].values():
+            try:
+                stamps.append(datetime.utcfromtimestamp(int(q["ts"]) / 1000) + IST)
+            except (KeyError, TypeError, ValueError):
+                pass
+        if stamps:
+            out["date"] = max(stamps).date().isoformat()
 
     os.makedirs(OUT_DIR, exist_ok=True)
     with open(os.path.join(OUT_DIR, "_live.json"), "w", encoding="utf-8") as f:
