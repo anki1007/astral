@@ -8915,7 +8915,7 @@ function taAuditHTML(){
   }).join('');
   const nFire=rules.filter(r=>!taRuleExcluded(r,cls)).length;
   return `<div style="font-size:11.5px;color:var(--tx2);margin-bottom:8px;line-height:1.75">
-      ${taHonestyPill()}<br>Every INDEX entry of ${TA_SOURCE} (75) plus the engine sections added in wave 1, and what each one actually is: a scored rule, a sector read, a reference table the rules consult, a context panel, or not modelled.
+      ${taHonestyPill()}<br>Every INDEX entry of the rulebook (75) plus the engine sections added in wave 1, and what each one actually is: a scored rule, a sector read, a reference table the rules consult, a context panel, or not modelled.
       "Dormant now" means the configuration is not present in the sky evaluated for <b>${taDate()} ${tf==='intraday'?taHM(hour)+' IST':''}</b> at the <b>${cfg.label}</b> scope for <b>${taEsc(RE_UNIV[taInst()]?RE_UNIV[taInst()].label:taInst())}</b> (class ${taEsc(cls)}) — the rule is live and fires when it is.
       Rules firing now: <b>${nFire}</b> summed${rules.length-nFire?' + '+(rules.length-nFire)+' listed but not summed':''}, score ${taSgn(ev.score)}. Sections marked "retained" have no body in the Updated edition and are kept from the earlier one.
       ${m?`Graded column: the matching backward-test run (${taEsc(m.label)} · ${m.cfg.label}).`:'Run a backward test to see each section graded against the trivial callers.'}</div>
@@ -8964,7 +8964,7 @@ function taBodyHTML(){
   const tf=taTf(), view=S.taView||'forward';
   if(window.TA.status==='running') return '';   // #ta-prog owns the live bar
   if(view==='backward') return taBackwardHTML();
-  if(view==='audit')    return `<div class="pnl"><div class="ph"><span class="dot"></span>RULE COVERAGE AUDIT — ${TA_SOURCE} INDEX</div><div class="pb">${taAuditHTML()}</div></div>`;
+  if(view==='audit')    return `<div class="pnl"><div class="ph"><span class="dot"></span>RULE COVERAGE AUDIT — RULEBOOK INDEX</div><div class="pb">${taAuditHTML()}</div></div>`;
   if(view==='context')  return `<div class="pnl"><div class="ph"><span class="dot"></span>SECTORS · CABINET · VEDH</div><div class="pb">${taContextHTML()}</div></div>`;
   return tf==='intraday' ? taIntradayHTML() : taForwardHTML(tf);
 }
