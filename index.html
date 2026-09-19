@@ -4608,6 +4608,10 @@ function rHdr(){
 // ═══════════════════════════════════════════════════════════════════
 window.FWD = window.FWD || {st:'idle', sum:null, log:null, err:'', at:0};
 const FWD_SRC = {astral:'Astral turn windows', latlon:'Planet Lat/Lon labels', proven:'Proven lat+lon'};
+// market groups of the 10 logged instruments (scripts/forward_log.js INSTS)
+const FWD_GRP = [['india','India indices',['NIFTY','BANKNIFTY']],['com','Commodities',['GOLD','SILVER','CRUDE','COPPER','NATGAS']],['us','US indices',['DOW','SPX','NASDAQ']]];
+function fwdSetGrp(g){ window.FWD.grp=g; fwdRepaint(); }
+window.fwdSetGrp=fwdSetGrp;
 function fwdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fwdNum(v,d){ return (v==null||!isFinite(v))?'—':(+v).toFixed(d==null?1:d); }
 function fwdPct(v){ return (v==null||!isFinite(v))?'—':(+v).toFixed(1)+'%'; }
@@ -4637,7 +4641,9 @@ function fwdHTML(){
     <div class="pb" style="font-size:11.5px;color:var(--tx1);line-height:1.6">
       Forecasts are written by the GitHub Action right after each close, for the next session (turn windows for the next 30 sessions).<br>
       Each one is committed to git before its session starts, so the commit timestamp proves it was made in advance; it is never edited after.<br>
-      It is graded only when that session's bar is baked: turn windows need a ≥5% swing pivot inside the window, confirmed within 20 sessions.
+      It is graded only when that session's bar is baked: turn windows need a ≥5% swing pivot inside the window, confirmed within 20 sessions.<br>
+      10 instruments, each on its own bars, class and baselines: India indices (Nifty, Bank Nifty), commodities (Gold, Silver, Crude, Copper, Nat Gas) and US indices (Dow, S&amp;P 500, Nasdaq). Each one's next session is the weekday after its own last baked bar.<br>
+      <span style="color:var(--tx3)">US indices and commodities: the book engine reads the sky at 09:15 IST of the session date, the same instant as for India. No US-session time is modelled.</span>
       ${S.since?`<br><span style="color:var(--tx3)">Since ${fwdEsc(S.since)} · last graded ${fwdEsc(S.lastGraded||'—')} · ${S.nDays||0} graded session${S.nDays===1?'':'s'}</span>`:''}
     </div></div>`;
   if(F.st!=='ready') return head+`<div class="pnl"><div class="pb" style="font-size:11.5px;color:var(--tx2)"><span class="spin-anim">⟳</span> loading the forward log …</div></div>`;
@@ -4645,23 +4651,28 @@ function fwdHTML(){
     const d=L.since||fwdToday();
     return head+`<div class="pnl"><div class="pb" style="font-size:12px;color:var(--tx2)">Logging started ${fwdEsc(d)} — first grades arrive after the next session.${F.err?` <span style="color:var(--bear)">${fwdEsc(F.err)}</span>`:''}</div></div>`;
   }
-  const insts=['NIFTY','BANKNIFTY','GOLD'];
+  const gsel=F.grp||'all', groups=FWD_GRP.filter(g=>gsel==='all'||g[0]===gsel), inGrp=k=>groups.some(g=>g[2].includes(k));
+  const insts=groups.flatMap(g=>g[2]);
+  const byGrp=(fn,cols)=>groups.map(g=>{ const body=g[2].map(fn).join(''); return body?`<tr><td colspan="${cols}" style="background:var(--bg3);color:var(--acc);font-weight:700;font-size:10.5px;letter-spacing:.04em">${fwdEsc(g[1].toUpperCase())}</td></tr>`+body:''; }).join('');
+  const chip=(v,lab)=>`<button onclick="fwdSetGrp('${v}')" style="background:${gsel===v?'var(--bg3)':'var(--bg2)'};color:${gsel===v?'var(--acc)':'var(--tx1)'};border:1px solid ${gsel===v?'var(--acc)':'var(--bd2)'};border-radius:12px;padding:2px 10px;font-family:inherit;font-size:11px;cursor:pointer">${lab}</button>`;
+  const chips=`<div class="pnl"><div class="pb" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span style="font-size:10.5px;color:var(--tx3)">Market</span>${chip('all','All')}${chip('india','India')}${chip('com','Commodities')}${chip('us','US')}
+    <span style="font-size:10px;color:var(--tx3)">· filters every table below</span></div></div>`;
   const few=n=>n<30?' <span style="color:var(--tx3);font-size:10px">too few days</span>':'';
   // ── 1. turn-date scoreboard ──
   const T=S.turns||{}, CH=S.chance||{};
-  const tRows=insts.map(k=>Object.keys(FWD_SRC).map(src=>{ const t=(T[k]||{})[src]; if(!t) return '';
+  const tRows=byGrp(k=>Object.keys(FWD_SRC).map(src=>{ const t=(T[k]||{})[src]; if(!t) return '';
     const sig=t.graded>=30&&t.p!=null&&t.p<0.05&&t.hitPct>t.chancePct;
     return `<tr><td>${k}</td><td>${FWD_SRC[src]}</td><td style="text-align:right">${t.made}</td><td style="text-align:right">${t.graded}</td><td style="text-align:right">${t.hits}</td>
       <td style="text-align:right;${sig?'color:var(--bull);font-weight:800':''}">${fwdPct(t.hitPct)}${t.graded?` <span style="color:var(--tx3);font-size:10px">${fwdNum(t.ci95[0])}–${fwdNum(t.ci95[1])}</span>`:''}${few(t.graded)}</td>
       <td style="text-align:right;color:var(--tx3)">${fwdPct(t.chancePct)}</td><td style="text-align:right">${fwdP(t.p)}</td>
       <td style="text-align:right">${t.typeN?`${t.typeOk}/${t.typeN} = ${fwdPct(t.typePct)} <span style="color:var(--tx3);font-size:10px">vs 50%, p ${fwdP(t.typeP)}</span>`:'<span style="color:var(--tx3)">—</span>'}</td>
-      <td style="text-align:right">${t.pending}</td></tr>`; }).join('')).join('');
+      <td style="text-align:right">${t.pending}</td></tr>`; }).join(''),10);
   const chLine=insts.filter(k=>CH[k]).map(k=>`${k} ${fwdPct(CH[k].window5)} <span style="color:var(--tx3)">(${CH[k].pivots} pivots ${fwdEsc(CH[k].from)} → ${fwdEsc(CH[k].to)})</span>`).join(' · ');
   const turns=`<div class="pnl"><div class="ph"><span class="dot"></span>TURN-DATE SCOREBOARD — hit = a ≥5% swing pivot inside the window</div><div class="pb">
-    <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th>Source</th><th style="text-align:right">Made</th><th style="text-align:right">Graded</th><th style="text-align:right">Hits</th><th style="text-align:right">Hit% · 95% CI</th><th style="text-align:right">Chance</th><th style="text-align:right">p</th><th style="text-align:right">Type right</th><th style="text-align:right">Pending</th></tr></thead><tbody>${tRows}</tbody></table></div>
-    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Chance = how often a random window of the same length held a ≥5% pivot on the full history (mean over the graded windows). A random 5-session window: ${chLine||'—'}. Coloured only when n ≥ 30 and p &lt; 0.05. Type right = top vs bottom, graded only when the forecast named one.</div></div></div>`;
+    <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th>Source</th><th style="text-align:right">Made</th><th style="text-align:right">Graded</th><th style="text-align:right">Hits</th><th style="text-align:right">Hit% · 95% CI</th><th style="text-align:right">Chance</th><th style="text-align:right">p</th><th style="text-align:right">Type right</th><th style="text-align:right">Pending</th></tr></thead><tbody>${tRows||'<tr><td colspan="10" style="color:var(--tx3)">nothing logged for this market yet</td></tr>'}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Chance = how often a random window of the same length held a ≥5% pivot on that instrument's own full history (mean over the graded windows). A random 5-session window: ${chLine||'—'}. Coloured only when n ≥ 30 and p &lt; 0.05. Type right = top vs bottom, graded only when the forecast named one.</div></div></div>`;
   // ── 2. upcoming turn dates ──
-  const up=R.filter(f=>!f.graded).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.inst<b.inst?-1:1);
+  const up=R.filter(f=>!f.graded&&inGrp(f.inst)).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.inst<b.inst?-1:1);
   const upRows=up.map(f=>{ const col=/TOP/.test(f.type)?'var(--bear)':/BOTTOM/.test(f.type)?'var(--bull)':f.edge?'var(--neut)':'var(--tx3)';
     return `<tr><td style="white-space:nowrap">${fwdEsc(f.from)} → ${fwdEsc(f.to)}</td><td>${fwdEsc(f.inst)}</td><td style="color:var(--tx2)">${FWD_SRC[f.source]||fwdEsc(f.source)}</td>
       <td>${f.edge?`<b style="color:${col}">${fwdEsc(f.type)}</b> <span style="color:var(--bull);font-size:10px">Proven in backtest ✓</span>`:(f.type==='TURN'?'<b style="color:var(--tx3)">Possible turn (unproven)</b>':`<b style="color:${col}">${fwdEsc(f.type)}</b> <span style="color:var(--tx3);font-size:10px">not proven — past hits ≈ random chance</span>`)}</td>
@@ -4678,14 +4689,14 @@ function fwdHTML(){
       <td style="text-align:right;color:var(--tx3)">${r.n?fwdNum(r.ci95[0])+'–'+fwdNum(r.ci95[1]):'—'}</td>
       <td style="text-align:right;${st}">${isBase?'—':(r.vsBullPP==null?'—':(r.vsBullPP>0?'+':'')+fwdNum(r.vsBullPP)+' pp')}</td>
       <td style="text-align:right;${st}">${isBase?'—':fwdP(r.p)}</td><td style="text-align:right;${st}">${isBase?'—':r.aside}</td></tr>`; };
-  const dRows=insts.map(k=>{ const r=D[k]; if(!r) return '';
+  const dRows=byGrp(k=>{ const r=D[k]; if(!r) return '';
     return dRow(k,'<b>Astro only</b> (|score| ≥ 7)',r.astroOnly,false,false)+dRow(k,'always bullish',r.alwaysBullish,false,true)
-      +dRow(k,'always neutral (flat ±0.1%)',r.alwaysNeutral,false,true)+dRow(k,'price-action baseline (book ch. 2)',r.techOnly,true,false); }).join('');
+      +dRow(k,'always neutral (flat ±0.1%)',r.alwaysNeutral,false,true)+dRow(k,'price-action baseline (book ch. 2)',r.techOnly,true,false); },8);
   const dir=`<div class="pnl"><div class="ph"><span class="dot"></span>DAILY DIRECTION — astro only vs the trivial calls</div><div class="pb">
-    <div class="ts"><table class="tbl"><thead><tr><th>Inst</th><th>Call</th><th style="text-align:right">n</th><th style="text-align:right">Hit%</th><th style="text-align:right">95% CI</th><th style="text-align:right">vs always-bullish</th><th style="text-align:right">p</th><th style="text-align:right">Stood aside</th></tr></thead><tbody>${dRows}</tbody></table></div>
+    <div class="ts"><table class="tbl"><thead><tr><th>Inst</th><th>Call</th><th style="text-align:right">n</th><th style="text-align:right">Hit%</th><th style="text-align:right">95% CI</th><th style="text-align:right">vs always-bullish</th><th style="text-align:right">p</th><th style="text-align:right">Stood aside</th></tr></thead><tbody>${dRows||'<tr><td colspan="8" style="color:var(--tx3)">nothing graded for this market yet</td></tr>'}</tbody></table></div>
     <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Direction = close vs the previous close beyond ±0.1% (else flat). "vs always-bullish" compares with calling UP on the same days the call was made; p is one-sided binomial against that rate. Coloured only when n ≥ 30 and p &lt; 0.05.</div></div></div>`;
   // ── 4. next session ──
-  const nx=E.filter(e=>!e.graded);
+  const nx=E.filter(e=>!e.graded&&inGrp(e.inst)).sort((a,b)=>insts.indexOf(a.inst)-insts.indexOf(b.inst)||(a.target<b.target?-1:1));
   const nxRows=nx.map(e=>`<tr><td style="white-space:nowrap">${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td>
       <td>${fwdCall(e.calls.astroOnly)} <span style="font-size:10.5px;color:var(--tx2)">score ${e.astro.score>0?'+':''}${e.astro.score} · ${fwdEsc(e.astro.band)} · vol ${fwdEsc(e.vol||'—')}</span>
         <details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">top astro rules</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px;color:var(--tx2)">${(e.astro.top||[]).map(r=>`<li><b style="color:${r.dir>0?'var(--bull)':'var(--bear)'}">${r.dir>0?'▲':'▼'}</b> ${fwdEsc(r.name)} <span style="color:var(--tx3)">§${fwdEsc(r.sec)}</span></li>`).join('')||'<li>none</li>'}</ul></details></td>
@@ -4694,13 +4705,13 @@ function fwdHTML(){
   const next=`<div class="pnl"><div class="ph"><span class="dot"></span>NEXT SESSION — logged direction calls</div><div class="pb">
     <div class="ts"><table class="tbl"><thead><tr><th>Session</th><th>Inst</th><th>Astro call</th><th>Price-action baseline</th><th style="text-align:right">Last close</th></tr></thead><tbody>${nxRows||'<tr><td colspan="5" style="color:var(--tx3)">none pending — the next run logs them after the close</td></tr>'}</tbody></table></div></div></div>`;
   // ── 5. history ──
-  const g=E.filter(e=>e.graded).sort((a,b)=>a.target<b.target?1:a.target>b.target?-1:a.inst<b.inst?-1:1);
+  const g=E.filter(e=>e.graded&&inGrp(e.inst)).sort((a,b)=>a.target<b.target?1:a.target>b.target?-1:a.inst<b.inst?-1:1);
   const hRows=g.map(e=>{ const G=e.graded;
     if(G.noSession) return `<tr><td>${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td><td colspan="4" style="color:var(--tx3)">no session (holiday)</td></tr>`;
     return `<tr><td style="white-space:nowrap">${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td><td>${fwdMark(G.results.astroOnly)} ${fwdCall(e.calls.astroOnly)}</td>
       <td style="color:var(--tx3)">${fwdMark(G.results.techOnly)}</td><td style="text-align:right;color:${G.dir>0?'var(--bull)':G.dir<0?'var(--bear)':'var(--tx2)'};font-weight:700">${G.ccPct>0?'+':''}${fwdNum(G.ccPct,2)}%</td>
       <td style="text-align:right;color:var(--tx3)">${fwdNum(G.rangePct,2)}% <span style="font-size:10px">(${fwdEsc(e.vol||'—')})</span></td></tr>`; }).join('');
-  const tg=R.filter(f=>f.graded).sort((a,b)=>a.to<b.to?1:-1);
+  const tg=R.filter(f=>f.graded&&inGrp(f.inst)).sort((a,b)=>a.to<b.to?1:-1);
   const tgRows=tg.map(f=>{ const G=f.graded, p=G.pivot;
     return `<tr><td style="white-space:nowrap">${fwdEsc(f.from)} → ${fwdEsc(f.to)}</td><td>${fwdEsc(f.inst)}</td><td style="color:var(--tx2)">${FWD_SRC[f.source]||fwdEsc(f.source)}</td><td>${fwdEsc(f.type)}</td>
       <td>${G.status==='hit'?`<b style="color:var(--bull)">✓</b> ${p.cls==='MAJOR'?'major ':''}${p.type.toLowerCase()} ${fwdEsc(p.date)} @ ${fwdNum(p.price,2)}, move ${fwdNum(p.movePct,2)}%${G.typeRight==null?'':G.typeRight?' · type right':' · type wrong'}`:'<b style="color:var(--bear)">✗</b> <span style="color:var(--tx3)">no ≥5% pivot in the window</span>'}</td>
@@ -4709,7 +4720,7 @@ function fwdHTML(){
     <div class="ts" style="max-height:360px;overflow:auto"><table class="tbl"><thead><tr><th>Turn window</th><th>Inst</th><th>Source</th><th>Predicted</th><th>Result</th><th style="text-align:right">Chance</th></tr></thead><tbody>${tgRows||'<tr><td colspan="6" style="color:var(--tx3)">no turn window graded yet — a window is graded once it has passed and a pivot is confirmed (or 20 sessions go by without one)</td></tr>'}</tbody></table></div>
     <div class="ts" style="max-height:360px;overflow:auto;margin-top:8px"><table class="tbl"><thead><tr><th>Session</th><th>Inst</th><th>Astro</th><th>Price action</th><th style="text-align:right">Actual</th><th style="text-align:right">Range (vol call)</th></tr></thead><tbody>${hRows||'<tr><td colspan="6" style="color:var(--tx3)">no session graded yet</td></tr>'}</tbody></table></div>
     <div style="font-size:10px;color:var(--tx3);margin-top:6px">Research log, not a recommendation.</div></div></div>`;
-  return head+turns+upcoming+dir+next+hist;
+  return head+chips+turns+upcoming+dir+next+hist;
 }
 window.fwdLoad=fwdLoad;
 
@@ -9231,7 +9242,7 @@ function tAstral(){
 window.PLAN = window.PLAN || {ohlc:{}, status:'idle', err:'', loadedKey:null, view:null, data:null, win:null, panMode:false, maximized:false, minimized:false, _rb:false};
 const PLAN_INST = {'NIFTY 50':'^NSEI','BANK NIFTY':'^NSEBANK','SENSEX':'^BSESN','NIFTY IT':'^CNXIT','NIFTY MIDCAP 100':'NIFTY_MIDCAP_100.NS',
   'NASDAQ':'^IXIC','SPX':'^GSPC','DOW':'^DJI',
-  'XAUUSD · GOLD':'GC=F','GOLD · LONDON':'PHAU.L','XAGUSD · SILVER':'SI=F','XNGUSD · NAT GAS':'NG=F','USOIL · WTI CRUDE':'CL=F'};
+  'XAUUSD · GOLD':'GC=F','GOLD · LONDON':'PHAU.L','XAGUSD · SILVER':'SI=F','XNGUSD · NAT GAS':'NG=F','USOIL · WTI CRUDE':'CL=F','XCUUSD · COPPER':'HG=F'};
 // Yahoo fallbacks. Note: the FX-style spot symbols (XAUUSD=X / XAGUSD=X)
 // went dead on Yahoo (404 delisted), so the futures contracts are now the
 // primaries and spot is kept only as a fallback should it come back.
@@ -10039,7 +10050,8 @@ function tnLfNormSf(z){ const x=Math.abs(z)/Math.SQRT2, t=1/(1+0.3275911*x), e=t
 const TN_LF_LAT_STATES=['N-rising','N-peak','N-falling','S-falling','S-bottom','S-rising','N-bottom','S-peak','crossing→N','crossing→S'];
 const TN_LF_LON_BODIES=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'];
 const TN_LF_STN_BODIES=['Mercury','Venus','Mars','Jupiter','Saturn'];
-const TN_LF_CMP=['NIFTY 50','BANK NIFTY','XAUUSD · GOLD'];
+// every instrument with baked daily data (India indices · commodities · US indices), each learned on its own
+const TN_LF_CMP=['NIFTY 50','BANK NIFTY','XAUUSD · GOLD','XAGUSD · SILVER','USOIL · WTI CRUDE','XCUUSD · COPPER','XNGUSD · NAT GAS','DOW','SPX','NASDAQ'];
 function tnLfKind(inst){ try{ const k=dsKeyForYahooSym(PLAN_INST[inst]); return (k&&RE_UNIV[k]&&RE_UNIV[k].kind)||'index'; }catch(e){ return 'index'; } }
 /* swing size for these two tabs only (separate from the Backtesting thresholds): SWING ≥ x% and MAJOR ≥ y%, remembered per browser */
 function tnLfThr(){ const T=window.TN||{}; let s=T.swingPct, m=T.majPct;
@@ -10098,7 +10110,8 @@ function tnLfBuild(key, inst, mode){ const C=window.TN.lf||(window.TN.lf={});
 async function tnLfBuild0(key, inst, mode){
   const T=window.TN, C=T.lf||(T.lf={});
   const R=C[key]={status:'loading',prog:0,html:{},mode,inst};
-  const prog=v=>{ R.prog=v; const p=document.getElementById('tnLfProg'); if(p&&key===tnLfKey()) p.textContent=v+'%'; };
+  const prog=v=>{ R.prog=v; const p=document.getElementById('tnLfProg'); if(p&&key===tnLfKey()) p.textContent=v+'%';
+    const q=document.getElementById('tnLfCmp_'+TN_LF_CMP.indexOf(inst)); if(q&&key===tnLfKey(inst,mode)) q.textContent=v+'%'; };
   try{
     const sym=PLAN_INST[inst], k=dsKeyForYahooSym(sym), u=k&&RE_UNIV[k];
     const kind=tnLfKind(inst), thr=tnLfThr(), today=tnToday(), ay=tnAy();
@@ -10131,12 +10144,22 @@ async function tnLfBuild0(key, inst, mode){
     // daily latitude AND longitude of every planet at the tab's instant (00:00 UTC of the date)
     const a=reShift(s0,-3), nD=Math.round((reMs(end)-reMs(a))/86400000)+4, dsA=new Array(nD), VL={}, VO={}, ayan=new Float64Array(nD);
     PLAN_ORDER.forEach(b=>{ VL[b]=new Float64Array(nD); VO[b]=new Float64Array(nD); });
-    for(let d=0; d<nD; d++){
-      const ds=reShift(a,d); dsA[d]=ds; const J=planJDfromMs(planMs(ds));
-      for(const b of PLAN_ORDER){ VL[b][d]=geoLat(b,J); VO[b][d]=n360(geoLon(b,J)); }
-      ayan[d]=getAyanamsa(J,ay);
-      if(d%300===299){ prog(Math.round(d/nD*75)); await reYield(); }
-    }
+    // the ephemeris depends only on the date and ayanamsa: one shared table from TN_LF_START, every instrument reads its
+    // own window of it (read-only views), so the other instruments of the comparison strip skip this step
+    const a0=reShift(TN_LF_START,-3), off=Math.round((reMs(a)-reMs(a0))/86400000), need=off+nD;
+    let EC=T.lfEph&&T.lfEph.ay===ay&&T.lfEph.n>=need&&off>=0?T.lfEph:null;
+    if(!EC){ const n=Math.max(need,nD), A0=off>=0?a0:a, eD=new Array(n), eL={}, eO={}, eA=new Float64Array(n);
+      PLAN_ORDER.forEach(b=>{ eL[b]=new Float64Array(n); eO[b]=new Float64Array(n); });
+      for(let d=0; d<n; d++){
+        const ds=reShift(A0,d); eD[d]=ds; const J=planJDfromMs(planMs(ds));
+        for(const b of PLAN_ORDER){ eL[b][d]=geoLat(b,J); eO[b][d]=n360(geoLon(b,J)); }
+        eA[d]=getAyanamsa(J,ay);
+        if(d%300===299){ prog(Math.round(d/n*75)); await reYield(); }
+      }
+      EC={ay,n,dsA:eD,VL:eL,VO:eO,ayan:eA}; if(off>=0) T.lfEph=EC; }
+    const o=off>=0?off:0;
+    for(let d=0; d<nD; d++) dsA[d]=EC.dsA[o+d];
+    PLAN_ORDER.forEach(b=>{ VL[b]=EC.VL[b].subarray(o,o+nD); VO[b]=EC.VO[b].subarray(o,o+nD); }); ayan.set(EC.ayan.subarray(o,o+nD)); prog(75);
     const V=mode==='lat'?VL:VO;
     const dOf=ds=>Math.round((reMs(ds)-reMs(a))/86400000);
     const FAM=tnLfLatFamily(VL,nD,TN_LAT_BODIES).concat(tnLfLonFamilies(VO,ayan,nD,TN_LF_LON_BODIES));
@@ -10299,8 +10322,8 @@ function tnLfPlain(k){ return String(k).split(' + ').map(s=>{ const i=s.indexOf(
   if(TN_LF_LAT_PLAIN[r]) return b+' '+TN_LF_LAT_PLAIN[r];
   if(/^in /.test(r)) return b+' '+r+' nakshatra';
   return b+' '+r.replace(/^retro /,'retrograde '); }).join(' + '); }
-function tnLfInstName(i){ return {'NIFTY 50':'Nifty 50','BANK NIFTY':'Bank Nifty','XAUUSD · GOLD':'Gold'}[i]||i; }
-// the other instruments of Nifty 50 / Bank Nifty / Gold, each learned on its own (either tab's build: both learn the same states)
+function tnLfInstName(i){ return {'NIFTY 50':'Nifty 50','BANK NIFTY':'Bank Nifty','XAUUSD · GOLD':'Gold','XAGUSD · SILVER':'Silver','USOIL · WTI CRUDE':'Crude','XCUUSD · COPPER':'Copper','XNGUSD · NAT GAS':'Nat Gas','DOW':'Dow','SPX':'S&P 500','NASDAQ':'Nasdaq'}[i]||i; }
+// the other baked instruments (TN_LF_CMP), each learned on its own (either tab's build: both learn the same states)
 function tnLfPeers(R){ const C=window.TN.lf||{};
   return TN_LF_CMP.filter(i=>i!==R.inst).map(i=>({i,P:[C[tnLfKey(i,'lat')],C[tnLfKey(i,'lon')]].find(x=>x&&x.status==='ready'&&x.PV)||null,
     err:[C[tnLfKey(i,'lat')],C[tnLfKey(i,'lon')]].some(x=>x&&x.status==='error')})); }
@@ -10399,9 +10422,9 @@ function tnLfLedgerHTML(R){
     <div class="ts" style="max-height:340px;overflow:auto"><table class="tbl"><thead><tr><th style="white-space:nowrap;min-width:84px">Swing date</th><th>Swing</th><th style="text-align:right">Price</th><th style="text-align:right">Following move</th>${bodies.map(b=>`<th style="color:${PLAN_COL[b]||'var(--tx1)'}">${b}<br><span style="font-size:9px;font-weight:400">lat · phase / sid. lon · nakshatra</span></th>`).join('')}</tr></thead><tbody>${pend}${led}</tbody></table></div></details>`; }
 function tnLfCmpHTML(mode){
   const rows=TN_LF_CMP.map(i=>{ const R=(window.TN.lf||{})[tnLfKey(i,mode)];
-    if(!R||R.status!=='ready') return `<tr><td style="white-space:nowrap">${tnEsc(i)}</td><td colspan="4" style="color:var(--tx3)">${R&&R.status==='error'?'⚠ '+tnEsc(R.err):'computing…'}</td></tr>`;
+    if(!R||R.status!=='ready') return `<tr><td style="white-space:nowrap">${tnEsc(i)}</td><td colspan="4" style="color:var(--tx3)">${R&&R.status==='error'?'⚠ '+tnEsc(R.err):R?`<span class="spin-anim">⟳</span> computing… <b id="tnLfCmp_${TN_LF_CMP.indexOf(i)}">${R.prog||0}%</b>`:'queued — builds in the background, one instrument at a time'}</td></tr>`;
     const O=R.OOS; return `<tr><td style="white-space:nowrap">${tnEsc(i)}</td><td style="text-align:right">${R.ledger.length}</td><td style="text-align:right">${R.FULL.pass.length}/${R.FULL.m}</td><td style="text-align:right">${R.TRAIN.pass.length}/${R.TRAIN.m}</td><td>${R.TRAIN.pass.length?`${O.h}/${O.n} = ${tnPct(O.rate)} vs ${tnPct(O.chance)} chance (p ${tnPfmt(O.p)})`:'nothing passed in 2000–2018 to test'}</td></tr>`; }).join('');
-  return `<div style="font-size:10px;color:var(--acc);font-weight:700;margin:6px 0 2px">SAME METHOD, EACH MARKET SEPARATELY (never pooled)</div>
+  return `<div style="font-size:10px;color:var(--acc);font-weight:700;margin:6px 0 2px">SAME METHOD, EACH MARKET SEPARATELY (never pooled) · ${TN_LF_CMP.length} instruments: the selected one first, the rest in the background</div>
     <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th style="text-align:right">Swings</th><th style="text-align:right">States passed (all)</th><th style="text-align:right">Passed 2000–2018</th><th>Out of sample 2019 →</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function tnLfRows(R,only,cols){
@@ -10622,7 +10645,7 @@ function ovMkt(){
   const L=LOCATIONS[S.loc]||LOCATIONS['Mumbai'];
   return {tz:L.tz,open:L.open,close:L.close,label:L.mkt+' MARKET HOURS'};
 }
-const OV_CMDTY=new Set(['XAUUSD · GOLD','XAGUSD · SILVER','XNGUSD · NAT GAS','USOIL · WTI CRUDE']);
+const OV_CMDTY=new Set(['XAUUSD · GOLD','XAGUSD · SILVER','XNGUSD · NAT GAS','USOIL · WTI CRUDE','XCUUSD · COPPER']);
 // Instrument selection with automatic venue: picking a US index or a
 // commodity switches location to New York and session to 24H (US tz);
 // picking an NSE instrument while parked on a US city switches back to
@@ -17370,10 +17393,11 @@ function tDayForecast(){
    PROVEN = (i) BH q<0.05 on 2000–2018 only; (ii) 2019 → last bar: same direction, ≥30 days, one-sided binomial
    p < 0.05 / (number that passed i), and p<0.05 on ISO-week blocks (majority outcome per week);
    (iii) same direction in and out of sample and ≥3 percentage points out of sample.
-   CONFIRMED = also passes (i) and (ii) at p<0.05 (days and weeks, same direction) on another instrument. */
+   CONFIRMED = also passes (i) and (ii) at p<0.05 (days and weeks, same direction) on another of the DP_INST instruments. */
 const DP_START='2000-01-01', DP_TRAIN_END='2018-12-31', DP_WIN=126, DP_MIN=30, DP_TRI_MINPAIR=60, DP_TRI_PAIRS=300, DP_TRI_CAP=3000,
   DP_FWD=75, DP_FLAT=0.1, DP_GAP=0.5, DP_BIG_WIN=250, DP_BIG_Q=0.7, DP_MIN_PP=0.03, DP_LOOK=60, DP_OPEN_H=3.75;
-const DP_INST=[['NIFTY','Nifty 50'],['BANKNIFTY','Bank Nifty'],['GOLD','Gold']];
+const DP_INST=[['NIFTY','Nifty 50'],['BANKNIFTY','Bank Nifty'],['GOLD','Gold'],['SILVER','Silver'],['CRUDE','Crude Oil WTI'],['COPPER','Copper'],['NATGAS','Natural Gas'],['DOW','Dow Jones'],['SPX','S&P 500'],['NASDAQ','Nasdaq']];
+const DP_BOOK_CLS=['equity','GOLD','SILVER'];   // every taInstClass class
 const DP_BOOK=['HIGH BEARISH','BEARISH','MILD BEARISH','FLAT / RANGEBOUND','MILD BULLISH','BULLISH','HIGH BULLISH'];
 const DP_TGT=[
   {id:'dir',title:'DIRECTION',what:'up day = close above the previous close by more than 0.1%',yes:'Up day more likely',no:'Up day less likely',unit:'up days'},
@@ -17388,7 +17412,20 @@ function dpWk(ds){ const w=new Date(ds+'T00:00:00Z').getUTCDay(); return w>0&&w<
 function dpWeekOf(ds){ const w=new Date(ds+'T00:00:00Z').getUTCDay(); return reShift(ds,-((w+6)%7)); }   // ISO week = its Monday
 function dpTithiName(c){ const t=c+1, p=t<=15?'Shukla':'Krishna', i=t<=15?t:t-15; return p+' '+(i===15?(p==='Shukla'?'Purnima':'Amavasya'):TITHI_NAMES[i-1]); }
 function dpPlain(k){ return String(k).split(' + ').map(s=>/^Tithi /.test(s)?'tithi '+s.slice(6):/^Book band: /.test(s)?'book engine reads '+s.slice(11):tnLfPlain(s)).join(' + '); }
-function dpClaim(tg,r){ return `${r.s>0?tg.yes:tg.no}: ${tnPct(r.oos.rate)} vs ${tnPct(r.oos.chance)}`; }
+function dpClaim(tg,r){ return `${r.s>0?tg.yes:tg.no}: ${tnPct(r.oos.rate)} vs ${tnPct(r.oos.chance)}`+(tg.id==='big'&&r.bias?' · '+dpBiasShort(r):''); }
+/* big-move direction (r.bias, set in dpBuild0): which way the pattern's big-move days closed */
+function dpBiasShare(x){ return x.share==null?'—':`${x.share>=0.5?'▲':'▼'} ${tnPct(x.share>=0.5?x.share:1-x.share)} (${x.share>=0.5?x.up:x.n-x.up}/${x.n})`; }
+function dpBiasSt(r){ return r.proven?'proven':r.border?'borderline':'not proven'; }
+function dpBiasShort(r){ const b=r.bias; if(!b) return '';
+  if(b.lab) return `leans ${b.lab} ${tnPct(b.lab==='UP'?b.oos.share:1-b.oos.share)} (${dpBiasSt(r)})`;
+  return 'direction coin-flip'; }
+function dpSgn(v){ return v==null||!isFinite(v)?'—':(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(2)+'%'; }
+function dpBiasCell(r){ const b=r.bias; if(!b) return '<span style="color:var(--tx3)">—</span>';
+  const sh=b.oos.share!=null?b.oos.share:b.tr.share;
+  const head=b.lab?`<b style="color:${b.lab==='UP'?'var(--bull)':'var(--bear)'}">${b.lab==='UP'?'UPSIDE':'DOWNSIDE'} bias</b>`
+    :`<span style="color:var(--tx3)">direction: ~coin-flip (▲${sh==null?'—':tnPct(sh)} / ▼${sh==null?'—':tnPct(1-sh)})</span>`;
+  const line=`${b.tr.share==null?'—':(b.tr.share>=0.5?'▲ UP ':'▼ DOWN ')+tnPct(b.tr.share>=0.5?b.tr.share:1-b.tr.share)+` (${b.tr.share>=0.5?b.tr.up:b.tr.n-b.tr.up}/${b.tr.n})`} · 2019+ ${dpBiasShare(b.oos)}`;
+  return `${head}<div style="font-size:10px;color:var(--tx2)">${line}</div><div style="font-size:10px;color:var(--tx3)">base ▲ ${tnPct(b.tr.base)} / 2019+ ▲ ${tnPct(b.oos.base)} · p ${tnPfmt(b.oos.p)} · move avg ${dpSgn(b.avg)} · median ${dpSgn(b.med)} (${b.n} days)</div>`; }
 function dpProg(){ const R=window.DP.res[dpKey(dpInst())]; if(!R) return; let p=R.prog||0;
   if(R.status==='loading'&&R.phase!=='learn'){ const Z=window.DP.sky[R.ay+'|'+tnToday()]; if(Z) p=Math.round((Z.prog||0)*0.85); }
   R.prog=p; try{ const e=document.getElementById('dpProg'); if(e) e.textContent=p+'%'; }catch(e){} }
@@ -17424,23 +17461,26 @@ async function dpSky0(Z,ay){
   const FAM=tnLfLatFamily(VL,nD,TN_LAT_BODIES).concat(tnLfLonFamilies(VO,ayan,nD,TN_LF_LON_BODIES));
   const ti=new Uint8Array(nD); for(let d=0;d<nD;d++) ti[d]=tithiCompute(VO.Sun[d],VO.Moon[d]).num-1;
   FAM.push({id:'tithi',label:'tithi',bodies:['Tithi'],arr:{Tithi:ti},name:dpTithiName});
-  // the book engine's daily band (the slow part: one rulebook evaluation per weekday) — kept per browser after the first run
-  const bk={equity:new Uint8Array(nD).fill(255),GOLD:new Uint8Array(nD).fill(255)};
+  // the book engine's daily band (the slow part: one rulebook evaluation per weekday) — kept per browser after the first run.
+  // One evaluation serves every class (equity / GOLD / SILVER: taInstClass); the cache is saved as it goes, so an interrupted run resumes.
+  const CLS=DP_BOOK_CLS, bk={}, done=new Uint8Array(nD); CLS.forEach(c=>{ bk[c]=new Uint8Array(nD).fill(255); });
   const ck='astralDpBook|'+TA_ENGINE_VER+'|'+ay+'|'+taLoc(); let cache=null;
   try{ cache=JSON.parse(localStorage.getItem(ck)||'null'); }catch(e){ cache=null; }
-  if(!(cache&&cache.a===a&&typeof cache.eq==='string'&&typeof cache.gd==='string')) cache=null;
+  let cc=null; if(cache&&cache.a===a){ cc=cache.c&&typeof cache.c==='object'?cache.c:{equity:cache.eq,GOLD:cache.gd}; if(!CLS.every(c=>typeof cc[c]==='string')) cc=null; }
   const todo=[];
   for(let d=0;d<nD;d++){ if(!dpWk(dsA[d])||dsA[d]<DP_START) continue;
-    if(cache&&d<cache.eq.length&&d<cache.gd.length){ const x=cache.eq[d], y=cache.gd[d];
-      if(x!=='.'&&y!=='.'){ bk.equity[d]=x==='-'?255:+x; bk.GOLD[d]=y==='-'?255:+y; continue; } }
+    if(cc&&CLS.every(c=>d<cc[c].length&&cc[c][d]!=='.')){ CLS.forEach(c=>{ const x=cc[c][d]; bk[c][d]=x==='-'?255:+x; }); done[d]=1; continue; }
     todo.push(d); }
+  const enc=A=>Array.from(A,(v,d)=>!done[d]?'.':v===255?'-':String(v)).join('');
+  const save=()=>{ const c={}; CLS.forEach(x=>{ c[x]=enc(bk[x]); }); try{ localStorage.setItem(ck,JSON.stringify({a,c})); }catch(e){} };
   for(let j=0;j<todo.length;j++){ const d=todo[j], ds=dsA[d];
     try{ const raw=taEval(taEnrich(taSky(ds,9.25,ay)),'daily');
-      for(const cls of ['equity','GOLD']){ const o=Object.assign({},raw,taNetFor(raw.rules,cls),{cls}); taCentre(o,ay,ds,'daily');
+      for(const cls of CLS){ const o=Object.assign({},raw,taNetFor(raw.rules,cls),{cls}); taCentre(o,ay,ds,'daily');
         const c=DP_BOOK.indexOf(o.band&&o.band.t); bk[cls][d]=c<0?255:c; } }catch(e){}
+    done[d]=1;
+    if(j%600===599) save();
     if(j%12===11){ Z.prog=25+Math.round(j/todo.length*75); dpProg(); await reYield(); } }
-  if(todo.length){ const enc=A=>Array.from(A,(v,d)=>(!dpWk(dsA[d])||dsA[d]<DP_START)?'.':v===255?'-':String(v)).join('');
-    try{ localStorage.setItem(ck,JSON.stringify({a,eq:enc(bk.equity),gd:enc(bk.GOLD)})); }catch(e){} }
+  if(todo.length) save();
   Object.assign(Z,{status:'ready',prog:100,a,end,nD,dsA,FAM,bk,bookEvals:todo.length});
   return Z;
 }
@@ -17557,6 +17597,26 @@ async function dpBuild0(R,k,ay){
       X.luck=n1?n1*alpha:0; X.luckBorder=0.05*n1;
       X.close=X.proven.length?[]:X.rows.filter(r=>!r.border).sort((x,y)=>x.oos.p-y.oos.p).slice(0,6);
       if(!X.proven.length&&X.close.length<6) X.failI.slice(0,6-X.close.length).forEach(r=>X.close.push(r)); }
+    // BIG-MOVE DIRECTION: on the pattern's active days that were big-move days, the share that closed up (close vs the
+    // previous close; unchanged closes left out), 2000–2018 and 2019+, against this instrument's own up-share on ALL its
+    // big-move days in the same period. Two-sided binomial p on 2019+; a bias is named only when p < 0.05 AND 2000–2018 leans the same way.
+    { const X=res.big, byC=new Map(); X.rows.concat(X.failI).forEach(r=>{ (byC.get(r.c)||byC.set(r.c,[]).get(r.c)).push(r); });
+      const mvI=new Float64Array(N).fill(NaN); for(let i=1;i<N;i++){ const pc=bars[i-1].c; if(pc>0) mvI[i]=(bars[i].c/pc-1)*100; }
+      const bs=[{n:0,u:0},{n:0,u:0}], ac=new Map();
+      for(let i=i0;i<=iEnd;i++){ const m=mvI[i]; if(Y.big[i]!==1||!isFinite(m)||m===0) continue; const o=i<=iTr?0:1; bs[o].n++; if(m>0) bs[o].u++;
+        const d=bD[i]; if(d<0) continue; const ids=dayAll(d);
+        for(let j=0;j<ids.length;j++){ if(!byC.has(ids[j])) continue; let a=ac.get(ids[j]); if(!a) ac.set(ids[j],a={p:[{n:0,u:0},{n:0,u:0}],mv:[],mo:[]});
+          a.p[o].n++; if(m>0) a.p[o].u++; a.mv.push(m); if(o) a.mo.push(m); } }
+      const bTr=bs[0].n?bs[0].u/bs[0].n:0.5, bOos=bs[1].n?bs[1].u/bs[1].n:0.5;
+      const avg=v=>v.length?v.reduce((x,y)=>x+y,0)/v.length:null, med=v=>{ if(!v.length) return null; const w=v.slice().sort((x,y)=>x-y), h=w.length>>1; return w.length%2?w[h]:(w[h-1]+w[h])/2; };
+      X.upBase={tr:bTr,oos:bOos,nTr:bs[0].n,nOos:bs[1].n};
+      byC.forEach((L,c)=>{ const a=ac.get(c)||{p:[{n:0,u:0},{n:0,u:0}],mv:[],mo:[]}, T=a.p[0], O=a.p[1];
+        const sT=T.n?T.u/T.n:null, sO=O.n?O.u/O.n:null;
+        const pO=O.n?Math.min(1,2*Math.min(tnBinomUpper(O.n,O.u,bOos),tnBinomLower(O.n,O.u,bOos))):1;
+        const same=sT!=null&&sO!=null&&sO!==bOos&&sT!==bTr&&((sO>bOos)===(sT>bTr));
+        const lab=(O.n>0&&pO<0.05&&same)?(sO>bOos?'UP':'DOWN'):null;
+        const B={tr:{n:T.n,up:T.u,share:sT,base:bTr},oos:{n:O.n,up:O.u,share:sO,base:bOos,p:pO},n:a.mv.length,avg:avg(a.mv),med:med(a.mv),avgOos:avg(a.mo),medOos:med(a.mo),lab};
+        L.forEach(r=>{ r.bias=B; }); }); }
     const stSet=new Map(), stateSet=d=>{ let s=stSet.get(d); if(!s){ s=new Set(statesOn(d)); stSet.set(d,s); } return s; };
     Object.assign(R,{status:'ready',phase:'done',prog:100,bars,lastBar:bars[iEnd].date,firstBar:bars[i0].date,oosFrom:bars[iTr+1].date,trainTo:bars[iTr].date,
       nD:Z.nD,skyA:Z.a,skyEnd:Z.end,dOf,stateSet,res,ii,CNT});
@@ -17593,20 +17653,21 @@ function dpRowHTML(R,tg,r,kind,dS,todayOk){
     <td style="white-space:nowrap">${r.tr.n} / ${r.oos.n}</td>
     <td>${conf.length?conf.map(c=>`<span style="color:var(--bull);font-weight:700">✓ ${c}</span>`).join(' '):'<span style="color:var(--tx3)">—</span>'}</td>
     <td style="font-weight:700;color:${on?'var(--acc)':'var(--tx3)'}">${todayOk?(on?'ACTIVE':'no'):'—'}</td>
-    <td style="font-size:10.5px;white-space:normal;min-width:140px">${nx.length?nx.map(d=>d.slice(5)).join(', '):'<span style="color:var(--tx3)">none in 60 days</span>'}</td></tr>`;
+    <td style="font-size:10.5px;white-space:normal;min-width:140px">${nx.length?nx.map(d=>d.slice(5)).join(', '):'<span style="color:var(--tx3)">none in 60 days</span>'}</td>${tg.id==='big'?`<td style="white-space:nowrap;font-size:10.5px">${dpBiasCell(r)}</td>`:''}</tr>`;
 }
-function dpTableHTML(R,tg,dS,todayOk){ const X=R.res[tg.id];
+function dpTableHTML(R,tg,dS,todayOk){ const X=R.res[tg.id], nc=tg.id==='big'?10:9;
   const rows=X.proven.map(r=>dpRowHTML(R,tg,r,'proven',dS,todayOk)).join('')
-    +(X.borderline.length?`<tr><td colspan="9" style="font-size:10.5px;color:var(--neut);white-space:normal">BORDERLINE — pass p < 0.05 out of sample but not the ${X.pass1}-pattern guard p < ${tnPfmt(X.alpha)}: could be luck — ${X.luckBorder.toFixed(1)} expected by chance</td></tr>`+X.borderline.map(r=>dpRowHTML(R,tg,r,'border',dS,todayOk)).join(''):'')
-    +(X.close.length?`<tr><td colspan="9" style="font-size:10.5px;color:var(--tx3);white-space:normal">Nothing proven for this study — the closest, greyed:</td></tr>`+X.close.map(r=>dpRowHTML(R,tg,r,'close',dS,todayOk)).join(''):'');
+    +(X.borderline.length?`<tr><td colspan="${nc}" style="font-size:10.5px;color:var(--neut);white-space:normal">BORDERLINE — pass p < 0.05 out of sample but not the ${X.pass1}-pattern guard p < ${tnPfmt(X.alpha)}: could be luck — ${X.luckBorder.toFixed(1)} expected by chance</td></tr>`+X.borderline.map(r=>dpRowHTML(R,tg,r,'border',dS,todayOk)).join(''):'')
+    +(X.close.length?`<tr><td colspan="${nc}" style="font-size:10.5px;color:var(--tx3);white-space:normal">Nothing proven for this study — the closest, greyed:</td></tr>`+X.close.map(r=>dpRowHTML(R,tg,r,'close',dS,todayOk)).join(''):'');
   return `<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">${tg.title} <span style="font-weight:400;color:var(--tx3)">— ${tg.what} · ${X.tested.toLocaleString()} tested · ${X.pass1} passed (i) · <b style="color:${X.proven.length?'var(--bull)':'var(--tx2)'}">${X.proven.length} proven</b> · ${X.luck.toFixed(2)} expected by luck · base ${tnPct(X.baseTr)} (2000–2018) / ${tnPct(X.baseOos)} (2019+)</span></div>
-    <div class="ts" style="overflow-x:auto;max-width:100%"><table class="tbl" style="font-size:11px"><thead><tr><th>Pattern</th><th>2000–2018 vs base</th><th>2019+ days vs base</th><th>2019+ weeks vs base</th><th>Lift</th><th>n in / out</th><th>Confirmed</th><th>Today</th><th>Next active (≤60 d)</th></tr></thead>
-    <tbody>${rows||`<tr><td colspan="9" style="color:var(--tx3)">No pattern had ${DP_MIN}+ active days.</td></tr>`}</tbody></table></div></div>`; }
+    ${tg.id==='big'&&X.upBase?`<div style="font-size:10px;color:var(--tx3)">Big-move days closed up ${tnPct(X.upBase.tr)} of the time 2000–2018 (${X.upBase.nTr} days) and ${tnPct(X.upBase.oos)} 2019+ (${X.upBase.nOos} days) — the base for "Bias when it moves".</div>`:''}
+    <div class="ts" style="overflow-x:auto;max-width:100%"><table class="tbl" style="font-size:11px"><thead><tr><th>Pattern</th><th>2000–2018 vs base</th><th>2019+ days vs base</th><th>2019+ weeks vs base</th><th>Lift</th><th>n in / out</th><th>Confirmed</th><th>Today</th><th>Next active (≤60 d)</th>${tg.id==='big'?`<th title="On this pattern's active days that WERE big-move days: the share that closed up / down vs the previous close, 2000–2018 and 2019+, against ${taEsc(dpInstName(R.k))}'s own up-share on all its big-move days (base). UPSIDE / DOWNSIDE only when 2019+ differs from base at two-sided binomial p &lt; 0.05 and 2000–2018 leans the same way.">Bias when it moves</th>`:''}</tr></thead>
+    <tbody>${rows||`<tr><td colspan="${nc}" style="color:var(--tx3)">No pattern had ${DP_MIN}+ active days.</td></tr>`}</tbody></table></div></div>`; }
 function dpTodayList(R,ds){ const d=R.dOf(ds), out=[]; if(!dpWk(ds)||d<2||d>=R.nD-2) return out;
   DP_TGT.forEach(tg=>{ const X=R.res[tg.id]; X.proven.concat(X.borderline).forEach(r=>{ if(dpActive(R,r,d)) out.push({tg,r,border:!r.proven}); }); }); return out; }
 function dpPanelHTML(){
   const k=dpInst(), ay=dpAy(), R=window.DP.res[dpKey(k,ay)], nm=dpInstName(k); let sel=k; try{ sel=dfInst(); }catch(e){}
-  const note=sel!==k?`<div style="font-size:10.5px;color:var(--tx3);margin-bottom:4px">Proven daily patterns are built for Nifty 50, Bank Nifty and Gold only — showing ${nm}.</div>`:'';
+  const note=sel!==k?`<div style="font-size:10.5px;color:var(--tx3);margin-bottom:4px">Proven daily patterns are built only for the ${DP_INST.length} instruments with baked daily data (${DP_INST.map(x=>x[1]).join(', ')}) — ${taEsc((RE_UNIV[sel]||{}).label||sel)} is not one of them, so this panel shows ${nm}.</div>`:'';
   const head=`<div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px"><span><span class="dot" style="background:var(--acc)"></span>PROVEN DAILY PATTERNS — direction · big-move · gap · ${nm}</span>${DP_PILL}</div>`;
   if(!R||R.status==='loading'){ if(!R) setTimeout(dpEnsure,0);
     return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--tx3)">${note}Backtesting every daily planet state, tithi and book band for ${nm} (learned on 2000–2018, walked forward on 2019 → last bar)… <b id="dpProg" style="color:var(--acc)">${R?R.prog||0:0}%</b><br><span style="font-size:10.5px">The first run evaluates the book engine for every session since 2000 and can take a few minutes; the rest of this tab works meanwhile, and the result is cached.</span></div></div>`; }
@@ -17625,7 +17686,7 @@ function dpPanelHTML(){
   const look=`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;font-size:10.5px">${sess.map(d=>{ const L=dpTodayList(R,d), pv=L.filter(o=>!o.border);
     return `<span title="${taEsc(L.map(o=>(o.border?'(borderline) ':'')+dpClaim(o.tg,o.r)+' — '+o.r.plain).join(' | ')||'no proven pattern active')}" style="padding:2px 6px;border-radius:3px;border:1px solid ${pv.length?'var(--acc)':'var(--bd)'};background:${pv.length?'var(--bg3)':'var(--bg2)'};color:${pv.length?'var(--tx0)':'var(--tx3)'};cursor:help">${d.slice(5)} ${pv.length?'★'+pv.length:L.length?'·?':'·'}</span>`; }).join('')}<span style="color:var(--tx3);align-self:center">next 10 sessions · ★ = proven pattern active</span></div>`;
   return `<div class="pnl">${head}<div class="pb">${note}${line}${today}${look}${DP_TGT.map(tg=>dpTableHTML(R,tg,dS,todayOk)).join('')}
-    <div style="font-size:10px;color:var(--tx3);margin-top:6px;line-height:1.5">Proven = (i) Benjamini–Hochberg q &lt; 0.05 on 2000–2018 only; (ii) 2019 → last bar in the same direction, ≥${DP_MIN} active days, one-sided binomial p &lt; 0.05 ÷ (number that passed i), and p &lt; 0.05 on ISO-week blocks (each week's active days = one block, majority outcome); (iii) ≥3 points out of sample. CONFIRMED = the same pattern also passes (i) and (ii) at p &lt; 0.05 on another of Nifty 50 / Bank Nifty / Gold, learned separately. A study aid — nothing here is a recommendation.</div></div></div>`;
+    <div style="font-size:10px;color:var(--tx3);margin-top:6px;line-height:1.5">Proven = (i) Benjamini–Hochberg q &lt; 0.05 on 2000–2018 only; (ii) 2019 → last bar in the same direction, ≥${DP_MIN} active days, one-sided binomial p &lt; 0.05 ÷ (number that passed i), and p &lt; 0.05 on ISO-week blocks (each week's active days = one block, majority outcome); (iii) ≥3 points out of sample. CONFIRMED = the same pattern also passes (i) and (ii) at p &lt; 0.05 on another of the ${DP_INST.length} baked instruments (${DP_INST.map(x=>x[1]).join(' / ')}), each learned separately, never pooled. A study aid — nothing here is a recommendation.</div></div></div>`;
 }
 
 /* ══ DF-END ══ */

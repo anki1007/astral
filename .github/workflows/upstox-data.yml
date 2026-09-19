@@ -85,7 +85,13 @@ jobs:
         # sessions' turn windows, and grades earlier ones against the bars just
         # baked. Committed below, so git timestamps every forecast before its
         # session. Never fatal: the bake is what this job is for.
+        # 10 instruments. The slow part (the book band for every weekday since 2000) is cached in
+        # data/forward/cache_bands_<class>_<ayanamsa>.json and committed below, so later runs only
+        # compute new days (measured locally: ~9-11 min cold, ~2 min warm). The script skips
+        # instruments past its own 30-min budget and saves the band cache as it grows, so a
+        # timed-out run still leaves progress for the next one to resume.
         continue-on-error: true
+        timeout-minutes: 40
         run: node scripts/forward_log.js
 
       - name: Summarise
@@ -108,6 +114,7 @@ jobs:
           git config user.name  "astral-bot"
           git config user.email "astral@users.noreply.github.com"
           git add data/nse data/yahoo data/forward
+          git add -- 'data/forward/cache_bands_*.json' 2>/dev/null || true   # forward-test band cache (already under data/forward; explicit so it is never left out)
           if git diff --cached --quiet; then
             echo "no changes"; exit 0
           fi

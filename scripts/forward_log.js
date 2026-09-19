@@ -5,7 +5,11 @@
  * writes the engine's forecasts for the NEXT session (and the astro turn
  * windows for the next 30 sessions) into data/forward/log.json, plus the
  * active PROVEN DAILY patterns (Day Forecast; source "Proven daily") into log.daily, and grades
- * every earlier forecast whose outcome is now in the baked bars. Git history
+ * every earlier forecast whose outcome is now in the baked bars. Ten instruments (INSTS: India
+ * indices, commodities, US indices), each on its own bars, book class and baselines; each one's
+ * next session is the weekday after its own last bar. The book engine reads the sky at 09:15 IST
+ * for all of them (no US-session time is modelled). The per-weekday book band is cached in
+ * data/forward/cache_bands_<class>_<ay>.json (see bandLoad / bandSave). Git history
  * timestamps each forecast before its session, so the log is honest
  * out-of-sample evidence. A forecast is never changed once written.
  *
@@ -20,11 +24,56 @@ const ROOT = path.resolve(arg('--root', process.cwd()));
 const HTML = path.resolve(arg('--html', path.join(ROOT, 'index.html')));
 const OUT = path.join(ROOT, 'data', 'forward');
 const VERSION = 2, HORIZON = 30, FLAT = 0.1, ASTRO_MIN = 7, SW_MIN = 5, SW_MAJ = 10, CONFIRM_LAG = 20;
+// Every instrument with baked daily data. `plan` is its Planet Lat/Lon key (index.html PLAN_INST).
+// Each one is predicted and graded on its own bars, book class (taInstClass) and baselines.
 const INSTS = [
-  { k: 'NIFTY', file: 'data/nse/NIFTY.json', plan: 'NIFTY 50' },
-  { k: 'BANKNIFTY', file: 'data/nse/BANKNIFTY.json', plan: 'BANK NIFTY' },
-  { k: 'GOLD', file: 'data/yahoo/GOLD.json', plan: 'XAUUSD · GOLD' },
+  { k: 'NIFTY', file: 'data/nse/NIFTY.json', plan: 'NIFTY 50', grp: 'india' },
+  { k: 'BANKNIFTY', file: 'data/nse/BANKNIFTY.json', plan: 'BANK NIFTY', grp: 'india' },
+  { k: 'GOLD', file: 'data/yahoo/GOLD.json', plan: 'XAUUSD · GOLD', grp: 'com' },
+  { k: 'SILVER', file: 'data/yahoo/SILVER.json', plan: 'XAGUSD · SILVER', grp: 'com' },
+  { k: 'CRUDE', file: 'data/yahoo/CRUDE.json', plan: 'USOIL · WTI CRUDE', grp: 'com' },
+  { k: 'COPPER', file: 'data/yahoo/COPPER.json', plan: 'XCUUSD · COPPER', grp: 'com' },
+  { k: 'NATGAS', file: 'data/yahoo/NATGAS.json', plan: 'XNGUSD · NAT GAS', grp: 'com' },
+  { k: 'DOW', file: 'data/yahoo/DOW.json', plan: 'DOW', grp: 'us' },
+  { k: 'SPX', file: 'data/yahoo/SPX.json', plan: 'SPX', grp: 'us' },
+  { k: 'NASDAQ', file: 'data/yahoo/NASDAQ.json', plan: 'NASDAQ', grp: 'us' },
 ];
+// Time budget: past it, instruments not yet built are skipped (recorded per instrument) and the
+// next run picks them up. The book-band cache is saved as it grows, so a killed run resumes too.
+const BUDGET_MS = (parseFloat(process.env.FWD_BUDGET_MIN) || 30) * 60000, T0 = Date.now();
+
+/* ── book-band cache: data/forward/cache_bands_<class>_<ay>.json ──
+ * The engine keeps its per-weekday book band (one rulebook evaluation per weekday since 2000) in
+ * localStorage under 'astralDpBook|<ver>|<ay>|<loc>' as {a, c:{<class>: string}}, one char per day
+ * from `a` ('.' = not computed, '-' = no band, else the DP_BOOK index). Here that key is backed by
+ * one committed file per class: {ver, loc, ay, cls, bands:[[date, bandIndex (-1 = none)], ...]}.
+ * Instruments of the same class share it; later runs only compute the new days. */
+const BAND_KEY = /^astralDpBook\|([^|]*)\|([^|]*)\|(.*)$/;
+const bandFile = (cls, ay) => path.join(OUT, `cache_bands_${String(cls).replace(/[^A-Za-z0-9]+/g, '_')}_${ay}.json`);
+function bandLoad(key) {
+  const m = BAND_KEY.exec(key); if (!m) return null;
+  const [, ver, ay, loc] = m, a = '1999-12-29', c = {}; let any = false;   // a = DP_START - 3 days
+  for (const cls of ['equity', 'GOLD', 'SILVER']) {
+    const j = readJSON(bandFile(cls, ay), null);
+    if (!j || j.ver !== ver || j.loc !== loc || !Array.isArray(j.bands)) { c[cls] = ''; continue; }
+    const ch = []; for (const [ds, v] of j.bands) { const d = Math.round((Date.parse(ds + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86400000);
+      if (d < 0) continue; while (ch.length < d) ch.push('.'); ch[d] = v < 0 ? '-' : String(v); }
+    c[cls] = ch.join(''); any = true;
+  }
+  const n = Math.max(...Object.values(c).map(x => x.length)); for (const k in c) c[k] = c[k].padEnd(n, '.');
+  return any ? JSON.stringify({ a, c }) : null;
+}
+function bandSave(key, val) {
+  const m = BAND_KEY.exec(key); if (!m) return; const [, ver, ay, loc] = m; let o;
+  try { o = JSON.parse(val); } catch (e) { return; } if (!o || !o.c) return;
+  fs.mkdirSync(OUT, { recursive: true });
+  for (const [cls, str] of Object.entries(o.c)) {
+    const rows = []; for (let d = 0; d < str.length; d++) { const x = str[d]; if (x === '.') continue; rows.push([shift(o.a, d), x === '-' ? -1 : +x]); }
+    const txt = `{"ver":${JSON.stringify(ver)},"loc":${JSON.stringify(loc)},"ay":${JSON.stringify(ay)},"cls":${JSON.stringify(cls)},"bands":[\n` + rows.map(r => JSON.stringify(r)).join(',\n') + '\n]}\n';
+    const p = bandFile(cls, ay); let old = null; try { old = fs.readFileSync(p, 'utf8'); } catch (e) {}
+    if (old !== txt) { const tmp = p + '.tmp'; fs.writeFileSync(tmp, txt); fs.renameSync(tmp, p); }
+  }
+}
 
 /* ── headless page: index.html's inline scripts in a vm with a DOM stub ── */
 function loadPage() {
@@ -53,7 +102,8 @@ function loadPage() {
     Int32Array, Uint8Array, Uint32Array, Int16Array, Uint16Array, Int8Array, ArrayBuffer, DataView, BigInt, Reflect, Proxy, TextDecoder, TextEncoder,
     URL, URLSearchParams, AbortController, document: doc, navigator: { userAgent: 'node', language: 'en', clipboard: {} },
     location: { href: 'http://localhost/', search: '', hash: '', origin: 'http://localhost', pathname: '/', protocol: 'http:' },
-    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    localStorage: { getItem: k => { if (!(k in store) && BAND_KEY.test(k)) store[k] = bandLoad(k); return store[k] == null ? null : store[k]; },
+      setItem: (k, v) => { store[k] = String(v); if (BAND_KEY.test(k)) bandSave(k, store[k]); }, removeItem: k => { delete store[k]; } },
     sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     setTimeout: () => 0, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {}, requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
     fetch: fetchLocal, matchMedia: () => ({ matches: false, addEventListener() {}, addListener() {} }), addEventListener() {}, removeEventListener() {},
@@ -221,7 +271,8 @@ async function predictDaily(P, inst, hist, target, made) {
   const act = P.E(`(()=>{ const R=window.DP.res[dpKey(__q.k,'lahiri')], d=R.dOf(__q.target);
     return DP_TGT.flatMap(tg=>R.res[tg.id].proven.filter(r=>dpActive(R,r,d)).map(r=>({study:tg.id,k:r.k,plain:r.plain,s:r.s,claim:dpClaim(tg,r),
       tr:{n:r.tr.n,rate:r.tr.rate,chance:r.tr.chance,bh:r.tr.bh},oos:{n:r.oos.n,rate:r.oos.rate,chance:r.oos.chance,p:r.oos.p},
-      weeks:{n:r.blk.n,rate:r.blk.rate,chance:r.blk.chance,p:r.blk.p},conf:dpConfirmed(R,tg.id,r)}))); })()`);
+      weeks:{n:r.blk.n,rate:r.blk.rate,chance:r.blk.chance,p:r.blk.p},conf:dpConfirmed(R,tg.id,r),
+      bias:tg.id==='big'&&r.bias?{lab:r.bias.lab,claim:dpBiasShort(r),tr:r.bias.tr,oos:r.bias.oos,n:r.bias.n,avgPct:r.bias.avg,medPct:r.bias.med}:null}))); })()`);
   P.ctx.__b = hist;
   const base = P.E(`dpBaseAsOf(__b)`);   // last 250 gradable sessions before the target + the big-move cut for the target
   const last = hist[hist.length - 1], rd = v => Math.round(v * 10000) / 10000;
@@ -229,7 +280,12 @@ async function predictDaily(P, inst, hist, target, made) {
     lastClose: last.c, lastDate: last.date, study: a.study, pattern: a.k, plain: a.plain, claim: a.claim, lean: a.s > 0 ? 'more' : 'less',
     backtest: { in: { n: a.tr.n, rate: rd(a.tr.rate), base: rd(a.tr.chance), bhQ: a.tr.bh }, out: { n: a.oos.n, rate: rd(a.oos.rate), base: rd(a.oos.chance), p: a.oos.p },
       weeks: { n: a.weeks.n, rate: rd(a.weeks.rate), base: rd(a.weeks.chance), p: a.weeks.p } },
-    base: base[a.study], bigThrPct: base.bigThr, confirmedOn: a.conf, graded: null }));
+    base: base[a.study], bigThrPct: base.bigThr, confirmedOn: a.conf,
+    // big-move patterns: which way the pattern's past big-move days closed; graded on the session only if it is a big-move day
+    bias: a.bias ? { lean: a.bias.lab, claim: a.bias.claim, inSample: { n: a.bias.tr.n, upShare: a.bias.tr.share == null ? null : rd(a.bias.tr.share), base: rd(a.bias.tr.base) },
+      out: { n: a.bias.oos.n, upShare: a.bias.oos.share == null ? null : rd(a.bias.oos.share), base: rd(a.bias.oos.base), p: a.bias.oos.p },
+      days: a.bias.n, avgMovePct: a.bias.avgPct == null ? null : r2(a.bias.avgPct), medMovePct: a.bias.medPct == null ? null : r2(a.bias.medPct) } : null,
+    graded: null }));
 }
 function gradeDaily(e, B) {
   const b = B.find(x => x.date === e.target);
@@ -240,6 +296,12 @@ function gradeDaily(e, B) {
     up: cc > FLAT, big: ok && e.bigThrPct != null ? tr > e.bigThrPct : null, gap: ok ? gp > 0.5 : null };
   const y = e.study === 'dir' ? out.up : e.study === 'big' ? out.big : out.gap;
   out.outcome = y; out.result = y == null ? 'ungradable' : ((e.lean === 'more') === !!y ? 'hit' : 'miss');
+  // big-move direction: graded only when the session WAS a big-move day and the pattern named a bias
+  if (e.study === 'big' && e.bias) {
+    out.moveDir = cc > 0 ? 'up' : cc < 0 ? 'down' : 'flat';
+    out.biasResult = out.big !== true ? 'not a big-move day' : !e.bias.lean ? 'no call (coin-flip)' : cc === 0 ? 'flat'
+      : ((e.bias.lean === 'UP') === (cc > 0) ? 'hit' : 'miss');
+  }
   return out;
 }
 function swingsOf(P, B) { P.ctx.__b = B; return P.E(`reDetectSwings(__b, ${SW_MIN}, ${SW_MAJ}, true)`); }
@@ -273,6 +335,8 @@ function summarise(log, B, SW) {
   const S = { version: VERSION, generated: new Date().toISOString(), since: log.since || null,
     lastGraded: days.reduce((m, e) => e.graded.date > m ? e.graded.date : m, '') || null,
     nDays: new Set(days.map(e => e.target)).size, flatBandPct: FLAT, astroMin: ASTRO_MIN, direction: {}, volatility: {}, turns: {}, chance: {}, provenDaily: {} };
+  S.insts = INSTS.map(i => ({ k: i.k, grp: i.grp, target: (log.runs.length && (log.runs[log.runs.length - 1].targets || {})[i.k]) || null }));
+  S.skyNote = 'the book engine reads the sky at 09:15 IST of the session date for every instrument, US and commodities included; no US-session time is modelled';
   const CALLS = ['astroOnly', 'techOnly', 'techWithAstroFilter', 'astroAndTech'];
   for (const inst of INSTS.map(i => i.k)) {
     const D = days.filter(e => e.inst === inst), row = {};
@@ -317,6 +381,13 @@ function summarise(log, B, SW) {
         ci95: [r2(ci[0] * 100), r2(ci[1] * 100)], chancePct: exp == null ? null : r2(exp * 100),
         p: g.length && exp != null ? Math.round(binomUpper(g.length, hits, exp) * 1000) / 1000 : null };
     }
+    { const g = DL.filter(f => f.study === 'big' && f.graded && (f.graded.biasResult === 'hit' || f.graded.biasResult === 'miss'));
+      const hits = g.filter(f => f.graded.biasResult === 'hit').length, ci = wilson(hits, g.length);
+      const exp = g.length ? g.reduce((a, f) => a + (f.bias.lean === 'UP' ? f.bias.out.base : 1 - f.bias.out.base), 0) / g.length : null;
+      PD.bigDirection = { made: DL.filter(f => f.study === 'big' && f.bias && f.bias.lean).length, graded: g.length, hits, hitPct: pct(hits, g.length),
+        ci95: [r2(ci[0] * 100), r2(ci[1] * 100)], chancePct: exp == null ? null : r2(exp * 100),
+        p: g.length && exp != null ? Math.round(binomUpper(g.length, hits, exp) * 1000) / 1000 : null,
+        rule: 'on big-move sessions only: close vs previous close in the named direction; chance = its own 2019+ up-share on big-move days' }; }
     const lastD = DL.slice().sort((a, b) => a.target < b.target ? -1 : 1).pop();
     if (B[inst]) { const bb = B[inst], N = bb.length, tr = [];
       let up = 0, n = 0; for (let i = Math.max(1, N - 250); i < N; i++) { n++; if ((bb[i].c / bb[i - 1].c - 1) * 100 > FLAT) up++; }
@@ -343,17 +414,35 @@ function summarise(log, B, SW) {
   catch (e) { run.errors.push('page load failed: ' + e.message); }
   const B = {}, SW = {};
   for (const inst of INSTS) { try { B[inst.k] = bars(inst); } catch (e) { run.errors.push(inst.k + ': ' + e.message); } }
-  const nifty = B.NIFTY;
-  if (nifty && P) {
-    const target = nextSess(nifty[nifty.length - 1].date), horizonEnd = sessAdd(target, HORIZON - 1);
-    run.target = target;
+  if (P) {
     const have = new Set(log.entries.map(e => e.id));
     const turnKey = f => [f.inst, f.source, f.rawFrom || f.from, f.rawTo || f.to, f.type].join('|');
     const haveT = new Set(log.reversals.map(turnKey));
     const haveD = new Set(log.daily.map(f => f.id));
+    run.targets = {}; run.ms = {};
+    const tick = () => Date.now();
+    // (1) build every instrument's tables first (Astral turn table, Planet Lat/Lon, proven daily), so each
+    //     CONFIRMED check sees all the other instruments, each learned separately
+    const built = new Set();
+    P.E(`window.TN.swingPct=${SW_MIN}; window.TN.majPct=${SW_MAJ};`);
     for (const inst of INSTS) {
       const bb = B[inst.k]; if (!bb) continue;
       try { SW[inst.k] = swingsOf(P, bb); } catch (e) { run.errors.push(inst.k + ' swings: ' + e.message); }
+      if (Date.now() - T0 > BUDGET_MS) { run.errors.push(inst.k + ': deferred to the next run (time budget ' + Math.round(BUDGET_MS / 60000) + ' min)'); continue; }
+      const ms = run.ms[inst.k] = {}; let t = tick();
+      try { await P.E(`tnLoad(${JSON.stringify(inst.k)})`); } catch (e) {} ms.astral = tick() - t; t = tick();
+      P.ctx.__q = { plan: inst.plan };
+      try { await P.E(`tnLfBuild(tnLfKey(__q.plan,'lat'),__q.plan,'lat')`); } catch (e) {} ms.latlon = tick() - t; t = tick();
+      P.ctx.__q = { k: inst.k };
+      try { await P.E(`dpBuild(__q.k,'lahiri')`); } catch (e) {} ms.daily = tick() - t;
+      built.add(inst.k);
+      console.log(`  built ${inst.k.padEnd(9)} astral ${(ms.astral / 1000).toFixed(1)}s · lat/lon ${(ms.latlon / 1000).toFixed(1)}s · daily ${(ms.daily / 1000).toFixed(1)}s · total ${((Date.now() - T0) / 1000).toFixed(0)}s`);
+    }
+    // (2) predict: each instrument's next session is the weekday after ITS OWN last bar
+    for (const inst of INSTS) {
+      const bb = B[inst.k]; if (!bb || !built.has(inst.k)) continue;
+      const target = nextSess(bb[bb.length - 1].date), horizonEnd = sessAdd(target, HORIZON - 1);
+      run.targets[inst.k] = target; if (inst.k === 'NIFTY') run.target = target;
       // never overwrite: a prediction is frozen once written
       if (!have.has(target + '|' + inst.k)) {
         try {
@@ -371,6 +460,7 @@ function summarise(log, B, SW) {
         for (const f of D) { if (haveD.has(f.id)) continue; haveD.add(f.id); log.daily.push(f); run.dailyAdded++; }
       } catch (e) { run.errors.push(inst.k + ' proven daily: ' + e.message); }
     }
+    if (!run.target) run.target = Object.values(run.targets).sort().pop() || null;
   }
   for (const f of log.daily) { if (f.graded || !B[f.inst]) continue;
     try { const g = gradeDaily(f, B[f.inst]); if (g) { f.graded = g; run.dailyGraded++; } } catch (x) { run.errors.push(f.id + ' grade: ' + x.message); } }
@@ -386,16 +476,17 @@ function summarise(log, B, SW) {
   log.runs.push(run); log.runs = log.runs.slice(-60);
   const S = summarise(log, B, SW); S.lastRun = run;
   fs.mkdirSync(OUT, { recursive: true });
-  fs.writeFileSync(logP, JSON.stringify(log, null, 1) + '\n');
-  fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(S, null, 1) + '\n');
+  const put = (p, o) => { fs.writeFileSync(p + '.tmp', JSON.stringify(o, null, 1) + '\n'); fs.renameSync(p + '.tmp', p); };   // never a half-written file
+  put(logP, log);
+  put(path.join(OUT, 'summary.json'), S);
 
   // concise console report
-  console.log(`forward test · target ${run.target} · +${run.added} day forecasts · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded}`);
-  for (const e of log.entries.filter(e => e.target === run.target))
+  console.log(`forward test · ${((Date.now() - T0) / 1000).toFixed(0)}s · targets ${Object.entries(run.targets || {}).map(([k, t]) => k + ' ' + t).join(', ')} · +${run.added} day forecasts · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded}`);
+  for (const e of log.entries.filter(e => (run.targets || {})[e.inst] === e.target))
     console.log(`  ${e.inst.padEnd(9)} astro ${String(e.astro.score).padStart(4)} ${e.astro.band.padEnd(18)} tech ${String(e.tech.net).padStart(5)} → astroOnly ${e.calls.astroOnly} techOnly ${e.calls.techOnly} filter ${e.calls.techWithAstroFilter} both ${e.calls.astroAndTech} vol ${e.vol}`);
   for (const [k, r] of Object.entries(S.direction))
     console.log(`  ${k.padEnd(9)} astroOnly ${r.astroOnly.hits}/${r.astroOnly.n} · techOnly ${r.techOnly.hits}/${r.techOnly.n} · always-bull ${r.alwaysBullish.hits}/${r.alwaysBullish.n} · turns ${Object.entries(S.turns[k]).map(([s, t]) => `${s} ${t.hits}/${t.graded} (${t.pending} pending)`).join(', ')}`);
-  for (const f of log.daily.filter(f => f.target === run.target)) console.log(`  ${f.inst.padEnd(9)} Proven daily ${f.study}: ${f.claim} — ${f.plain}`);
+  for (const f of log.daily.filter(f => (run.targets || {})[f.inst] === f.target)) console.log(`  ${f.inst.padEnd(9)} Proven daily ${f.study}: ${f.claim} — ${f.plain}`);
   for (const [k, r] of Object.entries(S.provenDaily)) console.log(`  ${k.padEnd(9)} proven daily ${['dir', 'big', 'gap'].map(s => `${s} ${r[s].hits}/${r[s].graded} vs ${r[s].chancePct == null ? '—' : r[s].chancePct + '%'} (${r[s].pending} pending)`).join(', ')}`);
   if (run.errors.length) console.log('  errors: ' + run.errors.join(' | '));
   process.exit(0);
