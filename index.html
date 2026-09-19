@@ -22353,6 +22353,43 @@ function reDetectSwings(bars, minPct, majPct, minIncl){
   return [...byDate.values()].sort((a,b)=>a.date<b.date?-1:1);
 }
 
+/* The leg still being drawn. The swing rule can only confirm a pivot once
+   price has reversed by the minor threshold, so the newest extreme is never in
+   the swing table — which reads as "the table stopped" in a long one-way leg.
+   This reports that leg explicitly: where it started, its extreme so far, and
+   the price that would confirm the extreme as a swing. Informational only:
+   it is never graded and never enters the statistics. */
+function rePendingLeg(bars, thr){
+  try{
+    const zz=reZigzag(bars, thr.minPct);
+    if(zz.length<2) return null;
+    const cur=zz[zz.length-1], prev=zz[zz.length-2];
+    if(!cur.prov) return null;
+    const last=bars[bars.length-1];
+    const isL=cur.type==='L';                           // falling leg hunting a LOW
+    const confirm=isL ? cur.price*(1+thr.minPct/100) : cur.price*(1-thr.minPct/100);
+    const legPct=Math.abs(reLegPct(prev,cur));
+    return {type:cur.type, date:bars[cur.i].date, price:+cur.price.toFixed(2),
+            fromDate:bars[prev.i].date, fromPrice:+prev.price.toFixed(2), legPct:+legPct.toFixed(2),
+            lastDate:last.date, lastClose:last.c,
+            since:+(((last.c-cur.price)/cur.price)*100).toFixed(2),
+            confirm:+confirm.toFixed(2), minPct:thr.minPct};
+  }catch(e){ return null; }
+}
+function rePendingRowHTML(m, cols){
+  const p=m && m.pending; if(!p) return '';
+  const isL=p.type==='L', col=isL?'var(--bull)':'var(--bear)';
+  return `<tr style="background:var(--bg2)"><td colspan="${cols}" style="font-size:11.5px;line-height:1.55">
+    <b style="color:var(--neut)">⏳ LEG IN PROGRESS</b> —
+    ${isL?'falling':'rising'} since the ${isL?'high':'low'} of <b>${p.fromDate}</b> (${p.fromPrice.toLocaleString('en-IN')}):
+    ${isL?'lowest':'highest'} so far <b style="color:${col}">${p.date}</b> at ${p.price.toLocaleString('en-IN')}
+    (${isL?'−':'+'}${p.legPct.toFixed(2)}%). Last close ${p.lastDate} ${(+p.lastClose).toLocaleString('en-IN')}
+    (${p.since>=0?'+':''}${p.since.toFixed(2)}% from that ${isL?'low':'high'}).
+    <span style="color:var(--tx3)">It becomes a swing ${isL?'low':'high'} only after a ${p.minPct}% ${isL?'bounce':'fall'} —
+    a close ${isL?'above':'below'} ~${p.confirm.toLocaleString('en-IN')}. Smaller counter-moves inside the leg
+    are not swings under this rule table. Not graded.</span></td></tr>`;
+}
+
 /* ── UPLOADED SWINGS (PRD "Input Data") ──────────────────────────────────────
    The PRD's input is a sheet of historical swing dates
    (Date · Instrument · Swing · Price · % Move). Three layouts are read:
@@ -23671,7 +23708,7 @@ async function reBuildModel(instKey,opts){
     ay, tod, years, span, orbMul:(window.RE.orbMul||1), book, swingSrc, fileInfo, agreement,
     lastBar:{date:dates[dates.length-1], live:liveBar?{date:liveBar.date,c:liveBar.c}:null, tail:tail?{date:tail.date,src:tail.src,baked:tail.baked}:null},
     from:dates[0], to:dates[dates.length-1], nBars:dates.length,
-    bars, dates, swings, swingSet, swingInfo, dayWin,
+    bars, dates, swings, swingSet, swingInfo, dayWin, pending:rePendingLeg(bars,thr),
     stats:TS.stats, base:TS.base, nSw:TS.nSw, classN:TS.classN, classBase:TS.classBase,
     baseTop:reBaseTopMaj({classN:TS.classN,nSw:TS.nSw}).baseTop, baseMaj:reBaseTopMaj({classN:TS.classN,nSw:TS.nSw}).baseMaj,
     fdr:{fam:TS.fam, nRaw:TS.nRaw, nRel:TS.nRel, q:RE_FDR_Q, chance},
@@ -23750,7 +23787,7 @@ function rePack(m, level){
   const dayScores=m.dayScores.filter(d=>d.isSwing).map(d=>({date:d.date,raw:d.raw,dir:d.dir,mag:d.mag,isSwing:true,type:d.type,cls:d.cls,rps:d.rps}));
   return {v:RE_PACK_V, level, key:m.key, label:m.label, sym:m.sym, kind:m.kind, thr:m.thr, src:m.src, ay:m.ay, tod:m.tod, years:m.years, span:m.span,
     orbMul:m.orbMul, book:m.book, swingSrc:m.swingSrc, fileInfo:m.fileInfo, agreement:m.agreement, lastBar:m.lastBar,
-    from:m.from, to:m.to, nBars:m.nBars, swings:m.swings, base:m.base, nSw:m.nSw, classN:m.classN, classBase:m.classBase, fdr:m.fdr,
+    from:m.from, to:m.to, nBars:m.nBars, swings:m.swings, pending:m.pending||null, base:m.base, nSw:m.nSw, classN:m.classN, classBase:m.classBase, fdr:m.fdr,
     calib:m.calib, wf:m.wf, nEvents:m.nEvents, built:m.built,
     names, statKeys:keys, stats, combos, swingWin, dayScores, sortedRaw:m.sortedRaw.map(v=>Math.round(v*10000)/10000)};
 }
@@ -24225,7 +24262,7 @@ function reSwingTableHTML(m){
     <div class="ts" style="max-height:520px;overflow:auto"><table class="tbl"><thead><tr>
       <th>Swing date</th><th>Pivot</th><th>Class</th><th style="text-align:right">Price</th>
       <th style="text-align:right">Correction that followed</th><th style="text-align:right">Prior leg</th>
-      <th>Reversal completed</th><th style="text-align:right">Bars</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <th>Reversal completed</th><th style="text-align:right">Bars</th><th>Source</th></tr></thead><tbody>${rePendingRowHTML(m,20)}${rows}</tbody></table></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--tx3);margin-top:6px">
       <span>Newest first. “Correction that followed” is the % move from this pivot into the next opposite pivot — the number the ${m.thr.label} rule is applied to. ${m.src&&/yahoo/i.test(m.src)?'Yahoo prices are split/dividend adjusted.':''}</span>
       <button class="ci" style="cursor:pointer;padding:3px 8px" onclick="reExport('swings')">⬇ swings CSV</button></div>`;
@@ -24283,7 +24320,7 @@ function reValidationHTML(m){
       <th style="text-align:right" title="score rank inside its walk-forward fold, from weights fitted on earlier data only">OOS<br><i style="font-weight:400;color:var(--tx3)">fold rank</i></th>
       <th>Detected astro events &nbsp;<i style="font-weight:400;color:var(--tx3)">[−${m.span}…+${m.span}] · lift · started / peak / active / completed</i></th>
       <th>Historical match</th>
-    </tr></thead><tbody>${rows}</tbody></table></div>
+    </tr></thead><tbody>${rePendingRowHTML(m,6)}${rows}</tbody></table></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--tx3);margin-top:6px">
       <span>showing ${shown.length} of ${list.length} swings</span>
       ${list.length>180?`<a style="cursor:pointer;color:var(--acc)" onclick="S.reValAll='${all?'0':'1'}';rePaintAll()">${all?'show newest 180':'show all'}</a>`:''}
