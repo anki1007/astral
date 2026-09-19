@@ -9985,6 +9985,9 @@ async function tnLfBuild0(key, inst, mode){
     if(bars.length<200) throw new Error(`only ${bars.length} daily bars for ${inst}`);
     await reYield();
     const swings=reDetectSwings(bars,thr.minPct,thr.majPct,thr.minIncl);
+    // swing days by date, so the latitude table can mark the day the market turned
+    R.swingByDs={}; swings.forEach(s=>{ R.swingByDs[s.date]=s; });
+    try{ R.pendLeg=rePendingLeg(bars,thr); }catch(e){ R.pendLeg=null; }
     const N=bars.length, piv=new Array(N).fill(null);
     swings.forEach(s=>{ const i=(s.i!=null&&bars[s.i]&&bars[s.i].date===s.date)?s.i:tnIdx(bars,s.date); if(i>=0) piv[i]=s; });
     let lastP=-1; for(let i=0;i<N;i++) if(piv[i]) lastP=i;
@@ -10138,9 +10141,15 @@ function tnLfRows(R,only,cols){
       const rr=R.mode==='lon'&&(b==='Rahu'||b==='Ketu'||reAngDiff(R.V[b][Math.min(d+1,R.nD-1)],R.V[b][Math.max(d-1,0)])<0)&&b!=='Sun'&&b!=='Moon'?'<span style="color:var(--bear)">℞</span>':'';
       tds+=`<td style="text-align:right;color:${PLAN_COL[b]||'var(--tx1)'}">${v.toFixed(2)}°${rr}</td>`; }
     const parts=(ev||[]).map(e=>tnLfEntry(e,R)); if(ds>R.lastBar) parts.push(tnLfFutCell(R,d));
+    // the day the market itself turned: planet values on this row are the ones to study
+    const sw=R.swingByDs&&R.swingByDs[ds], pl=R.pendLeg&&R.pendLeg.date===ds?R.pendLeg:null;
+    if(sw){ const top=sw.type==='H';
+      parts.unshift(`<b style="color:${top?'var(--bear)':'var(--bull)'}">${top?'▲':'▼'} SWING ${sw.cls} ${top?'TOP':'BOTTOM'} here · ${sw.price.toLocaleString('en-IN')} · then ${top?'−':'+'}${sw.mag.toFixed(2)}%</b>`); }
+    else if(pl){ parts.unshift(`<b style="color:var(--neut)">⏳ ${pl.type==='L'?'lowest':'highest'} so far · ${pl.price.toLocaleString('en-IN')} · ${pl.type==='L'?'−':'+'}${pl.legPct.toFixed(2)}% from ${pl.fromDate} (not confirmed as a swing yet)</b>`); }
     const cell=parts.length?`<td style="white-space:nowrap;line-height:1.45">${parts.join('<br>')}</td>`:'<td style="color:var(--tx3)">—</td>';
-    return `<tr><td style="white-space:nowrap;min-width:84px">${ds}</td>${tds}${cell}</tr>`; };
-  for(let d=R.nD-1; d>=0; d--){ const ds=R.dsA[d]; if(ds<R.s0||ds>R.lastBar) continue; if(only&&!R.evByDs[ds]) continue; past.push(row(d)); }
+    const hl=sw?` style="background:${sw.type==='H'?'rgba(255,60,80,.10)':'rgba(0,200,120,.10)'}"`:pl?' style="background:rgba(255,190,60,.10)"':'';
+    return `<tr${hl}><td style="white-space:nowrap;min-width:84px">${ds}</td>${tds}${cell}</tr>`; };
+  for(let d=R.nD-1; d>=0; d--){ const ds=R.dsA[d]; if(ds<R.s0||ds>R.lastBar) continue; if(only&&!R.evByDs[ds]&&!(R.swingByDs&&R.swingByDs[ds])&&!(R.pendLeg&&R.pendLeg.date===ds)) continue; past.push(row(d)); }
   for(let d=0; d<R.nD; d++){ const ds=R.dsA[d]; if(ds<=R.lastBar||ds>R.end) continue; if(only&&!R.evByDs[ds]&&!((tnLfDay(R,d)||{}).pass)) continue; fut.push(row(d)); }
   return (R.html[hk]={past:past.join(''),fut:fut.join(''),nP:past.length,nF:fut.length});
 }
@@ -18447,6 +18456,19 @@ function acPolyPrim(lines){             // price-unit polylines on a pane, clipp
     }
     ctx.setLineDash([]); ctx.restore(); } };
 }
+/* A visible gutter at the top of a lower pane, so an indicator pane reads as
+   separate from the price pane (the library's own divider is a 1 px border it
+   resets on every layout). Painted across the plot in the page background
+   with an accent rule under it; the pane's top margin keeps lines below it. */
+function acGapPrim(px){
+  return { zOrder(){ return 'top'; }, draw(ctx,rc){
+    const dpr=rc.dpr||1, W=(rc.plotWidth+80)*dpr, g=(px||12)*dpr;
+    ctx.save();
+    ctx.fillStyle=acColor('var(--bg0)'); ctx.fillRect(0,0,W,g);
+    ctx.fillStyle=acAlpha('var(--acc)',0.8); ctx.fillRect(0,g-Math.max(1,dpr),W,Math.max(1,dpr));
+    ctx.fillRect(0,0,W,Math.max(1,dpr));
+    ctx.restore(); } };
+}
 function acTextPrim(t){            // free text anchored to a corner
   return { zOrder(){ return 'top'; }, draw(ctx,rc){
     const dpr=rc.dpr||1, W=rc.plotWidth*dpr, H=rc.plotHeight*dpr;
@@ -18661,12 +18683,13 @@ function astralChart(host, spec){
       const z=ch.addSeries('line',{paneIndex:1, priceScaleId:'right', style:{color:acAlpha('var(--tx3)',0.7),lineWidth:0.8,lineStyle:'dashed',priceLineVisible:false,lastValueVisible:false}});
       z.setData([{time:times[0],value:0},{time:times[times.length-1],value:0}]);
     }
-    if(spec.lower.title) add(acTextPrim({text:spec.lower.title,align:'center',y:4,fontPx:11,bold:true,color:'var(--tx2)'}),1);
+    add(acGapPrim(12),1);
+    if(spec.lower.title) add(acTextPrim({text:spec.lower.title,align:'center',y:17,fontPx:11,bold:true,color:'var(--tx2)'}),1);
     try{ ch.setPaneWeight(0, spec.lower.weightTop==null?1:spec.lower.weightTop); ch.setPaneWeight(1, spec.lower.weight==null?1:spec.lower.weight); }catch(e){}
     // indicator-style split: each pane autoscales on its own right scale; margins keep candles and the
     // lower pane's title clear of the divider. Pane heights are weights, so the SIZE buttons scale both.
     try{ const P=ch.panes(); if(P[0]&&P[0].priceScale) P[0].priceScale.setOptions({marginTop:0.09,marginBottom:0.07});
-      if(P[1]&&P[1].priceScale) P[1].priceScale.setOptions({marginTop:0.16,marginBottom:0.06}); }catch(e){}
+      if(P[1]&&P[1].priceScale) P[1].priceScale.setOptions({marginTop:0.22,marginBottom:0.06}); }catch(e){}
   }
   const panesFor=p=>p==='all'?(lowerIdx!=null?[0,1]:[0]):[p||0];
 
