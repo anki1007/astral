@@ -10329,7 +10329,7 @@ function tnLfPeers(R){ const C=window.TN.lf||{};
     err:[C[tnLfKey(i,'lat')],C[tnLfKey(i,'lon')]].some(x=>x&&x.status==='error')})); }
 function tnLfConfirmed(R,k){ return tnLfPeers(R).filter(p=>p.P&&p.P.PV.keys.has(k)).map(p=>tnLfInstName(p.i)); }
 function tnLfRuns(ds){ const out=[]; for(const d of ds){ const r=out[out.length-1]; if(r&&reShift(r[1],1)===d) r[1]=d; else out.push([d,d]); }
-  return out.map(r=>r[0]===r[1]?r[0]:r[0]+' → '+r[1].slice(5)); }
+  return out.map(r=>r[0]===r[1]?r[0]:r[0]+' → '+fmtD(r[1],false)); }
 function tnLfLabCol(lab){ return lab==='TOP'?'var(--bear)':lab==='BOTTOM'?'var(--bull)':'var(--neut)'; }
 function tnLfProvenHTML(R){ const PV=R.PV; if(!PV) return '';
   const peers=tnLfPeers(R), P=tnPct, M=PV.proven.length, T=PV.tri;
@@ -17653,7 +17653,7 @@ function dpRowHTML(R,tg,r,kind,dS,todayOk){
     <td style="white-space:nowrap">${r.tr.n} / ${r.oos.n}</td>
     <td>${conf.length?conf.map(c=>`<span style="color:var(--bull);font-weight:700">✓ ${c}</span>`).join(' '):'<span style="color:var(--tx3)">—</span>'}</td>
     <td style="font-weight:700;color:${on?'var(--acc)':'var(--tx3)'}">${todayOk?(on?'ACTIVE':'no'):'—'}</td>
-    <td style="font-size:10.5px;white-space:normal;min-width:140px">${nx.length?nx.map(d=>d.slice(5)).join(', '):'<span style="color:var(--tx3)">none in 60 days</span>'}</td>${tg.id==='big'?`<td style="white-space:nowrap;font-size:10.5px">${dpBiasCell(r)}</td>`:''}</tr>`;
+    <td style="font-size:10.5px;white-space:normal;min-width:140px">${nx.length?nx.map(d=>fmtD(d,false)).join(', '):'<span style="color:var(--tx3)">none in 60 days</span>'}</td>${tg.id==='big'?`<td style="white-space:nowrap;font-size:10.5px">${dpBiasCell(r)}</td>`:''}</tr>`;
 }
 function dpTableHTML(R,tg,dS,todayOk){ const X=R.res[tg.id], nc=tg.id==='big'?10:9;
   const rows=X.proven.map(r=>dpRowHTML(R,tg,r,'proven',dS,todayOk)).join('')
@@ -17684,7 +17684,7 @@ function dpPanelHTML(){
     :'<span style="color:var(--tx3)">No proven pattern active today</span>'}</div>`;
   const sess=[]; for(let d=ds;sess.length<10&&todayOk;d=reShift(d,1)){ if(dpWk(d)) sess.push(d); if(d>reShift(ds,20)) break; }
   const look=`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;font-size:10.5px">${sess.map(d=>{ const L=dpTodayList(R,d), pv=L.filter(o=>!o.border);
-    return `<span title="${taEsc(L.map(o=>(o.border?'(borderline) ':'')+dpClaim(o.tg,o.r)+' — '+o.r.plain).join(' | ')||'no proven pattern active')}" style="padding:2px 6px;border-radius:3px;border:1px solid ${pv.length?'var(--acc)':'var(--bd)'};background:${pv.length?'var(--bg3)':'var(--bg2)'};color:${pv.length?'var(--tx0)':'var(--tx3)'};cursor:help">${d.slice(5)} ${pv.length?'★'+pv.length:L.length?'·?':'·'}</span>`; }).join('')}<span style="color:var(--tx3);align-self:center">next 10 sessions · ★ = proven pattern active</span></div>`;
+    return `<span title="${taEsc(L.map(o=>(o.border?'(borderline) ':'')+dpClaim(o.tg,o.r)+' — '+o.r.plain).join(' | ')||'no proven pattern active')}" style="padding:2px 6px;border-radius:3px;border:1px solid ${pv.length?'var(--acc)':'var(--bd)'};background:${pv.length?'var(--bg3)':'var(--bg2)'};color:${pv.length?'var(--tx0)':'var(--tx3)'};cursor:help">${fmtD(d,false)} ${pv.length?'★'+pv.length:L.length?'·?':'·'}</span>`; }).join('')}<span style="color:var(--tx3);align-self:center">next 10 sessions · ★ = proven pattern active</span></div>`;
   return `<div class="pnl">${head}<div class="pb">${note}${line}${today}${look}${DP_TGT.map(tg=>dpTableHTML(R,tg,dS,todayOk)).join('')}
     <div style="font-size:10px;color:var(--tx3);margin-top:6px;line-height:1.5">Proven = (i) Benjamini–Hochberg q &lt; 0.05 on 2000–2018 only; (ii) 2019 → last bar in the same direction, ≥${DP_MIN} active days, one-sided binomial p &lt; 0.05 ÷ (number that passed i), and p &lt; 0.05 on ISO-week blocks (each week's active days = one block, majority outcome); (iii) ≥3 points out of sample. CONFIRMED = the same pattern also passes (i) and (ii) at p &lt; 0.05 on another of the ${DP_INST.length} baked instruments (${DP_INST.map(x=>x[1]).join(' / ')}), each learned separately, never pooled. A study aid — nothing here is a recommendation.</div></div></div>`;
 }
