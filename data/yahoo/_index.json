@@ -1,55 +1,15 @@
 {
- "generated": "2026-09-19T12:23:29Z",
+ "generated": "2026-09-19T19:58:49Z",
  "source": "yahoo v8 chart (daily)",
- "instruments": {
-  "GOLD": {
-   "yahoo": "GC=F",
-   "from": "2000-08-30",
-   "to": "2026-09-18",
-   "count": 6537
-  },
-  "SILVER": {
-   "yahoo": "SI=F",
-   "from": "2000-08-30",
-   "to": "2026-09-18",
-   "count": 6539
-  },
-  "COPPER": {
-   "yahoo": "HG=F",
-   "from": "2000-08-30",
-   "to": "2026-09-18",
-   "count": 6542
-  },
-  "CRUDE": {
-   "yahoo": "CL=F",
-   "from": "2000-08-23",
-   "to": "2026-09-18",
-   "count": 6544
-  },
-  "NATGAS": {
-   "yahoo": "NG=F",
-   "from": "2000-08-30",
-   "to": "2026-09-18",
-   "count": 6543
-  },
-  "DOW": {
-   "yahoo": "^DJI",
-   "from": "1998-01-02",
-   "to": "2026-09-18",
-   "count": 7222
-  },
-  "NASDAQ": {
-   "yahoo": "^IXIC",
-   "from": "1998-01-02",
-   "to": "2026-09-18",
-   "count": 7222
-  },
-  "SPX": {
-   "yahoo": "^GSPC",
-   "from": "1998-01-02",
-   "to": "2026-09-18",
-   "count": 7222
-  }
- },
- "failures": []
+ "instruments": {},
+ "failures": [
+  "GOLD: gave up after 4 attempts",
+  "SILVER: gave up after 4 attempts",
+  "COPPER: gave up after 4 attempts",
+  "CRUDE: gave up after 4 attempts",
+  "NATGAS: gave up after 4 attempts",
+  "DOW: gave up after 4 attempts",
+  "NASDAQ: gave up after 4 attempts",
+  "SPX: gave up after 4 attempts"
+ ]
 }

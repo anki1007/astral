@@ -66,6 +66,227 @@
    "graded": null
   },
   {
+   "id": "2026-09-21|COPPER",
+   "target": "2026-09-21",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 6.615,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 3,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Above the Highs of the last 6 Total Days",
+      "dir": 1
+     }
+    ],
+    "setups": [],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|CRUDE",
+   "target": "2026-09-21",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 100.3,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 2,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed BELOW the 2-candle SMA",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level",
+     "Double top formed — watch the intermediate low"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|DOW",
+   "target": "2026-09-21",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 51682.6406,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": -1,
+    "dir": -1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day Low breached",
+      "dir": -1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": -1,
+    "techWithAstroFilter": -1,
+    "astroAndTech": -1
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
    "id": "2026-09-21|GOLD",
    "target": "2026-09-21",
    "inst": "GOLD",
@@ -135,6 +356,159 @@
     "techOnly": 1,
     "techWithAstroFilter": 0,
     "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|NASDAQ",
+   "target": "2026-09-21",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 26522.5391,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 2,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed ABOVE the 2-candle SMA",
+      "dir": -1
+     },
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Above the Highs of the last 6 Total Days",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|NATGAS",
+   "target": "2026-09-21",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 2.912,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": -1,
+    "dir": -1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day Low breached",
+      "dir": -1
+     }
+    ],
+    "setups": [
+     "Double bottom formed — watch the intermediate high"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": -1,
+    "techWithAstroFilter": -1,
+    "astroAndTech": -1
    },
    "vol": "normal",
    "graded": null
@@ -212,6 +586,167 @@
    },
    "vol": "normal",
    "graded": null
+  },
+  {
+   "id": "2026-09-21|SILVER",
+   "target": "2026-09-21",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 66.556,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 2,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed ABOVE the 2-candle SMA",
+      "dir": -1
+     },
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Above the Highs of the last 2 Total Days",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Double top formed — watch the intermediate low"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|SPX",
+   "target": "2026-09-21",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 7650.5,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 1.5,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed ABOVE the 2-candle SMA",
+      "dir": -1
+     },
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Breached the Total Day Low, then crossed its High",
+      "dir": 1
+     }
+    ],
+    "setups": [],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
   }
  ],
  "reversals": [
@@ -268,6 +803,213 @@
   },
   {
    "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-21..2026-10-30",
+   "from": "2026-09-21",
+   "to": "2026-11-03",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 84.2,
+   "days": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25",
+    "2026-09-28",
+    "2026-09-29",
+    "2026-09-30",
+    "2026-10-01",
+    "2026-10-02",
+    "2026-10-05",
+    "2026-10-06",
+    "2026-10-07",
+    "2026-10-08",
+    "2026-10-09",
+    "2026-10-12",
+    "2026-10-13",
+    "2026-10-14",
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Mars N-rising + Jupiter N-rising + Jupiter direct in Cancer: 33/36 days hit a ≥5% swing, 91.7% vs 38.2% chance, 5 of 9 swings were tops, 3 major",
+    "Mars N-rising + Mars direct in Cancer + Jupiter direct in Cancer: 30/30 days hit a ≥5% swing, 100.0% vs 43.9% chance, 4 of 8 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Mars direct in Cancer + Jupiter direct in Cancer: 31/32 days hit a ≥5% swing, 96.9% vs 44.0% chance, 5 of 9 swings were tops, 4 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|latlon|2026-09-17|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -315,6 +1057,108 @@
     "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; no measured edge)"
    ],
    "id": "GOLD|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-09-17|2026-09-24|TURN",
    "graded": null
   },
   {
@@ -371,6 +1215,32 @@
   {
    "source": "latlon",
    "inst": "NIFTY",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-21",
+   "from": "2026-09-21",
+   "to": "2026-09-23",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-23",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 30.2,
+   "days": [
+    "2026-09-21"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (not proven — past hits ≈ random chance)",
+    "Venus S-falling: 473/1485 days hit a ≥5% swing, 31.9% vs 25.4% chance, 70 of 132 swings were tops, 68 major (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Venus S-falling: 140/363 days hit a ≥5% swing, 38.6% vs 25.5% chance, 21 of 41 swings were tops, 20 major (not proven — past hits ≈ random chance)",
+    "Moon S-rising + Venus S-falling: 55/137 days hit a ≥5% swing, 40.1% vs 26.8% chance, 19 of 33 swings were tops, 17 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NIFTY|latlon|2026-09-17|2026-09-23|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
    "at": "2026-09-21..2026-09-30",
@@ -403,6 +1273,108 @@
   },
   {
    "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "BANKNIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -424,6 +1396,81 @@
     "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; no measured edge)"
    ],
    "id": "BANKNIFTY|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-09-22|2026-09-29|TURN",
    "graded": null
   },
   {
@@ -453,6 +1500,56 @@
   },
   {
    "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "NIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -474,6 +1571,111 @@
     "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; no measured edge)"
    ],
    "id": "NIFTY|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-28",
+   "from": "2026-09-24",
+   "to": "2026-09-30",
+   "rawFrom": "2026-09-24",
+   "rawTo": "2026-09-30",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 31.7,
+   "days": [
+    "2026-09-28"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (not proven — past hits ≈ random chance)",
+    "Venus S-falling: 473/1485 days hit a ≥5% swing, 31.9% vs 25.4% chance, 70 of 132 swings were tops, 68 major (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Venus S-falling: 140/363 days hit a ≥5% swing, 38.6% vs 25.5% chance, 21 of 41 swings were tops, 20 major (not proven — past hits ≈ random chance)",
+    "Venus S-falling + Moon direct in Pisces: 56/130 days hit a ≥5% swing, 43.1% vs 26.7% chance, 26 of 37 swings were tops, 18 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NIFTY|latlon|2026-09-24|2026-09-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-28..2026-10-01",
+   "from": "2026-09-24",
+   "to": "2026-10-05",
+   "rawFrom": "2026-09-24",
+   "rawTo": "2026-10-05",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 15.6,
+   "days": [
+    "2026-09-28",
+    "2026-09-29",
+    "2026-09-30",
+    "2026-10-01"
+   ],
+   "reasons": [
+    "state label TURN (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Rahu in Dhanishtha: 27/32 days hit a ≥5% swing, 84.4% vs 50.0% chance, 4 of 9 swings were tops, 2 major (not proven — past hits ≈ random chance)",
+    "Sun direct in Virgo + Mars direct in Cancer: 33/44 days hit a ≥5% swing, 75.0% vs 51.7% chance, 6 of 11 swings were tops, 4 major (not proven — past hits ≈ random chance)",
+    "Mars N-rising + Sun direct in Virgo + Mars direct in Cancer: 33/44 days hit a ≥5% swing, 75.0% vs 51.7% chance, 6 of 11 swings were tops, 4 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|latlon|2026-09-24|2026-10-05|TURN",
    "graded": null
   },
   {
@@ -505,6 +1707,87 @@
   },
   {
    "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -528,6 +1811,60 @@
     "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; no measured edge)"
    ],
    "id": "GOLD|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-09-29|2026-10-06|TURN",
    "graded": null
   },
   {
@@ -559,6 +1896,117 @@
   },
   {
    "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "GOLD",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-06..2026-10-09",
+   "from": "2026-10-02",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-02",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 24.9,
+   "days": [
+    "2026-10-06",
+    "2026-10-07",
+    "2026-10-08",
+    "2026-10-09"
+   ],
+   "reasons": [
+    "state label TURN (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Mars direct in Cancer: 56/172 days hit a ≥5% swing, 32.6% vs 21.3% chance, 10 of 17 swings were tops, 7 major (not proven — past hits ≈ random chance)",
+    "Moon crossing→S + Mercury S-falling + Mars direct in Cancer: 17/38 days hit a ≥5% swing, 44.7% vs 21.3% chance, 5 of 9 swings were tops, 4 major",
+    "Venus S-bottom + Jupiter N-rising: 13/38 days hit a ≥5% swing, 34.2% vs 16.1% chance, 3 of 5 swings were tops, 2 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "GOLD|latlon|2026-10-02|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-06..2026-10-08",
+   "from": "2026-10-02",
+   "to": "2026-10-12",
+   "rawFrom": "2026-10-02",
+   "rawTo": "2026-10-12",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 55.3,
+   "days": [
+    "2026-10-06",
+    "2026-10-07",
+    "2026-10-08"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (not proven — past hits ≈ random chance)",
+    "Venus S-falling: 473/1485 days hit a ≥5% swing, 31.9% vs 25.4% chance, 70 of 132 swings were tops, 68 major (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Venus S-falling: 140/363 days hit a ≥5% swing, 38.6% vs 25.5% chance, 21 of 41 swings were tops, 20 major (not proven — past hits ≈ random chance)",
+    "Moon crossing→S + Venus S-falling + Rahu retro in Aquarius: 26/36 days hit a ≥5% swing, 72.2% vs 34.7% chance, 7 of 13 swings were tops, 9 major"
+   ],
+   "id": "NIFTY|latlon|2026-10-02|2026-10-12|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "BANKNIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -582,6 +2030,87 @@
     "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; no measured edge)"
    ],
    "id": "BANKNIFTY|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-10-05|2026-10-13|TURN",
    "graded": null
   },
   {
@@ -613,6 +2142,60 @@
   },
   {
    "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "NIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -636,6 +2219,89 @@
     "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; no measured edge)"
    ],
    "id": "NIFTY|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-12..2026-10-15",
+   "from": "2026-10-08",
+   "to": "2026-10-19",
+   "rawFrom": "2026-10-08",
+   "rawTo": "2026-10-19",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 15.4,
+   "days": [
+    "2026-10-12",
+    "2026-10-13",
+    "2026-10-14",
+    "2026-10-15"
+   ],
+   "reasons": [
+    "state label TURN (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Rahu in Dhanishtha: 27/32 days hit a ≥5% swing, 84.4% vs 50.0% chance, 4 of 9 swings were tops, 2 major (not proven — past hits ≈ random chance)",
+    "Sun direct in Virgo + Mars direct in Cancer: 33/44 days hit a ≥5% swing, 75.0% vs 51.7% chance, 6 of 11 swings were tops, 4 major (not proven — past hits ≈ random chance)",
+    "Mars N-rising + Sun direct in Virgo + Mars direct in Cancer: 33/44 days hit a ≥5% swing, 75.0% vs 51.7% chance, 6 of 11 swings were tops, 4 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|latlon|2026-10-08|2026-10-19|TURN",
    "graded": null
   },
   {
@@ -702,6 +2368,108 @@
   },
   {
    "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-15",
+   "from": "2026-10-12",
+   "to": "2026-10-19",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-19",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 17.6,
+   "days": [
+    "2026-10-14",
+    "2026-10-15"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (not proven — past hits ≈ random chance)",
+    "Saturn in U.Bhadra: 146/192 days hit a ≥5% swing, 76.0% vs 63.3% chance, 30 of 60 swings were tops, 32 major (not proven — past hits ≈ random chance)",
+    "Venus S-rising + Sun direct in Virgo: 68/86 days hit a ≥5% swing, 79.1% vs 60.0% chance, 13 of 24 swings were tops, 10 major (not proven — past hits ≈ random chance)",
+    "Jupiter N-rising + Saturn in U.Bhadra: 81/89 days hit a ≥5% swing, 91.0% vs 74.7% chance, 20 of 39 swings were tops, 25 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|latlon|2026-10-12|2026-10-19|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -723,6 +2491,56 @@
     "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; no measured edge)"
    ],
    "id": "GOLD|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-10-12|2026-10-20|TURN",
    "graded": null
   },
   {
@@ -752,6 +2570,56 @@
   },
   {
    "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "BANKNIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -777,6 +2645,93 @@
     "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; no measured edge)"
    ],
    "id": "BANKNIFTY|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-10-15|2026-10-27|TURN",
    "graded": null
   },
   {
@@ -842,6 +2797,64 @@
   },
   {
    "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "NIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -871,6 +2884,154 @@
   },
   {
    "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-20..2026-10-23",
+   "from": "2026-10-16",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-16",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 32.1,
+   "days": [
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23"
+   ],
+   "reasons": [
+    "state label MAJOR BOTTOM (not proven — past hits ≈ random chance)",
+    "Venus retro in Libra combust: 15/23 days hit a ≥5% swing, 65.2% vs 19.9% chance, 2 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Sun direct in Libra + Venus retro in Libra combust: 15/23 days hit a ≥5% swing, 65.2% vs 19.9% chance, 2 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Venus S-rising + Venus retro in Libra combust: 15/23 days hit a ≥5% swing, 65.2% vs 19.9% chance, 2 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NIFTY|latlon|2026-10-16|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-23..2026-10-30",
+   "from": "2026-10-21",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-21",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 19.7,
+   "days": [
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (not proven — past hits ≈ random chance)",
+    "Mercury S-rising + Mars direct in Cancer: 65/80 days hit a ≥5% swing, 81.3% vs 54.9% chance, 9 of 20 swings were tops, 12 major (not proven — past hits ≈ random chance)",
+    "Saturn in U.Bhadra: 146/192 days hit a ≥5% swing, 76.0% vs 63.3% chance, 30 of 60 swings were tops, 32 major (not proven — past hits ≈ random chance)",
+    "Jupiter N-rising + Saturn in U.Bhadra: 81/89 days hit a ≥5% swing, 91.0% vs 74.7% chance, 20 of 39 swings were tops, 25 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|latlon|2026-10-21|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-23..2026-10-30",
+   "from": "2026-10-21",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-21",
+   "rawTo": "2026-11-03",
+   "type": "MAJOR TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 27.8,
+   "days": [
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Mercury in Vishakha: 230/260 days hit a ≥5% swing, 88.5% vs 78.9% chance, 58 of 113 swings were tops, 72 major",
+    "Venus S-rising + Venus in Swati: 43/46 days hit a ≥5% swing, 93.5% vs 69.3% chance, 7 of 15 swings were tops, 8 major (not proven — past hits ≈ random chance)",
+    "Venus S-rising + Saturn S-rising: 243/264 days hit a ≥5% swing, 92.0% vs 84.0% chance, 51 of 106 swings were tops, 70 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|latlon|2026-10-21|2026-11-03|MAJOR TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "BANKNIFTY",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -891,6 +3052,107 @@
     "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; no measured edge)"
    ],
    "id": "BANKNIFTY|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-26..2026-10-30",
+   "from": "2026-10-22",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-11-03",
+   "type": "BOTTOM",
+   "edge": true,
+   "pick": "measured label",
+   "score": 27.9,
+   "days": [
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Moon N-peak + Venus in Chitra: 33/53 days hit a ≥5% swing, 62.3% vs 34.5% chance, 5 of 15 swings were tops, 7 major",
+    "Saturn S-rising + Saturn in U.Bhadra: 26/40 days hit a ≥5% swing, 65.0% vs 35.4% chance, 4 of 8 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Venus in Chitra: 109/265 days hit a ≥5% swing, 41.1% vs 31.3% chance, 16 of 36 swings were tops, 13 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|latlon|2026-10-22|2026-11-03|BOTTOM",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-10-22|2026-10-30|TURN",
    "graded": null
   },
   {
@@ -918,6 +3180,113 @@
    "graded": null
   },
   {
+   "source": "latlon",
+   "inst": "GOLD",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-26..2026-10-30",
+   "from": "2026-10-22",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 18.9,
+   "days": [
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "state label TURN (not proven — past hits ≈ random chance)",
+    "Mercury S-rising + Saturn in U.Bhadra: 38/55 days hit a ≥5% swing, 69.1% vs 41.6% chance, 7 of 13 swings were tops, 6 major (not proven — past hits ≈ random chance)",
+    "Venus in Chitra + Ketu in Magha: 14/16 days hit a ≥5% swing, 87.5% vs 39.0% chance, 3 of 5 swings were tops, 2 major (not proven — past hits ≈ random chance)",
+    "Mars in Ashlesha: 77/262 days hit a ≥5% swing, 29.4% vs 20.6% chance, 9 of 20 swings were tops, 7 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "GOLD|latlon|2026-10-22|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-26..2026-10-30",
+   "from": "2026-10-22",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-11-03",
+   "type": "MAJOR TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 54,
+   "days": [
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Venus in Chitra: 112/253 days hit a ≥5% swing, 44.3% vs 26.6% chance, 15 of 33 swings were tops, 19 major",
+    "Moon N-peak + Venus in Chitra: 33/49 days hit a ≥5% swing, 67.3% vs 28.4% chance, 6 of 16 swings were tops, 10 major (not proven — past hits ≈ random chance)",
+    "Jupiter direct in Cancer + Rahu retro in Aquarius: 30/55 days hit a ≥5% swing, 54.5% vs 21.2% chance, 4 of 7 swings were tops, 3 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|latlon|2026-10-22|2026-11-03|MAJOR TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
    "source": "astral",
    "inst": "NIFTY",
    "made": "2026-09-19T17:01:04.776Z",
@@ -939,6 +3308,54 @@
     "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; no measured edge)"
    ],
    "id": "NIFTY|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-10-22|2026-10-30|TURN",
    "graded": null
   },
   {
@@ -969,6 +3386,84 @@
   },
   {
    "source": "astral",
+   "inst": "COPPER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.716,
+    "base": 0.713
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "CRUDE",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1612,
+    "rate": 0.905,
+    "base": 0.903
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1768,
+    "rate": 0.465,
+    "base": 0.463
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-09-19T17:01:04.776Z",
    "asOf": "2026-09-18",
@@ -991,6 +3486,58 @@
     "2026-10-30 Venus rises (combustion ends) in the East (book TURN; no measured edge)"
    ],
    "id": "GOLD|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NASDAQ",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1771,
+    "rate": 0.618,
+    "base": 0.623
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NASDAQ|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NATGAS",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.962,
+    "base": 0.963
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NATGAS|astral|2026-10-28|2026-11-03|TURN",
    "graded": null
   },
   {
@@ -1018,6 +3565,58 @@
    ],
    "id": "NIFTY|astral|2026-10-28|2026-11-03|TURN",
    "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SILVER",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.682,
+    "base": 0.692
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SILVER|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "SPX",
+   "made": "2026-09-19T19:58:53.970Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1769,
+    "rate": 0.475,
+    "base": 0.473
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; not proven — past hits ≈ random chance)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "SPX|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
   }
  ],
  "runs": [
@@ -1038,6 +3637,139 @@
    "graded": 0,
    "turnsGraded": 0,
    "errors": []
+  },
+  {
+   "at": "2026-09-19T19:58:53.970Z",
+   "target": "2026-09-21",
+   "added": 7,
+   "turnsAdded": 77,
+   "graded": 0,
+   "turnsGraded": 0,
+   "dailyAdded": 1,
+   "dailyGraded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-09-21",
+    "BANKNIFTY": "2026-09-21",
+    "GOLD": "2026-09-21",
+    "SILVER": "2026-09-21",
+    "CRUDE": "2026-09-21",
+    "COPPER": "2026-09-21",
+    "NATGAS": "2026-09-21",
+    "DOW": "2026-09-21",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 19779,
+     "latlon": 15377,
+     "daily": 389777
+    },
+    "BANKNIFTY": {
+     "astral": 609,
+     "latlon": 1505,
+     "daily": 1681
+    },
+    "GOLD": {
+     "astral": 586,
+     "latlon": 1616,
+     "daily": 1596
+    },
+    "SILVER": {
+     "astral": 585,
+     "latlon": 1408,
+     "daily": 1715
+    },
+    "CRUDE": {
+     "astral": 583,
+     "latlon": 1498,
+     "daily": 1716
+    },
+    "COPPER": {
+     "astral": 625,
+     "latlon": 1531,
+     "daily": 1574
+    },
+    "NATGAS": {
+     "astral": 578,
+     "latlon": 1591,
+     "daily": 2102
+    },
+    "DOW": {
+     "astral": 2153,
+     "latlon": 1501,
+     "daily": 2157
+    },
+    "SPX": {
+     "astral": 641,
+     "latlon": 1716,
+     "daily": 1804
+    },
+    "NASDAQ": {
+     "astral": 645,
+     "latlon": 1506,
+     "daily": 2262
+    }
+   }
+  }
+ ],
+ "daily": [
+  {
+   "id": "2026-09-21|CRUDE|big|Mars N-rising + Jupiter direct in Cancer",
+   "source": "Proven daily",
+   "inst": "CRUDE",
+   "target": "2026-09-21",
+   "made": "2026-09-19T19:58:53.970Z",
+   "lastClose": 100.3,
+   "lastDate": "2026-09-18",
+   "study": "big",
+   "pattern": "Mars N-rising + Jupiter direct in Cancer",
+   "plain": "Mars north of the ecliptic, rising + Jupiter direct in Cancer",
+   "claim": "Big-move day less likely: 26.3% vs 62.3% · direction coin-flip",
+   "lean": "less",
+   "backtest": {
+    "in": {
+     "n": 91,
+     "rate": 0.1648,
+     "base": 0.4101,
+     "bhQ": 0.00011686895463753765
+    },
+    "out": {
+     "n": 38,
+     "rate": 0.2632,
+     "base": 0.6231,
+     "p": 0.000007125679845918778
+    },
+    "weeks": {
+     "n": 7,
+     "rate": 0.1429,
+     "base": 0.73,
+     "p": 0.002086521249932337
+    }
+   },
+   "base": 0.5,
+   "bigThrPct": 5.5863,
+   "confirmedOn": [],
+   "bias": {
+    "lean": null,
+    "claim": "direction coin-flip",
+    "inSample": {
+     "n": 15,
+     "upShare": 0.5333,
+     "base": 0.4719
+    },
+    "out": {
+     "n": 10,
+     "upShare": 0.5,
+     "base": 0.4701,
+     "p": 1
+    },
+    "days": 25,
+    "avgMovePct": -0.03,
+    "medMovePct": 0.57
+   },
+   "graded": null
   }
  ]
 }
