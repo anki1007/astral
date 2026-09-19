@@ -346,6 +346,7 @@ html,body{width:100%;min-height:100vh;background:var(--bg0);color:var(--tx0);fon
 .mv{color:var(--tx0);font-weight:700;font-size:11px}
 .nav{display:flex;flex-direction:column;background:var(--bg1);border-right:1px solid var(--bd);width:198px;flex-shrink:0;overflow-y:auto;overflow-x:hidden}
 .nb{background:none;border:none;color:var(--tx1);font-weight:700;padding:10px 14px;font-family:inherit;font-size:11.5px;cursor:pointer;border-left:3px solid transparent;border-bottom:1px solid var(--bd);white-space:nowrap;letter-spacing:.04em;transition:all .15s;text-align:left;width:100%;display:flex;align-items:center}
+a.nb{display:block;text-decoration:none;box-sizing:border-box}
 .nb:hover{color:var(--tx1);background:var(--bg2)}
 .nb.on{color:var(--acc);border-left-color:var(--acc);background:var(--bg3);font-weight:800}
 .main{padding:10px 16px;flex:1;display:flex;flex-direction:column;gap:10px;overflow-y:scroll;min-width:0}
@@ -4609,8 +4610,19 @@ function rNav(){
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
   </div>`;
-  document.getElementById('NAV').innerHTML=closeRow+tabs.map(([k,v])=>`<button class="nb${S.tab===k?' on':''}" onclick="gs({tab:'${k}'});navPick()">${v}</button>`).join('');
+  // Real links, so Ctrl/Cmd-click, middle-click and "Open in new tab" give a
+  // second browser tab on that view; a plain click still switches in place.
+  document.getElementById('NAV').innerHTML=closeRow+tabs.map(([k,v])=>`<a class="nb${S.tab===k?' on':''}" href="#tab=${k}" onclick="return navGo(event,'${k}')">${v}</a>`).join('');
+  try{ if(location.hash!=='#tab='+S.tab) history.replaceState(null,'','#tab='+S.tab); }catch(e){}
 }
+function navGo(ev,k){
+  if(ev && (ev.ctrlKey||ev.metaKey||ev.shiftKey||ev.button===1)) return true;   // let the browser open it
+  gs({tab:k}); navPick(); return false;
+}
+window.navGo=navGo;
+// open straight on the tab named in the URL (#tab=astral), e.g. a new browser tab
+(function tabFromHash(){ try{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m) S.tab=m[1]; }catch(e){} })();
+addEventListener('hashchange',()=>{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m && m[1]!==S.tab) gs({tab:m[1]}); });
 
 function rMain(){
   const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
@@ -8526,7 +8538,7 @@ function taLedgerHTML(ev, tech, limit, extra){
     return `<tr style="${r.excluded?'opacity:.55':''}">
       <td style="color:${c};font-weight:800;text-align:right;white-space:nowrap">${r.excluded?'○':r.dir>0?'▲':r.dir<0?'▼':'●'} ${r.excluded?'0.00':(r.dir*r.w).toFixed(2)}</td>
       <td style="color:var(--tx0)">${taEsc(r.name)}${r.vol?' <span class="pill" style="background:var(--neut3);color:var(--neut)">VOLATILE</span>':''}${r.turn?' <span class="pill" style="background:var(--bg3);color:var(--acc)">TURNING</span>':''}${r.info?' <span class="pill" style="background:var(--bg3);color:var(--tx3)">NOTE</span>':''}${why?'<div style="font-size:10px;color:var(--tx3)">'+why+'</div>':''}</td>
-      ${period?`<td style="font-size:10.5px;color:var(--tx2);white-space:nowrap">${r.daysActive||0}/${r.nDays||0}${r.activeFrom&&r.activeFrom!==r.activeTo?'<div style="color:var(--tx3)">'+r.activeFrom.slice(5)+' → '+r.activeTo.slice(5)+'</div>':r.activeFrom?'<div style="color:var(--tx3)">'+r.activeFrom.slice(5)+'</div>':''}</td>`:''}
+      ${period?`<td style="font-size:10.5px;color:var(--tx2);white-space:nowrap">${r.daysActive||0}/${r.nDays||0}${r.activeFrom&&r.activeFrom!==r.activeTo?'<div style="color:var(--tx3)">'+fmtD(r.activeFrom,false)+' → '+fmtD(r.activeTo,false)+'</div>':r.activeFrom?'<div style="color:var(--tx3)">'+fmtD(r.activeFrom,false)+'</div>':''}</td>`:''}
       <td style="font-size:10.5px;color:var(--acc3)">§ ${taEsc(r.sec)}</td>
       <td style="font-size:11px;color:var(--tx2)">${taEsc(r.detail||'')}</td></tr>`;
   }).join('');
@@ -9072,7 +9084,7 @@ function tAstral(){
   <div class="pnl"><div class="ph" data-noco><span class="dot"></span>✦ ASTRAL FORECAST</div>
     <div class="pb">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px">${taHonestyPill()}
-        <span style="font-size:11px;color:var(--tx2)">Reading for <b>${taEsc(RE_UNIV[taInst()]?RE_UNIV[taInst()].label:taInst())}</b> · class <b>${taEsc(cls)}</b>${cls==='equity'?' (Gold / Silver / Sugar prophecy chapters listed, not summed)':' (its own prophecy chapter is summed; the other commodities\' are not)'} · ${m?'backward test for these controls built '+m.built:'no backward test for these controls yet'}</span></div>
+        </div>
       <!-- controls on the left, horizon and view beside them -->
       <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
         <div style="display:grid;grid-template-columns:repeat(2,minmax(150px,210px));gap:8px 10px;align-items:start">
@@ -9395,7 +9407,7 @@ function planDrawSVG(kind){
   const spanD=(vt1-vt0)/PLAN_DAYMS; let xAxis='';
   if(spanD<70){ // day ticks
     let dms=Math.ceil(vt0/PLAN_DAYMS)*PLAN_DAYMS; const stepD=spanD<18?1:Math.ceil(spanD/14);
-    let cnt=0; for(let ms=dms; ms<=vt1; ms+=stepD*PLAN_DAYMS){ const x=X(ms); xAxis+=`<line x1="${x.toFixed(1)}" y1="${PADT}" x2="${x.toFixed(1)}" y2="${(topB+HB).toFixed(1)}" stroke="#08202a"/><text x="${x.toFixed(1)}" y="${(H-9)}" fill="var(--tx3)" font-size="8" text-anchor="middle">${planISO(ms).slice(5)}</text>`; if(++cnt>40)break; }
+    let cnt=0; for(let ms=dms; ms<=vt1; ms+=stepD*PLAN_DAYMS){ const x=X(ms); xAxis+=`<line x1="${x.toFixed(1)}" y1="${PADT}" x2="${x.toFixed(1)}" y2="${(topB+HB).toFixed(1)}" stroke="#08202a"/><text x="${x.toFixed(1)}" y="${(H-9)}" fill="var(--tx3)" font-size="8" text-anchor="middle">${fmtD(planISO(ms),false)}</text>`; if(++cnt>40)break; }
   } else { let my=new Date(vt0).getUTCFullYear(),mm=new Date(vt0).getUTCMonth(); const mstep=spanD>760?3:spanD>380?2:1; let mc=0,cnt=0;
     for(let g=0;g<120;g++){ const tickMs=Date.UTC(my,mm,1); if(tickMs>vt1)break; if(tickMs>=vt0&&(mc%mstep===0)){ const x=X(tickMs); xAxis+=`<line x1="${x.toFixed(1)}" y1="${PADT}" x2="${x.toFixed(1)}" y2="${(topB+HB).toFixed(1)}" stroke="#08202a"/><text x="${x.toFixed(1)}" y="${(H-9)}" fill="var(--tx3)" font-size="8" text-anchor="middle">${MON[mm]} ${String(my).slice(2)}</text>`; if(++cnt>40)break; } mc++; mm++; if(mm>11){mm=0;my++;} } }
 
@@ -9875,17 +9887,17 @@ function tnInnerHTML(){
     return `<span style="color:${col};font-weight:700">${L.label}</span>${L.edge?'':' <span style="color:var(--tx3);font-size:10px">no measured edge</span>'}${tr}`; };
   const futW=tnCluster(X.events.filter(e=>e.ds>=today&&e.ds<=reShift(today,TN_FWD)));
   const fut=futW.map(w=>{ const L=tnWinLabel(w,M);
-    return `<tr><td style="white-space:nowrap">${w.from.slice(5)}${w.to!==w.from?' → '+w.to.slice(5):''}</td><td>${labCell(w,L,trendNow)}</td><td style="font-size:10.5px">${prec(L)}</td>
+    return `<tr><td style="white-space:nowrap">${fmtD(w.from,false)}${w.to!==w.from?' → '+fmtD(w.to,false):''}</td><td>${labCell(w,L,trendNow)}</td><td style="font-size:10.5px">${prec(L)}</td>
       <td><details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">${w.ev.length} event${w.ev.length>1?'s':''} — why</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px">${why(w)}</ul></details></td></tr>`; }).join('');
   const pastW=tnCluster(X.events.filter(e=>e.ds>=reShift(today,-TN_BACK)&&e.ds<today));
   let pOk=0,pN=0;
   const past=pastW.slice().reverse().map(w=>{ const L=tnWinLabel(w,M), g=tnGradeWin(w,bars,M);
     const tr=tnTrend(bars,g.si>0?g.si-1:-1);
     let mark;
-    if(g.hit){ pN++; pOk++; mark=`<span style="color:var(--bull);font-weight:700">✓</span> <span style="color:var(--tx3)">${g.piv.cls==='MAJOR'?'major':'minor'} ${g.piv.type==='H'?'top':'bottom'} ${g.piv.date.slice(5)}${L.dir!=='Turn'?((L.dir==='Top')===(g.piv.type==='H')?' · type right':' · type wrong'):''}</span>`; }
+    if(g.hit){ pN++; pOk++; mark=`<span style="color:var(--bull);font-weight:700">✓</span> <span style="color:var(--tx3)">${g.piv.cls==='MAJOR'?'major':'minor'} ${g.piv.type==='H'?'top':'bottom'} ${fmtD(g.piv.date,false)}${L.dir!=='Turn'?((L.dir==='Top')===(g.piv.type==='H')?' · type right':' · type wrong'):''}</span>`; }
     else if(g.pending) mark='<span style="color:var(--tx3)">⏳ unconfirmed</span>';
     else { pN++; mark='<span style="color:var(--bear);font-weight:700">✗</span> <span style="color:var(--tx3)">no swing within ±2</span>'; }
-    return `<tr><td style="white-space:nowrap">${w.from.slice(5)}${w.to!==w.from?' → '+w.to.slice(5):''}</td><td>${labCell(w,L,tr)}</td><td>${mark}</td><td style="font-size:10.5px;color:var(--tx3)" title="${tnEsc(w.ev.map(e=>e.what).join(' · '))}">${w.ev.length} ev</td></tr>`; }).join('');
+    return `<tr><td style="white-space:nowrap">${fmtD(w.from,false)}${w.to!==w.from?' → '+fmtD(w.to,false):''}</td><td>${labCell(w,L,tr)}</td><td>${mark}</td><td style="font-size:10.5px;color:var(--tx3)" title="${tnEsc(w.ev.map(e=>e.what).join(' · '))}">${w.ev.length} ev</td></tr>`; }).join('');
   const typeRows=M.list.map(t=>`<tr style="${t.edge?'':'opacity:.55'}"><td>${tnEsc(t.name)}</td><td style="text-align:right">${t.n}</td><td style="text-align:right">${tnPct(t.rate)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(M.base)}</td>
     <td style="text-align:right;color:var(--tx3)">${tnPct(t.ci[0])}–${tnPct(t.ci[1])}</td><td style="text-align:right">${tnPfmt(t.p)}</td>
     <td style="text-align:right">${tnPct(t.majShare)} <span style="color:var(--tx3)">/${tnPct(M.baseMaj)}</span></td><td style="text-align:right">${tnPct(t.topShare)} <span style="color:var(--tx3)">/${tnPct(M.baseTop)}</span></td>
@@ -9975,7 +9987,7 @@ function planChart(kind){
   if(kind==='lon' && D && D.sjSegments && D.sjSegments.length){
     const DOWN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
     const rows=D.sjSegments.map(sg=>{ const col=SJ_ANGLE_COL[sg.angle]||'var(--neut2)';
-      const wkLbl=planISO(sg.monMs).slice(5)+' → '+planISO(sg.friMs).slice(5);
+      const wkLbl=fmtD(planISO(sg.monMs),false)+' → '+fmtD(planISO(sg.friMs),false);
       const sup=sg.support!=null?Math.round(sg.support).toLocaleString('en-IN'):'—';
       const res=sg.resistance!=null?Math.round(sg.resistance).toLocaleString('en-IN'):'—';
       const wend=sg.weekend?` <span style="color:var(--neut2)" title="aspect fell on a weekend → following Mon-Fri used">(wknd→next wk)</span>`:'';
@@ -16776,7 +16788,7 @@ function dfWeekHTML(week, pick){
     const tvm=w.tv.dir?`<span style="color:${dfCol(w.tv.dir)}">T+V ${w.tv.dir>0?'▲':'▼'}${w.tv.override?' ⇄':''}</span>`:'<span style="color:var(--tx3)">T+V —</span>';
     const s3=w.st.s3.status==='NEUTRALIZED'?'neutralized':w.st.s3.dir>0?'net ▲':w.st.s3.dir<0?'net ▼':'no HP rule';
     return `<div onclick="dfPickDay('${w.date}')" title="${w.date} · ${ev.band.t} · ${taEsc(w.tv.status)}" style="flex:1 1 84px;min-width:84px;cursor:pointer;background:var(--bg2);border:1px solid ${on?'var(--acc)':'var(--bd)'};border-top:3px solid ${c};border-radius:3px;padding:5px 6px;text-align:center">
-      <div style="font-size:10.5px;color:var(--tx3)">${dn[w.dow]} ${w.date.slice(8)}/${w.date.slice(5,7)}</div>
+      <div style="font-size:10.5px;color:var(--tx3)">${dn[w.dow]} ${fmtD(w.date,false)}</div>
       <div style="font-size:16px;font-weight:800;color:${c}">${dfNum(ev.score,0)}</div>
       <div style="font-size:9.5px;font-weight:700;color:${ev.band.c}">${ev.band.t}</div>
       <div style="font-size:10px;color:var(--tx2)">${s3}</div>
@@ -17770,17 +17782,17 @@ function panchakLevelsHTML(){
     const above=r.last>r.hi, below=r.last<r.lo;
     if(r.brokeAbove&&r.brokeBelow){
       // Both edges gave way: the book takes the later break as the powerful one.
-      if(r.laterBreak==='tie') return {t:'↕ BOTH — SAME SESSION',sub:'both edges broke '+String(r.upBreakDate||'').slice(5)+' · order unresolved on daily bars',c:'var(--neut)',ord:2};
+      if(r.laterBreak==='tie') return {t:'↕ BOTH — SAME SESSION',sub:'both edges broke '+fmtD(String(r.upBreakDate||''),false)+' · order unresolved on daily bars',c:'var(--neut)',ord:2};
       const up=r.laterBreak==='up';
       return {t:up?'↕ BOTH → UP LATER':'↕ BOTH → DOWN LATER',
-              sub:'later break '+String(up?r.upBreakDate:r.dnBreakDate||'').slice(5)+' · '+(up?'bullish':'bearish')+' (later break rules)'+(above?' · last above High':below?' · last below Low':' · last back inside'),
+              sub:'later break '+fmtD(String(up?r.upBreakDate:r.dnBreakDate||''),false)+' · '+(up?'bullish':'bearish')+' (later break rules)'+(above?' · last above High':below?' · last below Low':' · last back inside'),
               c:up?'var(--bull)':'var(--bear)',ord:2};
     }
     if(above) return {t:'▲ ABOVE HIGH',sub:'holding above · +'+((r.last-r.hi)/r.hi*100).toFixed(2)+'%',c:'var(--bull)',ord:0};
     if(below) return {t:'▼ BELOW LOW',sub:'holding below · −'+((r.lo-r.last)/r.lo*100).toFixed(2)+'%',c:'var(--bear)',ord:1};
     // A poke that fell back inside is NOT a book signal — by the book, price inside the range is simply neutral.
-    if(r.brokeAbove) return {t:'⤾ FAILED HIGH BREAK',sub:'poked '+String(r.upBreakDate||'').slice(5)+' → back inside · app heuristic, not in book',c:'var(--neut)',ord:3};
-    if(r.brokeBelow) return {t:'⤿ FAILED LOW BREAK',sub:'poked '+String(r.dnBreakDate||'').slice(5)+' → back inside · app heuristic, not in book',c:'var(--neut)',ord:4};
+    if(r.brokeAbove) return {t:'⤾ FAILED HIGH BREAK',sub:'poked '+fmtD(String(r.upBreakDate||''),false)+' → back inside · app heuristic, not in book',c:'var(--neut)',ord:3};
+    if(r.brokeBelow) return {t:'⤿ FAILED LOW BREAK',sub:'poked '+fmtD(String(r.dnBreakDate||''),false)+' → back inside · app heuristic, not in book',c:'var(--neut)',ord:4};
     return {t:'↔ INSIDE',sub:r.postN?'range intact':'window still active',c:'var(--neut)',ord:5};
   };
   const good=lv.rows.filter(r=>!r.err&&!r.noData).map(r=>({...r,st:statusOf(r)}));
@@ -17804,7 +17816,7 @@ function panchakLevelsHTML(){
       <td style="font-family:monospace;color:var(--acc);text-align:right;font-weight:700">${fm(r.range)}</td>
       <td style="font-family:monospace;color:var(--tx2);text-align:right">${r.rangePct.toFixed(2)}%</td>
       <td style="white-space:nowrap;letter-spacing:1px">${dd} <span style="font-size:9.5px;color:var(--tx3);letter-spacing:0">${all5} · ${(r.dayDirs||[]).length} sess.</span></td>
-      <td style="font-family:monospace;color:var(--tx1);text-align:right">${fm(r.last)}<div style="font-size:9.5px;color:var(--tx3)">close ${String(r.lastDate||'').slice(5)}</div></td>
+      <td style="font-family:monospace;color:var(--tx1);text-align:right">${fm(r.last)}<div style="font-size:9.5px;color:var(--tx3)">close ${fmtD(String(r.lastDate||''),false)}</div></td>
       <td style="font-weight:700;color:${r.st.c};white-space:nowrap">${r.st.t}<div style="font-size:9.5px;font-weight:400;color:var(--tx3)">${r.st.sub}${ext}</div></td></tr>`;
   }).join('') + bad.map(r=>`<tr><td style="font-weight:700">${r.name}</td><td colspan="7" style="color:${r.err?'var(--bear)':'var(--tx3)'};font-size:11px">${r.err?'price unavailable':'no bars in window'}</td></tr>`).join('');
   return `<div class="pnl">${head}${winInfo}${summary}
@@ -17925,9 +17937,9 @@ function panchakHistoryHTML(){
     const I=r.I;
     const calls=r.calls.map(x=>`<span title="result ${x.id}: called ${x.dir>0?'bullish':'bearish'}, realised ${x.ret==null?'n/a yet':x.ret.toFixed(2)+'%'}" style="white-space:nowrap;margin-right:5px;color:${x.hit==null?'var(--tx3)':x.hit?'var(--bull)':'var(--bear)'}">${x.id}${x.dir>0?'▲':'▼'}${x.hit==null?'…':x.hit?'✓':'✗'}</span>`).join('');
     const dd=r.sessions.map(d=>`<span style="color:${d.up?'var(--bull)':'var(--bear)'}">${d.up?'▲':'▼'}</span>`).join('');
-    const br=r.laterBreak?('both · later '+(r.laterBreak==='tie'?'unresolved':r.laterBreak==='up'?'▲ '+r.upBreakDate.slice(5):'▼ '+r.dnBreakDate.slice(5)))
-            :r.firstBreak==='up'?'▲ '+r.upBreakDate.slice(5):r.firstBreak==='down'?'▼ '+r.dnBreakDate.slice(5):'inside';
-    return `<tr><td style="font-family:monospace;white-space:nowrap;color:var(--tx1)">${I.startDisp} → ${I.endDisp.slice(5)}</td>
+    const br=r.laterBreak?('both · later '+(r.laterBreak==='tie'?'unresolved':r.laterBreak==='up'?'▲ '+fmtD(r.upBreakDate,false):'▼ '+fmtD(r.dnBreakDate,false)))
+            :r.firstBreak==='up'?'▲ '+fmtD(r.upBreakDate,false):r.firstBreak==='down'?'▼ '+fmtD(r.dnBreakDate,false):'inside';
+    return `<tr><td style="font-family:monospace;white-space:nowrap;color:var(--tx1)">${I.startDisp} → ${fmtD(I.endDisp,false)}</td>
       <td>${WDNAME[I.wd]}${I.preSunrise?'*':''}</td><td style="font-family:monospace;text-align:right">${I.ghadi.toFixed(1)} / ${I.ghadiEnd.toFixed(1)}</td>
       <td style="letter-spacing:1px;white-space:nowrap">${dd} <span style="font-size:9.5px;color:var(--tx3);letter-spacing:0">${r.all5}</span></td>
       <td style="font-family:monospace;text-align:right">${fm(r.hi)}</td><td style="font-family:monospace;text-align:right">${fm(r.lo)}</td>
@@ -18220,10 +18232,12 @@ const _dfp = n => String(n).padStart(2,'0');
 /* 'YYYY-MM-DD' (or a Date / epoch) -> 'DD-MMM-YY'; withYear=false -> 'DD-MMM' */
 function fmtD(v, withYear){
   let y,m,d;
-  if(typeof v==='string'){ const r=/^(\d{4})-(\d{2})-(\d{2})/.exec(v); if(!r) return v; y=+r[1]; m=+r[2]-1; d=+r[3]; }
+  let rest='';
+  if(typeof v==='string'){ const r=/^(\d{4})-(\d{2})-(\d{2})/.exec(v); if(!r) return v; y=+r[1]; m=+r[2]-1; d=+r[3];
+    rest=v.slice(10).replace(/^T/,' '); }   // keep a trailing time: '2026-09-27 14:35'
   else { const t=(v instanceof Date)?v:new Date(v); if(isNaN(t)) return String(v); y=t.getUTCFullYear(); m=t.getUTCMonth(); d=t.getUTCDate(); }
   if(m<0||m>11||d<1||d>31) return typeof v==='string'?v:String(v);
-  return _dfp(d)+'-'+DF_MON[m]+(withYear===false?'':'-'+String(y).slice(-2));
+  return _dfp(d)+'-'+DF_MON[m]+(withYear===false?'':'-'+String(y).slice(-2))+rest;
 }
 window.fmtD=fmtD;
 
@@ -19696,7 +19710,7 @@ function srPanelHTML(rows){
     const fwHtml=fw.length?`<div style="margin-top:10px"><div style="font-size:10.5px;color:var(--tx3);margin-bottom:4px">FORWARD REVERSAL CALENDAR from ${reEsc(S.date)} · next ${fw.length} sessions · mean score across the sector's models (● = ≥${SR_HI_RPS} in most)</div>
       <div style="display:flex;gap:3px;flex-wrap:wrap">${fw.map(d=>{ const hot=d.rps>=SR_HI_RPS, most=d.hi*2>d.n;
         const col=d.lean==='TOP'?'var(--bear)':d.lean==='BOTTOM'?'var(--bull)':'var(--neut)';
-        return `<div title="${d.date} · score ${d.rps} · ${d.hi}/${d.n} models ≥${SR_HI_RPS} · lean ${d.lean}" style="min-width:34px;padding:3px 4px;border-radius:3px;text-align:center;font-size:9.5px;border:1px solid ${hot?col:'var(--bd)'};background:${hot?col+'22':'var(--bg2)'};color:${hot?col:'var(--tx3)'};font-weight:${hot?'800':'500'}">${d.date.slice(5)}<br>${d.rps}${most?' ●':''}</div>`; }).join('')}</div></div>`:'';
+        return `<div title="${d.date} · score ${d.rps} · ${d.hi}/${d.n} models ≥${SR_HI_RPS} · lean ${d.lean}" style="min-width:34px;padding:3px 4px;border-radius:3px;text-align:center;font-size:9.5px;border:1px solid ${hot?col:'var(--bd)'};background:${hot?col+'22':'var(--bg2)'};color:${hot?col:'var(--tx3)'};font-weight:${hot?'800':'500'}">${fmtD(d.date,false)}<br>${d.rps}${most?' ●':''}</div>`; }).join('')}</div></div>`:'';
     const modelled=sc.rows.map(r=>r.name), notModelled=cons.map(c=>c.name).filter(n=>!modelled.includes(n));
     body=tiles+`<div class="ts" style="max-height:360px;overflow:auto"><table class="tbl"><thead><tr>
       <th>Constituent · price source</th><th style="text-align:right">Swings / bars</th><th style="text-align:right">Base</th><th style="text-align:right">Score</th><th style="text-align:right">Calibrated</th><th>Reading</th><th>Historical match (why)</th>
@@ -19839,7 +19853,7 @@ function panchakNineRowsHTML(I, withPrices){
     const r=(lv.status==='ready'?(lv.rows||[]):[]).find(x=>x&&x.dayDirs&&x.dayDirs.length);
     if(!r) r12={state:'wait'};
     else r12={state:r.done?'done':'open', bull:r.allBull, bear:r.allBear,
-      txt:r.name+': '+r.nUp+' up / '+(r.dayDirs.length-r.nUp)+' down over '+r.dayDirs.length+' session'+(r.dayDirs.length===1?'':'s')+' · '+r.dayDirs.map(d=>(d.up?'▲':'▼')+d.date.slice(5)).join(' ')};
+      txt:r.name+': '+r.nUp+' up / '+(r.dayDirs.length-r.nUp)+' down over '+r.dayDirs.length+' session'+(r.dayDirs.length===1?'':'s')+' · '+r.dayDirs.map(d=>(d.up?'▲':'▼')+fmtD(d.date,false)).join(' ')};
   }
   const p12=n=>{
     if(r12.state==='na')   return {f:null,note:'needs the Panchak sessions\' prices — not known before it trades'};
@@ -19892,7 +19906,7 @@ function panchakWinCardHTML(I, title, state, withPrices){
       <div class="ts"><table class="tbl"><thead><tr><th>#</th><th>Book result</th><th>Status</th><th>Call</th><th>Basis</th></tr></thead>
         <tbody>${panchakNineRowsHTML(I, withPrices)}</tbody></table></div>
       <div style="padding:6px 12px;font-size:10.5px;color:var(--tx3)">Civil dates the window touches:
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px">${I.days.map(d=>`<span class="pill pb-a" style="font-size:10px">${WDNAME[d.wd]} ${d.date.slice(5)} · ${d.nak}${PANCHAK_GOOD_YOGAS.has(d.yoga)?` · <b style="color:var(--bull)">${d.yoga}</b>`:''}</span>`).join('')}</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px">${I.days.map(d=>`<span class="pill pb-a" style="font-size:10px">${WDNAME[d.wd]} ${fmtD(d.date,false)} · ${d.nak}${PANCHAK_GOOD_YOGAS.has(d.yoga)?` · <b style="color:var(--bull)">${d.yoga}</b>`:''}</span>`).join('')}</div></div>
     </div>`;
 }
 function panchakCurCardHTML(){
