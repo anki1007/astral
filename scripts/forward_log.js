@@ -160,7 +160,7 @@ async function predictTurns(P, inst, target, horizonEnd, made, asOf) {
     return tnCluster(X.events.filter(e=>e.ds>=__q.a&&e.ds<=__q.b)).map(w=>{ const L=tnWinLabel(w,M), G=M.groups[L.key];
       return {from:w.from,to:w.to,label:L.label,edge:L.edge,dir:L.dir,mag:L.mag,
         hist:G&&G.n?{n:G.n,rate:Math.round(G.rate*1000)/1000,base:Math.round(G.base*1000)/1000}:null,
-        events:w.ev.map(e=>{ const t=M.types[e.key]; return {ds:e.ds,what:e.what,hint:e.hint,measured:t&&t.edge?t.label:'no measured edge'}; })}; }); })()`);
+        events:w.ev.map(e=>{ const t=M.types[e.key]; return {ds:e.ds,what:e.what,hint:e.hint,measured:t&&t.edge?t.label:'not proven — past hits ≈ random chance'}; })}; }); })()`);
   for (const w of W) {
     const win = winAround(w.from, w.to); if (win.to < target) continue;
     const type = (w.edge ? (w.mag === 'Major' ? 'MAJOR ' : 'MINOR ') : '') + (w.dir === 'Top' ? 'TOP' : w.dir === 'Bottom' ? 'BOTTOM' : 'TURN');
@@ -178,7 +178,7 @@ async function predictTurns(P, inst, target, horizonEnd, made, asOf) {
     let pick=F.filter(f=>tnLfEdge(f.ms[0])), why='label';
     if(!pick.length){ pick=F.slice().sort((x,y)=>y.score-x.score).slice(0,10); why='strongest'; }
     return pick.sort((x,y)=>x.ds<y.ds?-1:1).map(f=>({ds:f.ds,why,score:Math.round(f.score*10)/10,label:tnLfCellLab(f.ms[0]),edge:tnLfEdge(f.ms[0]),
-      states:f.ms.slice(0,3).map(c=>c.k+': '+tnLfCellTxt(c,R)+(tnLfEdge(c)?'':' (no measured edge)'))})); })()`).filter(d => isWk(d.ds));
+      states:f.ms.slice(0,3).map(c=>c.k+': '+tnLfCellTxt(c,R)+(tnLfEdge(c)?'':' (not proven — past hits ≈ random chance)'))})); })()`).filter(d => isWk(d.ds));
   // one window per run of picked days whose ±2-session windows overlap
   const runs = [];
   for (const d of days) { const w = winAroundRaw(d.ds, d.ds), r = runs[runs.length - 1];
@@ -189,9 +189,26 @@ async function predictTurns(P, inst, target, horizonEnd, made, asOf) {
     const best = r.days.slice().sort((x, y) => y.score - x.score)[0], allEdge = r.days.every(d => d.edge);
     const a = r.days[0].ds, b = r.days[r.days.length - 1].ds;
     out.push({ source: 'latlon', inst: inst.k, made, asOf, at: a === b ? a : a + '..' + b, from: r.from < target ? target : r.from, to: r.to, rawFrom: raw.from, rawTo: raw.to,
-      type: allEdge ? best.label : 'TURN', edge: allEdge, pick: best.why === 'label' ? 'measured label' : '★ strongest (no measured edge)',
+      type: allEdge ? best.label : 'TURN', edge: allEdge, pick: best.why === 'label' ? 'measured label' : 'top score (not proven — past hits ≈ random chance)',
       score: best.score, days: r.days.map(d => d.ds),
-      reasons: (best.edge ? [] : ['state label ' + best.label + ' (no measured edge)']).concat(best.states) });
+      reasons: (best.edge ? [] : ['state label ' + best.label + ' (not proven — past hits ≈ random chance)']).concat(best.states) });
+  }
+  // (c) PROVEN combined latitude + longitude patterns (R.PV; passed 2000-2018 BH, held on 2019+ days and episodes, >=8 swings)
+  P.ctx.__q = { plan: inst.plan, a: look, b: horizonEnd };
+  const pdays = P.E(`(()=>{ const R=window.TN.lf[tnLfKey(__q.plan,'lat')]; if(!R.PV) return [];
+    return R.fut.filter(f=>f.ds>=__q.a&&f.ds<=__q.b&&f.pv&&f.pv.length).map(f=>({ds:f.ds,pats:f.pv.map(r=>({k:r.k,plain:r.plain,lab:r.lab,share:r.share,maj:r.majShare,
+      conf:tnLfConfirmed(R,r.k),txt:r.plain+': 2000-2018 '+r.tr.hits+'/'+r.tr.n+' days '+tnPct(r.tr.rate)+' vs '+tnPct(r.tr.chance)+' chance (BH q '+tnPfmt(r.tr.bh)+'); 2019+ '+r.oos.hits+'/'+r.oos.n+' days '+tnPct(r.oos.rate)+' vs '+tnPct(r.oos.chance)+', episodes '+r.ep.hits+'/'+r.ep.n+' '+tnPct(r.ep.rate)+' vs '+tnPct(r.ep.chance)}))})); })()`).filter(d => isWk(d.ds));
+  const pruns = [];
+  for (const d of pdays) { const w = winAroundRaw(d.ds, d.ds), r = pruns[pruns.length - 1];
+    if (r && w.from <= r.to) { r.days.push(d); r.to = w.to; } else pruns.push({ from: w.from, to: w.to, days: [d] }); }
+  for (const r of pruns) {
+    if (r.to < target) continue;
+    const raw = winAroundRaw(r.days[0].ds, r.days[r.days.length - 1].ds), a = r.days[0].ds, b = r.days[r.days.length - 1].ds;
+    const pats = new Map(); r.days.forEach(d => d.pats.forEach(p => pats.set(p.k, p)));
+    const best = [...pats.values()][0];
+    out.push({ source: 'proven', inst: inst.k, made, asOf, at: a === b ? a : a + '..' + b, from: r.from < target ? target : r.from, to: r.to, rawFrom: raw.from, rawTo: raw.to,
+      type: (best.maj >= 0.5 ? 'MAJOR ' : 'MINOR ') + best.lab, edge: true, pick: 'Proven lat+lon', days: r.days.map(d => d.ds),
+      reasons: [...pats.values()].map(p => p.txt + (p.conf.length ? ' · confirmed on ' + p.conf.join(' / ') : '')) });
   }
   return out;
 }
@@ -248,7 +265,7 @@ function summarise(log, B, SW) {
     S.volatility[inst] = V;
     // turn windows
     const T = {}, F = (log.reversals || []).filter(f => f.inst === inst);
-    for (const src of ['astral', 'latlon']) {
+    for (const src of ['astral', 'latlon', 'proven']) {
       const all = F.filter(f => f.source === src), g = all.filter(f => f.graded), hits = g.filter(f => f.graded.status === 'hit');
       const ch = g.length ? g.reduce((a, f) => a + f.graded.chance, 0) / g.length : null, ci = wilson(hits.length, g.length);
       const td = hits.filter(f => f.graded.typeRight != null), tOk = td.filter(f => f.graded.typeRight).length;

@@ -4607,7 +4607,7 @@ function rHdr(){
 // a forecast, it only shows what was logged and how it was graded.
 // ═══════════════════════════════════════════════════════════════════
 window.FWD = window.FWD || {st:'idle', sum:null, log:null, err:'', at:0};
-const FWD_SRC = {astral:'Astral turn windows', latlon:'Planet Lat/Lon labels'};
+const FWD_SRC = {astral:'Astral turn windows', latlon:'Planet Lat/Lon labels', proven:'Proven lat+lon'};
 function fwdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fwdNum(v,d){ return (v==null||!isFinite(v))?'—':(+v).toFixed(d==null?1:d); }
 function fwdPct(v){ return (v==null||!isFinite(v))?'—':(+v).toFixed(1)+'%'; }
@@ -4632,7 +4632,7 @@ function fwdCall(v){ return v>0?'<span class="pill pb-b">▲ UP</span>':v<0?'<sp
 function fwdMark(r){ return r==='hit'?'<b style="color:var(--bull)">✓</b>':r==='miss'?'<b style="color:var(--bear)">✗</b>':'<span style="color:var(--tx3)">–</span>'; }
 function fwdHTML(){
   const F=window.FWD, S=F.sum||{}, L=F.log||{}, E=L.entries||[], R=L.reversals||[];
-  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate over 6,618 graded sessions: no directional edge. This log exists to test that again, forward.">49.0% measured, no edge</span>`;
+  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate over 6,618 graded sessions: not proven — past hits ≈ random chance. This log exists to test that again, forward. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>`;
   const head=`<div class="pnl"><div class="ph" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dot"></span>FORWARD TEST — paper-trading log ${pill}</div>
     <div class="pb" style="font-size:11.5px;color:var(--tx1);line-height:1.6">
       Forecasts are written by the GitHub Action right after each close, for the next session (turn windows for the next 30 sessions).<br>
@@ -4664,7 +4664,7 @@ function fwdHTML(){
   const up=R.filter(f=>!f.graded).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.inst<b.inst?-1:1);
   const upRows=up.map(f=>{ const col=/TOP/.test(f.type)?'var(--bear)':/BOTTOM/.test(f.type)?'var(--bull)':f.edge?'var(--neut)':'var(--tx3)';
     return `<tr><td style="white-space:nowrap">${fwdEsc(f.from)} → ${fwdEsc(f.to)}</td><td>${fwdEsc(f.inst)}</td><td style="color:var(--tx2)">${FWD_SRC[f.source]||fwdEsc(f.source)}</td>
-      <td><b style="color:${col}">${fwdEsc(f.type)}</b>${f.edge?'':' <span style="color:var(--tx3);font-size:10px">no measured edge</span>'}</td>
+      <td>${f.edge?`<b style="color:${col}">${fwdEsc(f.type)}</b> <span style="color:var(--bull);font-size:10px">Proven in backtest ✓</span>`:(f.type==='TURN'?'<b style="color:var(--tx3)">Possible turn (unproven)</b>':`<b style="color:${col}">${fwdEsc(f.type)}</b> <span style="color:var(--tx3);font-size:10px">not proven — past hits ≈ random chance</span>`)}</td>
       <td><details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">${(f.reasons||[]).length} reason${(f.reasons||[]).length===1?'':'s'} · made ${fwdEsc(String(f.made||'').slice(0,10))}</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px;color:var(--tx2)">${(f.reasons||[]).map(x=>`<li>${fwdEsc(x)}</li>`).join('')}</ul></details></td></tr>`; }).join('');
   const upcoming=`<div class="pnl"><div class="ph"><span class="dot"></span>UPCOMING TURN DATES — logged, not yet graded (${up.length})</div><div class="pb">
     <div class="ts" style="max-height:380px;overflow:auto"><table class="tbl"><thead><tr><th>Window (±2 sessions)</th><th>Inst</th><th>Source</th><th>Predicted</th><th>Why</th></tr></thead><tbody>${upRows||'<tr><td colspan="5" style="color:var(--tx3)">none pending</td></tr>'}</tbody></table></div></div></div>`;
@@ -8582,7 +8582,7 @@ const taSgn=v=>(v>0?'+':'')+v;
 
 /* The measured fact, on every graded or forecast surface. Never remove. */
 function taHonestyPill(){
-  return '<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the whole rulebook scored 49.0% against a 53.9% base rate (always-bullish). Nothing on this tab overturns that unless a row beats BOTH trivial callers with a real sample.">rulebook graded 49.0% vs 53.9% base rate — no directional edge measured</span>';
+  return '<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the whole rulebook scored 49.0% against a 53.9% base rate (always-bullish). Nothing on this tab overturns that unless a row beats BOTH trivial callers with a real sample. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>';
 }
 /* What a constant caller scored on this instrument + horizon, from the run that
    matches the current controls; the measured global numbers otherwise. */
@@ -8900,7 +8900,7 @@ function taChartSpec(){
   return { bars, extend:{t0:bars.length?bars[bars.length-1].time:from, t1:to, step}, pins:bars.length?null:[0,1],
            scores, scoreAxis:true, bands, todayTime:(now>=from-step*40&&now<=to+step*40)?now:null,
            view:[from,to], magnet:false, lastValue:true, legendTop:30,
-           title:(RE_UNIV[inst]?RE_UNIV[inst].label:inst)+' · '+TA_TF[tf].label+' · forecast score (±100, left) over price — 49.0% measured, no edge' };
+           title:(RE_UNIV[inst]?RE_UNIV[inst].label:inst)+' · '+TA_TF[tf].label+' · forecast score (±100, left) over price — Astro direction right 49.0% of days vs 53.9% if you always said \'up\'' };
 }
 function taChartMount(){
   if(typeof S==='undefined'||S.tab!=='astral'||typeof acMount!=='function') return;
@@ -9670,7 +9670,7 @@ function planTimeline(){
    ONLY source of the Major/Minor Top/Bottom labels: an event type is named from
    its measured shares, and only when its hit rate beats the chance baseline
    after a Bonferroni correction over all types tested. Everything else is shown
-   grey as "no measured edge".
+   grey as "not proven — past hits ≈ random chance".
 
    BOOK DIRECTION HINT (shown beside the measured label, never replacing it):
    · Shar/latitude — MANY IMPORTANT OBSERVATION #5 (South ⇒ Bullish) and #6
@@ -9979,7 +9979,7 @@ function tnInnerHTML(){
   const opts=[].concat(typeof RE_IDX_ROWS!=='undefined'?RE_IDX_ROWS.map(r=>r[0]):['NIFTY'], typeof RE_GLOBAL_ROWS!=='undefined'?RE_GLOBAL_ROWS.map(r=>r[0]):[]);
   if(!opts.includes(k)) opts.push(k);
   const sel=`<select class="ci" style="font-size:11px;padding:1px 4px;margin-left:auto" onchange="tnSetInst(this.value)">${opts.map(o=>`<option value="${tnEsc(o)}" ${o===k?'selected':''}>${tnEsc((RE_UNIV[o]||{}).label||o)}</option>`).join('')}</select>`;
-  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate: no directional edge. Turn dates below are graded the same way — each number sits beside its chance baseline.">49.0% measured, no edge</span>`;
+  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate: not proven — past hits ≈ random chance. Turn dates below are graded the same way — each number sits beside its chance baseline. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>`;
   const head=`<div class="ph" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dot"></span>APPROACHING TURN DATES ${pill}${sel}</div>`;
   if(st!=='ready'||!X){
     const msg=st==='error'?`<span style="color:var(--bear)">⚠ ${tnEsc(T.err[k])}</span> <button onclick="window.TN.status['${tnEsc(k)}']='idle';tnLoad('${tnEsc(k)}')" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;font-size:11px;cursor:pointer">↻ Retry</button>`
@@ -9992,11 +9992,11 @@ function tnInnerHTML(){
   const prec=L=>{ const G=grp(L); if(!G||!G.n) return '<span style="color:var(--tx3)">no history</span>';
     return `<span style="color:${L.edge&&G.p<0.05?'var(--tx0)':'var(--tx3)'}">${tnPct(G.rate)}</span> <span style="color:var(--tx3)">vs ${tnPct(G.base)} base · n ${G.n} · p ${tnPfmt(G.p)}${G.dirN?` · type right ${G.dirOk}/${G.dirN}`:''}</span>`; };
   const why=w=>w.ev.map(e=>{ const t=M.types[e.key];
-    const ms=t?`${tnPct(t.rate)} vs ${tnPct(M.base)} base (n ${t.n}, p ${tnPfmt(t.p)}) → ${t.edge?'<b style="color:'+tnLabelCol(t)+'">'+t.label+'</b>':'no measured edge'}`:'not enough history';
+    const ms=t?`${tnPct(t.rate)} vs ${tnPct(M.base)} base (n ${t.n}, p ${tnPfmt(t.p)}) → ${t.edge?'<b style="color:'+tnLabelCol(t)+'">'+t.label+'</b> · Proven in backtest ✓':'not proven — past hits ≈ random chance'}`:'not enough history';
     return `<li style="margin:2px 0"><span style="color:var(--tx1)">${tnEsc(e.what)}</span> <span style="color:var(--tx3)">· exact ~${tnFmtJ(e.J)} · book hint ${e.hint.toUpperCase()} · §${tnEsc(e.sec)} · measured ${ms}</span></li>`; }).join('');
   const labCell=(w,L,trend)=>{ const col=L.edge?(L.dir==='Top'?'var(--bear)':L.dir==='Bottom'?'var(--bull)':'var(--neut2)'):'var(--tx3)';
     const tr=L.dir==='Turn'?` <span style="color:var(--tx3);font-size:10px">(trend ${trend==='up'?'↑ ⇒ a turn here would be a top':'↓ ⇒ a turn here would be a bottom'})</span>`:'';
-    return `<span style="color:${col};font-weight:700">${L.label}</span>${L.edge?'':' <span style="color:var(--tx3);font-size:10px">no measured edge</span>'}${tr}`; };
+    return `${L.edge?`<span style="color:${col};font-weight:700">${L.label}</span> <span style="color:var(--bull);font-size:10px">Proven in backtest ✓</span>`:'<span style="color:var(--tx3);font-weight:700">Possible turn (unproven)</span>'}${tr}`; };
   const futW=tnCluster(X.events.filter(e=>e.ds>=today&&e.ds<=reShift(today,TN_FWD)));
   const fut=futW.map(w=>{ const L=tnWinLabel(w,M);
     return `<tr><td style="white-space:nowrap">${fmtD(w.from,false)}${w.to!==w.from?' → '+fmtD(w.to,false):''}</td><td>${labCell(w,L,trendNow)}</td><td style="font-size:10.5px">${prec(L)}</td>
@@ -10013,7 +10013,7 @@ function tnInnerHTML(){
   const typeRows=M.list.map(t=>`<tr style="${t.edge?'':'opacity:.55'}"><td>${tnEsc(t.name)}</td><td style="text-align:right">${t.n}</td><td style="text-align:right">${tnPct(t.rate)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(M.base)}</td>
     <td style="text-align:right;color:var(--tx3)">${tnPct(t.ci[0])}–${tnPct(t.ci[1])}</td><td style="text-align:right">${tnPfmt(t.p)}</td>
     <td style="text-align:right">${tnPct(t.majShare)} <span style="color:var(--tx3)">/${tnPct(M.baseMaj)}</span></td><td style="text-align:right">${tnPct(t.topShare)} <span style="color:var(--tx3)">/${tnPct(M.baseTop)}</span></td>
-    <td style="color:var(--tx3)">${t.hint}</td><td style="color:${tnLabelCol(t)};font-weight:700">${t.edge?t.label:'no measured edge'+(t.nominal?' <span style="font-weight:400">(nominal p&lt;0.05)</span>':'')}</td></tr>`).join('');
+    <td style="color:var(--tx3)">${t.hint}</td><td style="color:${tnLabelCol(t)};font-weight:700">${t.edge?t.label+' <span style="font-weight:400;color:var(--bull)">Proven in backtest ✓</span>':'not proven — past hits ≈ random chance'+(t.nominal?' <span style="font-weight:400">(nominal p&lt;0.05)</span>':'')}</td></tr>`).join('');
   const nEdge=M.list.filter(t=>t.edge).length;
   return `<div class="pnl">${head}<div class="pb" style="font-size:11px;color:var(--tx2)">
     <div style="margin-bottom:6px">${tnEsc(X.u.label)} · ${bars.length} bars ${bars[0].date} → ${bars[bars.length-1].date} · swings by the PRD rule (${X.thr.minPct}% minor / ${X.thr.majPct}% major): ${X.swings.length} pivots.
@@ -10033,7 +10033,7 @@ function tnInnerHTML(){
    One engine for both tabs; only the per-planet "state function" differs (latitude phase vs sign/motion/combust + nakshatra).
    Each instrument is learned on its own history (never pooled). */
 function tnPlanKey(){ try{ return dsKeyForYahooSym(PLAN_INST[planInstKey()])||'NIFTY'; }catch(e){ return 'NIFTY'; } }
-const TN_LF_START='2000-01-01', TN_LF_TRAIN_END='2018-12-31', TN_LF_WIN=126, TN_LF_FUT=180, TN_LF_MINSW=5;
+const TN_LF_START='2000-01-01', TN_LF_TRAIN_END='2018-12-31', TN_LF_WIN=126, TN_LF_FUT=180, TN_LF_MINSW=5, TN_LF_PV_MINSW=8, TN_LF_TRI_PAIRS=300, TN_LF_TRI_CAP=3000;
 // one-sided normal tail (Abramowitz–Stegun 7.1.26)
 function tnLfNormSf(z){ const x=Math.abs(z)/Math.SQRT2, t=1/(1+0.3275911*x), e=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))))*Math.exp(-x*x); return z>=0?e/2:1-e/2; }
 const TN_LF_LAT_STATES=['N-rising','N-peak','N-falling','S-falling','S-bottom','S-rising','N-bottom','S-peak','crossing→N','crossing→S'];
@@ -10159,60 +10159,133 @@ async function tnLfBuild0(key, inst, mode){
       s.n++; if(e.piv){ s.hits++; if(e.piv.cls==='MAJOR') s.maj++; if(e.piv.type==='H') s.top++; } }
     Object.values(st).forEach(s=>{ s.rate=s.n?s.hits/s.n:0; s.base=base; s.p=tnBinomUpper(s.n,s.hits,base);
       s.majShare=s.hits?s.maj/s.hits:0; s.mag=s.majShare>=0.5?'MAJOR':'SWING'; s.edge=s.n>=10&&s.rate>base&&s.p<0.05; });
-    // ── backtest every state: latitude, sign+motion, nakshatra (singles + 2-planet pairs within a family) ──
-    const keyMemo=new Map();
-    const cellKeys=d=>{ let r=keyMemo.get(d); if(r) return r; r=[];
-      for(const F of FAM){ const one=[]; for(const b of F.bodies){ const v=F.arr[b][d]; if(v!==255) one.push(b+' '+F.name(v)); }
-        for(const x of one) r.push(x); for(let x=0;x<one.length;x++) for(let y=x+1;y<one.length;y++) r.push(one[x]+' + '+one[y]); }
-      keyMemo.set(d,r); return r; };
-    const famOf={}; FAM.forEach(F=>F.bodies.forEach(b=>{ for(let v=0; v<255; v++){ let n; try{ n=F.name(v); }catch(e){ break; } if(n==null) break; famOf[b+' '+n]=F.label; } }));
+    // ── backtest every state: latitude, sign+motion, nakshatra — singles, 2-planet pairs within a family,
+    //    CROSS-FAMILY latitude × longitude pairs (any planets, incl. the same planet), and pruned triples ──
+    const SK=new Map(), SN=[], SF=[], SO=[], sMemo=new Map();
+    const sid1=(fi,bi,F,b,v)=>{ const mk=fi*100000+bi*1000+v; let id=sMemo.get(mk); if(id!=null) return id; const k=b+' '+F.name(v);
+      id=SK.get(k); if(id==null){ id=SN.length; SK.set(k,id); SN.push(k); SF.push(fi); SO.push(fi*100+bi); } sMemo.set(mk,id); return id; };
+    const CK=new Map(), CELL=[];
+    const mkCell=parts=>{ parts=parts.slice().sort((x,y)=>SO[x]-SO[y]); const fams=[...new Set(parts.map(p=>SF[p]))];
+      return {k:parts.map(p=>SN[p]).join(' + '),parts,size:parts.length,lat:fams.includes(0),lon:fams.some(f=>f>0),fam:fams.sort().map(f=>FAM[f].label).join(' × ')}; };
+    const cid=(key,parts)=>{ let id=CK.get(key); if(id==null){ id=CELL.length; CK.set(key,id); CELL.push(mkCell(parts)); } return id; };
+    const Q=4096, pKey=(a,b)=>a<b?Q*(1+a)+b:Q*(1+b)+a, tKey=s=>Q*Q*(1+s[0])+Q*(1+s[1])+s[2];
+    const baseMemo=new Map();
+    const dayBase=d=>{ let r=baseMemo.get(d); if(r) return r; const fam=FAM.map(()=>[]), out=[];
+      FAM.forEach((F,fi)=>F.bodies.forEach((b,bi)=>{ const v=F.arr[b][d]; if(v!==255) fam[fi].push(sid1(fi,bi,F,b,v)); }));
+      const all=[].concat(...fam);
+      for(const x of all) out.push(cid(x,[x]));
+      for(const one of fam) for(let x=0;x<one.length;x++) for(let y=x+1;y<one.length;y++) out.push(cid(pKey(one[x],one[y]),[one[x],one[y]]));
+      for(const x of fam[0]) for(let fi=1;fi<fam.length;fi++) for(const y of fam[fi]) out.push(cid(pKey(x,y),[x,y]));
+      r={ids:Int32Array.from(out),sing:Int32Array.from(all)}; baseMemo.set(d,r); return r; };
+    // triples: a candidate pair (≥TN_LF_PV_MINSW in-sample swings) + one more state, keeping only those holding both a latitude and a longitude state
+    let TRIP=null, TRIS=null; const allMemo=new Map();
+    const triOf=(d,fn)=>{ const B=dayBase(d);
+      for(const id of B.ids){ if(!TRIP.has(id)) continue; const [a,b]=CELL[id].parts;
+        for(const c of B.sing){ if(c===a||c===b) continue; const s=[a,b,c].sort((x,y)=>x-y), f=s.map(p=>SF[p]);
+          if(!f.includes(0)||!f.some(v=>v>0)) continue; fn(tKey(s),s); } } };
+    const dayAll=d=>{ if(!TRIS) return dayBase(d).ids; let r=allMemo.get(d); if(r) return r; const ids=Array.from(dayBase(d).ids), seen=new Set();
+      triOf(d,key=>{ const t=TRIS.get(key); if(t!=null&&!seen.has(t)){ seen.add(t); ids.push(t); } });
+      r=Int32Array.from(ids); allMemo.set(d,r); return r; };
+    const cellKeys=d=>Array.from(dayAll(d),id=>CELL[id].k);
     const bD=new Int32Array(N); for(let i=0;i<N;i++){ const d=dOf(bars[i].date); bD[i]=(d>=2&&d<nD-2)?d:-1; }
     // chance for each day = how often a day of the surrounding ±TN_LF_WIN trading days sat within ±2 days of a swing
     const PC=new Int32Array(N+1); for(let i=0;i<N;i++) PC[i+1]=PC[i]+(nearP[i]?1:0);
-    const learn=(iA,iB)=>{ let n=0,h=0; const C={};
+    const learn=(iA,iB)=>{ let n=0,h=0; const A=[];
       for(let i=iA;i<=iB;i++){ const d=bD[i]; if(d<0) continue; const p=nearP[i]; n++; if(p) h++;
-        const lo=Math.max(iA,i-TN_LF_WIN), hi=Math.min(iB,i+TN_LF_WIN), q=(PC[hi+1]-PC[lo])/(hi-lo+1);
-        for(const k of cellKeys(d)){ const c=C[k]||(C[k]={k,pair:k.includes(' + '),n:0,hits:0,sw:0,swTop:0,swMaj:0,last:null,mu:0,va:0}); c.n++; c.mu+=q; c.va+=q*(1-q);
+        const lo=Math.max(iA,i-TN_LF_WIN), hi=Math.min(iB,i+TN_LF_WIN), q=(PC[hi+1]-PC[lo])/(hi-lo+1), ids=dayAll(d);
+        for(let j=0;j<ids.length;j++){ const id=ids[j]; let c=A[id]; if(!c){ const M=CELL[id]; c=A[id]={k:M.k,id,size:M.size,pair:M.size>1,combo:M.lat&&M.lon,fam:M.fam,n:0,hits:0,sw:0,swTop:0,swMaj:0,last:null,mu:0,va:0}; }
+          c.n++; c.mu+=q; c.va+=q*(1-q);
           if(p){ c.hits++; if(c.last!==p){ c.last=p; c.sw++; if(p.type==='H') c.swTop++; if(p.cls==='MAJOR') c.swMaj++; } } } }
-      const chance=n?h/n:0, tested=[];
-      Object.values(C).forEach(c=>{ c.last=null; c.rate=c.n?c.hits/c.n:0; c.chance=c.n?c.mu/c.n:0; c.ci=tnWilson(c.hits,c.n); c.p=c.va>0?tnLfNormSf((c.hits-0.5-c.mu)/Math.sqrt(c.va)):1;
-        c.fam=famOf[c.pair?c.k.split(' + ')[0]:c.k]||'';
+      const chance=n?h/n:0, tested=[], C={};
+      A.forEach(c=>{ C[c.k]=c; c.last=null; c.rate=c.n?c.hits/c.n:0; c.chance=c.n?c.mu/c.n:0; c.ci=tnWilson(c.hits,c.n); c.p=c.va>0?tnLfNormSf((c.hits-0.5-c.mu)/Math.sqrt(c.va)):1;
         c.topShare=c.sw?c.swTop/c.sw:0; c.majShare=c.sw?c.swMaj/c.sw:0; c.dir=c.topShare>=0.6?'TOP':c.topShare<=0.4?'BOTTOM':'TURN'; c.mag=c.majShare>=0.5?'MAJOR':'SWING';
         c.pass=false; c.bh=1; if(c.sw>=TN_LF_MINSW&&(c.pair||c.n>=20)) tested.push(c); });
       tested.sort((x,y)=>x.p-y.p); const m=tested.length; let kmax=0;
       tested.forEach((c,j)=>{ c.bh=Math.min(1,c.p*m/(j+1)); if(c.p<=(j+1)/m*0.05) kmax=j+1; });
       for(let j=tested.length-2;j>=0;j--) tested[j].bh=Math.min(tested[j].bh,tested[j+1].bh);
       for(let j=0;j<kmax;j++) if(tested[j].rate>tested[j].chance) tested[j].pass=true;
-      return {n,h,chance,C,tested,m,pass:tested.filter(c=>c.pass),lastDate:bars[Math.max(iA,iB)].date}; };
+      return {n,h,chance,A,C,tested,m,pass:tested.filter(c=>c.pass),lastDate:bars[Math.max(iA,iB)].date}; };
     let iEnd=lastP; while(iEnd>=0&&bD[iEnd]<0) iEnd--;
-    prog(80); await reYield();
-    const FULL=learn(i0,iEnd);
-    prog(88); await reYield();
     let iTr=i0; while(iTr+1<=iEnd&&bars[iTr+1].date<=TN_LF_TRAIN_END) iTr++;
+    prog(78); await reYield();
+    // pass 1 (2000–2018, singles + pairs): which pairs have ≥8 distinct in-sample swings → extend those into triples
+    const TR0=learn(i0,iTr);
+    const cand=[]; TR0.A.forEach(c=>{ if(c.size===2&&c.sw>=TN_LF_PV_MINSW) cand.push(c); });
+    cand.sort((x,y)=>y.n-x.n||(x.k<y.k?-1:1));
+    TRIP=new Set(cand.slice(0,TN_LF_TRI_PAIRS).map(c=>c.id));
+    const tc=new Map();
+    for(let i=i0;i<=iTr;i++){ const d=bD[i]; if(d<0) continue; const p=nearP[i], seen=new Set();
+      triOf(d,(key,s)=>{ if(seen.has(key)) return; seen.add(key); let t=tc.get(key); if(!t) tc.set(key,t={key,s,n:0,sw:0,last:null}); t.n++; if(p&&t.last!==p){ t.last=p; t.sw++; } }); }
+    // cap: rank by exposure (active days), never by hit rate, so the cap does not pick winners
+    const triAll=[...tc.values()].filter(t=>t.sw>=TN_LF_PV_MINSW).sort((x,y)=>y.n-x.n||x.key-y.key);
+    const triSel=triAll.slice(0,TN_LF_TRI_CAP);
+    TRIS=new Map(triSel.map(t=>[t.key,cid(t.key,t.s)]));
+    const TRI={pairsElig:cand.length,pairsUsed:TRIP.size,built:tc.size,elig:triAll.length,tested:triSel.length,cap:TN_LF_TRI_CAP,pairCap:TN_LF_TRI_PAIRS};
+    try{ console.info(`[lat+lon] ${inst}: triples ${TRI.tested} tested (${TRI.elig} with ≥${TN_LF_PV_MINSW} in-sample swings, from ${TRI.pairsUsed} of ${TRI.pairsElig} pairs; cap ${TRI.cap})`); }catch(e){}
+    prog(84); await reYield();
+    const FULL=learn(i0,iEnd);
+    prog(90); await reYield();
     const TRAIN=learn(i0,iTr), tp=new Set(TRAIN.pass.map(c=>c.k));
-    prog(94); await reYield();
+    prog(95); await reYield();
     // walk-forward per cell: a cell that passed on 2000–2018, scored on 2019 → last swing
-    const TEST=iTr+1<=iEnd?learn(iTr+1,iEnd):{C:{}};
+    const TEST=iTr+1<=iEnd?learn(iTr+1,iEnd):{A:[],C:{}};
     for(const k of tp){ const c=FULL.C[k], t=TEST.C[k]; if(!c) continue;
       c.wf=t?{n:t.n,hits:t.hits,rate:t.rate,chance:t.chance,p:t.p}:{n:0,hits:0,rate:0,chance:0,p:1};
       c.held=c.wf.n>0&&c.wf.rate>c.wf.chance&&c.wf.p<0.05; }
     // out of sample, all passing cells together: days from 2019 whose state matches a cell that passed on 2000–2018
+    const tpI=new Set(TRAIN.pass.map(c=>c.id));
     const OOS={from:bars[Math.min(iTr+1,N-1)].date,to:bars[Math.max(iEnd,0)].date,n:0,h:0,days:0,piv:0,dirN:0,dirOk:0};
     for(let i=iTr+1;i<=iEnd;i++){ const d=bD[i]; if(d<0) continue; const p=nearP[i]; OOS.days++; if(p) OOS.piv++;
-      const hit=cellKeys(d).filter(k=>tp.has(k)); if(!hit.length) continue;
-      const best=hit.map(k=>TRAIN.C[k]).sort((x,y)=>x.p-y.p)[0]; OOS.n++;
+      const hit=Array.from(dayAll(d)).filter(id=>tpI.has(id)); if(!hit.length) continue;
+      const best=hit.map(id=>TRAIN.A[id]).sort((x,y)=>x.p-y.p)[0]; OOS.n++;
       if(p){ OOS.h++; if(best.dir!=='TURN'){ OOS.dirN++; if((best.dir==='TOP')===(p.type==='H')) OOS.dirOk++; } } }
     OOS.chance=OOS.days?OOS.piv/OOS.days:0; OOS.rate=OOS.n?OOS.h/OOS.n:0; OOS.p=OOS.n?tnBinomUpper(OOS.n,OOS.h,OOS.chance):1;
     OOS.dirP=OOS.dirN?tnBinomUpper(OOS.dirN,OOS.dirOk,0.5):1;
+    // ── PROVEN: combined latitude + longitude patterns ──
+    // (i) BH q<0.05 on 2000–2018 only; (ii) 2019 → last swing: hit rate > local chance, one-sided binomial p<0.05, ≥5 hit days,
+    // and the same on distinct episodes (consecutive active days = one episode, a hit if any day hits); (iii) ≥8 in-sample swings;
+    // (iv) TOP / BOTTOM only when the lean is the same in and out of sample, otherwise TURN.
+    const iA2=iTr+1, iB2=iEnd;
+    const epChance=(s,e)=>{ const L=e-s+1, lo=Math.max(iA2,s-TN_LF_WIN), hi=Math.min(iB2,e+TN_LF_WIN); let w=0,k=0;
+      for(let j=lo;j+L-1<=hi;j++){ w++; if(PC[j+L]-PC[j]>0) k++; } return w?k/w:0; };
+    const pvC=[]; TRAIN.tested.forEach(c=>{ if(c.combo&&c.sw>=TN_LF_PV_MINSW) pvC.push(c); });
+    const EP=new Map(pvC.map(c=>[c.id,{n:0,h:0,ch:0,cur:null}]));
+    const epClose=E=>{ if(!E.cur) return; E.n++; E.h+=E.cur.h; E.ch+=epChance(E.cur.s,E.cur.e); E.cur=null; };
+    for(let i=iA2;i<=iB2;i++){ const d=bD[i]; if(d<0) continue; const hit=nearP[i]?1:0, ids=dayAll(d);
+      for(let j=0;j<ids.length;j++){ const E=EP.get(ids[j]); if(!E) continue;
+        if(E.cur&&E.cur.e===i-1){ E.cur.e=i; if(hit) E.cur.h=1; } else { epClose(E); E.cur={s:i,e:i,h:hit}; } } }
+    EP.forEach(epClose);
+    const pvRows=pvC.map(c=>{ const t=TEST.A[c.id], E=EP.get(c.id);
+      const o=t?{n:t.n,hits:t.hits,rate:t.rate,chance:t.chance,sw:t.sw,swTop:t.swTop,swMaj:t.swMaj}:{n:0,hits:0,rate:0,chance:0,sw:0,swTop:0,swMaj:0};
+      o.p=o.n?tnBinomUpper(o.n,o.hits,o.chance):1; o.lift=o.chance>0?o.rate/o.chance:0;
+      const ep={n:E.n,hits:E.h,rate:E.n?E.h/E.n:0,chance:E.n?E.ch/E.n:0}; ep.p=ep.n?tnBinomUpper(ep.n,ep.hits,ep.chance):1;
+      const ok1=c.pass&&c.bh<0.05, ok3=c.sw>=TN_LF_PV_MINSW;
+      const okD=o.n>0&&o.rate>o.chance&&o.p<0.05&&o.hits>=5, okE=ep.n>0&&ep.rate>ep.chance&&ep.p<0.05, ok2=okD&&okE;
+      const oTop=o.sw?o.swTop/o.sw:null;
+      const lab=c.dir==='TOP'&&oTop!=null&&oTop>0.5?'TOP':c.dir==='BOTTOM'&&oTop!=null&&oTop<0.5?'BOTTOM':'TURN';
+      const share=lab==='TOP'?c.topShare:lab==='BOTTOM'?1-c.topShare:Math.max(c.topShare,1-c.topShare);
+      const why=!ok1?`fails (i): BH q ${tnPfmt(c.bh)} on 2000–2018`:!okD?`fails (ii) on days: 2019+ ${o.hits}/${o.n} = ${tnPct(o.rate)} vs ${tnPct(o.chance)} chance, p ${tnPfmt(o.p)}${o.hits<5?', under 5 hit days':''}`:!okE?`fails (ii) on episodes: ${ep.hits}/${ep.n} = ${tnPct(ep.rate)} vs ${tnPct(ep.chance)} chance, p ${tnPfmt(ep.p)}`:'';
+      return {k:c.k,id:c.id,plain:tnLfPlain(c.k),size:c.size,fam:c.fam,
+        tr:{n:c.n,hits:c.hits,rate:c.rate,chance:c.chance,sw:c.sw,swTop:c.swTop,swMaj:c.swMaj,p:c.p,bh:c.bh,topShare:c.topShare,majShare:c.majShare,dir:c.dir},
+        oos:o,ep,ok1,ok2,ok3,proven:ok1&&ok2&&ok3,lab,share,oTop,majShare:c.majShare,oMaj:o.sw?o.swMaj/o.sw:null,why,next:[]}; });
+    const proven=pvRows.filter(r=>r.proven).sort((x,y)=>y.oos.lift-x.oos.lift||x.oos.p-y.oos.p);
+    // closest: pass (i) and (iii) but fail (ii), best out-of-sample p first; topped up with the best BH q that failed (i)
+    const close=pvRows.filter(r=>r.ok1&&r.ok3&&!r.ok2).sort((x,y)=>x.oos.p-y.oos.p).slice(0,10);
+    if(close.length<10) pvRows.filter(r=>!r.ok1).sort((x,y)=>x.tr.bh-y.tr.bh||x.tr.p-y.tr.p).slice(0,10-close.length).forEach(r=>close.push(r));
+    const nComb=TRAIN.tested.filter(c=>c.combo).length;
+    const PV={tested:nComb,bhFamily:TRAIN.m,elig:pvC.length,pass1:pvRows.filter(r=>r.ok1).length,tri:TRI,proven,close,keys:new Set(proven.map(r=>r.k)),byId:new Map(proven.map(r=>[r.id,r])),from:OOS.from,to:OOS.to};
     const ledger=swings.filter(s=>s.date>=s0&&s.date<=lastBar).map(s=>({s,d:dOf(s.date)})).reverse();
     // future dates: every calendar day of the next TN_LF_FUT days, with the backtested states active that day
     const fut=[];
     for(let d=0; d<nD; d++){ const ds=dsA[d]; if(ds<=lastBar||ds>futEnd) continue;
-      const ms=(d>=2&&d<nD-2?cellKeys(d):[]).map(k=>FULL.C[k]).filter(c=>c&&c.sw>=TN_LF_MINSW&&(c.pair||c.n>=20)&&c.pass).sort((x,y)=>x.p-y.p);
+      const ids=d>=2&&d<nD-2?dayAll(d):[];
+      const ms=Array.from(ids,id=>FULL.A[id]).filter(c=>c&&c.sw>=TN_LF_MINSW&&(c.pair||c.n>=20)&&c.pass).sort((x,y)=>x.p-y.p);
+      const pv=Array.from(ids,id=>PV.byId.get(id)).filter(Boolean);
+      pv.forEach(r=>r.next.push(ds));
       let score=0; ms.forEach((c,j)=>{ if(c.pass&&c.held) score+=10; if(j<5) score+=Math.min(12,-Math.log10(Math.max(c.p,1e-12))); });
-      fut.push({d,ds,ms,score,edge:ms.filter(c=>c.pass&&c.held).length}); }
+      fut.push({d,ds,ms,pv,score,edge:ms.filter(c=>c.pass&&c.held).length}); }
     const strong=new Set(fut.filter(f=>f.ms.length).sort((x,y)=>y.score-x.score).slice(0,10).map(f=>f.ds));
-    Object.assign(R,{status:'ready',kind,thr,bars,swings,lastP,base,s0,end,futEnd,lastBar,a,nD,dsA,V,VL,VO,ayan,FAM,events,evByDs,st,FULL,TRAIN,TEST,OOS,ledger,fut,strong,dayLab:{},cellKeys});
+    Object.assign(R,{status:'ready',kind,thr,bars,swings,lastP,base,s0,end,futEnd,lastBar,a,nD,dsA,V,VL,VO,ayan,FAM,events,evByDs,st,FULL,TRAIN,TEST,OOS,ledger,fut,strong,dayLab:{},cellKeys,PV,TRI});
   }catch(e){ R.status='error'; R.err=String(e&&e.message||e); }
   tnLfRepaint();
   if(R.status==='ready') setTimeout(()=>{ try{ if(!(S.tab==='planlat'||S.tab==='planlon')||!S.planRaw||planKind()!==mode) return;
@@ -10220,9 +10293,42 @@ async function tnLfBuild0(key, inst, mode){
   return R;
 }
 
+const TN_LF_LAT_PLAIN={'N-rising':'north of the ecliptic, rising','N-peak':'at its northern latitude peak','N-falling':'north of the ecliptic, falling','S-falling':'south of the ecliptic, falling','S-bottom':'at its southern latitude low','S-rising':'south of the ecliptic, rising','N-bottom':'north of the ecliptic, turning up','S-peak':'south of the ecliptic, turning down','crossing→N':'crossing the ecliptic northward','crossing→S':'crossing the ecliptic southward'};
+// "Venus S-bottom + Venus direct in Aries" → "Venus at its southern latitude low + Venus direct in Aries"
+function tnLfPlain(k){ return String(k).split(' + ').map(s=>{ const i=s.indexOf(' '), b=s.slice(0,i), r=s.slice(i+1);
+  if(TN_LF_LAT_PLAIN[r]) return b+' '+TN_LF_LAT_PLAIN[r];
+  if(/^in /.test(r)) return b+' '+r+' nakshatra';
+  return b+' '+r.replace(/^retro /,'retrograde '); }).join(' + '); }
+function tnLfInstName(i){ return {'NIFTY 50':'Nifty 50','BANK NIFTY':'Bank Nifty','XAUUSD · GOLD':'Gold'}[i]||i; }
+// the other instruments of Nifty 50 / Bank Nifty / Gold, each learned on its own (either tab's build: both learn the same states)
+function tnLfPeers(R){ const C=window.TN.lf||{};
+  return TN_LF_CMP.filter(i=>i!==R.inst).map(i=>({i,P:[C[tnLfKey(i,'lat')],C[tnLfKey(i,'lon')]].find(x=>x&&x.status==='ready'&&x.PV)||null,
+    err:[C[tnLfKey(i,'lat')],C[tnLfKey(i,'lon')]].some(x=>x&&x.status==='error')})); }
+function tnLfConfirmed(R,k){ return tnLfPeers(R).filter(p=>p.P&&p.P.PV.keys.has(k)).map(p=>tnLfInstName(p.i)); }
+function tnLfRuns(ds){ const out=[]; for(const d of ds){ const r=out[out.length-1]; if(r&&reShift(r[1],1)===d) r[1]=d; else out.push([d,d]); }
+  return out.map(r=>r[0]===r[1]?r[0]:r[0]+' → '+r[1].slice(5)); }
+function tnLfLabCol(lab){ return lab==='TOP'?'var(--bear)':lab==='BOTTOM'?'var(--bull)':'var(--neut)'; }
+function tnLfProvenHTML(R){ const PV=R.PV; if(!PV) return '';
+  const peers=tnLfPeers(R), P=tnPct, M=PV.proven.length, T=PV.tri;
+  const conf=r=>{ const ok=peers.filter(p=>p.P&&p.P.PV.keys.has(r.k)).map(p=>tnLfInstName(p.i)), wait=peers.filter(p=>!p.P&&!p.err).map(p=>tnLfInstName(p.i)), no=peers.filter(p=>p.P&&!p.P.PV.keys.has(r.k)).map(p=>tnLfInstName(p.i));
+    return (ok.length?`<b style="color:var(--bull)">✓ CONFIRMED on ${ok.join(' / ')}</b>`:`<span style="color:var(--tx3)">not confirmed${no.length?' ('+no.join(', ')+')':''}</span>`)+(wait.length?`<br><span style="font-size:9.5px;color:var(--tx3)">checking ${wait.join(', ')}…</span>`:''); };
+  const nx=r=>{ const runs=tnLfRuns(r.next); return runs.length?runs.slice(0,4).join('<br>')+(runs.length>4?`<br><span style="color:var(--tx3)">+${runs.length-4} more</span>`:''):'<span style="color:var(--tx3)">none in the next '+TN_LF_FUT+' days</span>'; };
+  const row=(r,grey)=>`<tr style="${grey?'color:var(--tx3);opacity:.7':''}"><td style="min-width:170px;max-width:300px;white-space:normal" title="${tnEsc(r.k+' · '+r.fam)}">${grey?'':'<b style="color:var(--neut)">★</b> '}${tnEsc(r.plain)}${grey?`<br><span style="font-size:9.5px">${tnEsc(r.why)}</span>`:''}</td>
+    <td style="white-space:nowrap">${r.tr.hits}/${r.tr.n} days<br>${P(r.tr.rate)} vs ${P(r.tr.chance)}<br><span style="font-size:9.5px;color:var(--tx3)">${r.tr.sw} swings · BH q ${tnPfmt(r.tr.bh)}</span></td>
+    <td style="white-space:nowrap">days ${r.oos.hits}/${r.oos.n}: ${P(r.oos.rate)} vs ${P(r.oos.chance)} <span style="color:var(--tx3)">p ${tnPfmt(r.oos.p)}</span><br>episodes ${r.ep.hits}/${r.ep.n}: ${P(r.ep.rate)} vs ${P(r.ep.chance)} <span style="color:var(--tx3)">p ${tnPfmt(r.ep.p)}</span><br><span style="font-size:9.5px;color:var(--tx3)">lift ×${r.oos.lift.toFixed(2)}</span></td>
+    <td style="white-space:nowrap"><b style="color:${grey?'var(--tx3)':tnLfLabCol(r.lab)}">${r.lab}</b> ${P(r.share)}<br><span style="font-size:9.5px;color:var(--tx3)">tops ${P(r.tr.topShare)} in · ${r.oTop==null?'—':P(r.oTop)} out</span></td>
+    <td style="white-space:nowrap">${P(r.majShare)}${r.oMaj==null?'':`<br><span style="font-size:9.5px;color:var(--tx3)">${P(r.oMaj)} out</span>`}</td>
+    <td style="white-space:nowrap">${grey?'—':conf(r)}</td><td style="white-space:nowrap;font-size:10px">${grey?'—':nx(r)}</td></tr>`;
+  const head=`<thead><tr><th>Pattern</th><th title="Learning period ${R.s0} → ${TN_LF_TRAIN_END}: trading days in the pattern that sat within ±2 trading days of a ≥${R.thr.minPct}% swing, against the local chance (±${TN_LF_WIN} trading days).">2000–2018 hits</th><th title="Never-seen data ${PV.from} → ${PV.to}. Episodes: consecutive active days count once, a hit if any day hits.">2019+ hits (days · episodes)</th><th>Type · share</th><th>Major</th><th>Other markets</th><th>Next active (${TN_LF_FUT} days)</th></tr></thead>`;
+  const line=`<b>${PV.tested.toLocaleString('en-IN')} patterns tested; ${M} proven.</b>`;
+  const sub=`<span style="font-size:10px;color:var(--tx3)">Combined = at least one latitude state and one longitude state (sign + motion, combust, or nakshatra), as pairs or triples, on ${tnEsc(tnLfInstName(R.inst))} ≥${R.thr.minPct}% swings. Triples: ${T.tested.toLocaleString('en-IN')} tested (${T.elig.toLocaleString('en-IN')} had ≥${TN_LF_PV_MINSW} in-sample swings; built from the ${T.pairsUsed} most-active of ${T.pairsElig} pairs with ≥${TN_LF_PV_MINSW} swings; cap ${T.cap.toLocaleString('en-IN')}). The Benjamini–Hochberg correction counts all ${PV.bhFamily.toLocaleString('en-IN')} states tested on 2000–2018. Proven = (i) BH q&lt;0.05 on 2000–2018, (ii) beat chance again on ${PV.from} → ${PV.to} by days and by episodes (one-sided binomial p&lt;0.05, ≥5 hit days), (iii) ≥${TN_LF_PV_MINSW} in-sample swings. TOP / BOTTOM only when the lean is the same in and out of sample, otherwise TURN. ${PV.pass1} passed (i).</span>`;
+  const tbl=rs=>`<div class="ts" style="max-height:320px;overflow:auto"><table class="tbl">${head}<tbody>${rs}</tbody></table></div>`;
+  const body=M?tbl(PV.proven.map(r=>row(r,false)).join(''))
+    :`<div style="font-size:11px;color:var(--tx1);margin:3px 0">No combined latitude + longitude pattern is proven on ${tnEsc(tnLfInstName(R.inst))}. The ${PV.close.length} closest are listed greyed below; none of them is a signal.</div>`+(PV.close.length?tbl(PV.close.map(r=>row(r,true)).join('')):'');
+  return `<div style="border:1px solid var(--bd2);border-left:3px solid var(--acc);background:var(--bg2);padding:6px 8px;margin:4px 0 6px;font-size:11px;color:var(--tx1);line-height:1.5"><div style="font-size:10.5px;color:var(--acc);font-weight:700">PROVEN EDGES — combined latitude + longitude</div><div>${line}</div>${sub}${body}</div>`; }
 function tnLfEntry(e,R){
   const s=R.st[e.b+'|'+e.type];
-  const meas=s?`${e.b} ${e.type} ${R.s0}→${R.lastBar}: n ${s.n}, ${tnPct(s.rate)} within ±2 trading days of a ≥${R.thr.minPct}% swing vs ${tnPct(s.base)} chance, p ${tnPfmt(s.p)}; ${tnPct(s.majShare)} of hits major, ${s.top}/${s.hits} tops. ${s.edge?'Beats chance.':'Does not beat chance: no measured edge.'}`:'No past occurrences of this type.';
+  const meas=s?`${e.b} ${e.type} ${R.s0}→${R.lastBar}: n ${s.n}, ${tnPct(s.rate)} within ±2 trading days of a ≥${R.thr.minPct}% swing vs ${tnPct(s.base)} chance, p ${tnPfmt(s.p)}; ${tnPct(s.majShare)} of hits major, ${s.top}/${s.hits} tops. ${s.edge?'Beats chance.':'Does not beat chance: not proven — past hits ≈ random chance.'}`:'No past occurrences of this type.';
   const rule=`Swings: reDetectSwings ${R.thr.minPct}% swing / ${R.thr.majPct}% major.`;
   if(e.fut) return `<span style="color:var(--tx2)" title="${tnEsc(e.book+' '+meas)}">${tnEsc(e.txt)}</span>`;
   let lab,col,pv='';
@@ -10254,21 +10360,22 @@ function tnLfOosHTML(R){
   const oosTxt=!T.pass.length
     ? `Walk-forward: learned on ${R.s0} → ${TN_LF_TRAIN_END}, <b>${T.pass.length} of ${T.m}</b> planet states passed the BH correction, so nothing carries into ${O.from} → ${O.to}: no out-of-sample edge to test.`
     : `Walk-forward: learned on ${R.s0} → ${TN_LF_TRAIN_END}, ${T.pass.length} of ${T.m} states passed BH. Out of sample ${O.from} → ${O.to}: days matching a passing state were within ±2 days of a ≥${R.thr.minPct}% swing on <b>${O.h}/${O.n} = ${tnPct(O.rate)}</b> vs <b>${tnPct(O.chance)}</b> chance (p ${tnPfmt(O.p)}) · top/bottom right ${O.dirOk}/${O.dirN}${O.dirN?' = '+tnPct(O.dirOk/O.dirN):''} vs 50% (p ${tnPfmt(O.dirP)}). ${O.n&&O.p<0.05&&O.rate>O.chance?'Held up on hit rate.':'Did not hold up.'}`;
-  return `<div style="border:1px solid var(--bd2);border-left:3px solid var(--neut2);background:var(--bg2);padding:6px 8px;margin:4px 0 6px;font-size:11px;color:var(--tx1);line-height:1.5">${oosTxt}<br><span style="color:var(--tx3)">The app's measured daily direction call is 49.0% vs a 53.9% up-day base rate: no directional edge. Labels below are research output, not a recommendation.</span></div>`; }
+  return `<div style="border:1px solid var(--bd2);border-left:3px solid var(--neut2);background:var(--bg2);padding:6px 8px;margin:4px 0 6px;font-size:11px;color:var(--tx1);line-height:1.5">${oosTxt}<br><span style="color:var(--tx3)">Astro direction right 49.0% of days vs 53.9% if you always said 'up': not proven. Labels below are research output, not a recommendation.</span></div>`; }
 function tnLfMatchHTML(R,c){
-  const edge=tnLfEdge(c), col=edge?(c.dir==='TOP'?'var(--bear)':c.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)';
-  return `<span style="color:${edge?'var(--tx1)':'var(--tx3)'}" title="${tnEsc(tnLfCellTip(c,R))}">${tnEsc(c.k)}: <span style="font-size:10px">${tnEsc(tnLfCellTxt(c,R))}</span> <b style="color:${col}">→ ${tnLfCellLab(c)}</b>${edge?'':' <span style="font-size:10px">(no measured edge)</span>'}</span>`; }
+  const edge=!!(R.PV&&R.PV.keys.has(c.k)), col=edge?(c.dir==='TOP'?'var(--bear)':c.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)';
+  return `<span style="color:${edge?'var(--tx1)':'var(--tx3)'}" title="${tnEsc(tnLfCellTip(c,R))}">${tnEsc(c.k)}: <span style="font-size:10px">${tnEsc(tnLfCellTxt(c,R))}</span> <b style="color:${col}">→ ${tnLfCellLab(c)}</b>${edge?' <b style="font-size:10px;color:var(--bull)">Proven in backtest ✓</b>':' <span style="font-size:10px">(not proven — past hits ≈ random chance)</span>'}</span>`; }
 function tnLfFutHTML(R){
   const all=!!window.TN.lfFutAll, hk='fut'+(all?1:0); if(R.html[hk]) return R.html[hk];
   const rows=R.fut.filter(f=>all||f.ms.length);
-  const body=rows.map(f=>{ const hi=R.strong.has(f.ds), top=f.ms[0];
-    const lab=top?`<b style="color:${tnLfEdge(top)?(top.dir==='TOP'?'var(--bear)':top.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)'}">${tnLfCellLab(top)}</b>${tnLfEdge(top)?'':'<br><span style="font-size:9.5px;color:var(--tx3)">no measured edge</span>'}`:'<span style="color:var(--tx3)">—</span>';
+  const body=rows.map(f=>{ const hi=R.strong.has(f.ds), top=f.ms[0], pv=f.pv||[], pr=pv[0];
+    const lab=pr?`<b style="color:${tnLfLabCol(pr.lab)}">★ ${pr.lab}</b> <span style="font-size:9.5px">${tnPct(pr.share)}</span><br><span style="font-size:9.5px;color:var(--tx1);white-space:normal">${tnEsc(pr.plain)}</span>${pv.length>1?`<br><span style="font-size:9.5px;color:var(--tx3)">+${pv.length-1} more proven</span>`:''}<br><b style="font-size:9.5px;color:var(--bull)">Proven in backtest ✓</b>`
+      :top?`<span style="color:var(--tx3)">${tnLfCellLab(top)}<br><span style="font-size:9.5px">not proven — past hits ≈ random chance</span></span>`:'<span style="color:var(--tx3)">—</span>';
     const mt=f.ms.length?f.ms.slice(0,3).map(c=>tnLfMatchHTML(R,c)).join('<br>')+(f.ms.length>3?`<br><span style="font-size:10px;color:var(--tx3)">+${f.ms.length-3} more states</span>`:''):'<span style="color:var(--tx3)">no backtested state passed the correction</span>';
-    return `<tr${hi?' style="background:rgba(255,190,60,.12)"':''}><td style="white-space:nowrap;min-width:84px">${f.ds}${hi?'<br><b style="font-size:9.5px;color:var(--neut)">★ strongest</b>':''}</td>${TN_LF_LON_BODIES.map(b=>tnLfPlanetCell(R,b,f.d)).join('')}<td style="white-space:nowrap;line-height:1.45;font-size:10.5px">${mt}</td><td style="white-space:nowrap">${lab}</td></tr>`; }).join('');
-  const head=`<thead><tr><th style="white-space:nowrap;min-width:84px">Date</th>${TN_LF_LON_BODIES.map(b=>`<th style="color:${PLAN_COL[b]||'var(--tx1)'}" title="line 1: geocentric ecliptic latitude and its phase; line 2: sidereal (${tnEsc(tnAy())}) longitude, nakshatra, ℞ / station / combust">${b}</th>`).join('')}<th title="States active that day with ≥${TN_LF_MINSW} past swings whose hit rate beat the local chance and passed the Benjamini–Hochberg correction on the full history, strongest first. Coloured only when the state also held up out of sample (2019 →); otherwise grey, no measured edge.">Backtest match</th><th>Label</th></tr></thead>`;
+    return `<tr${pr?' style="background:rgba(255,190,60,.12)"':''}><td style="white-space:nowrap;min-width:84px">${f.ds}${hi?'<br><span style="font-size:9.5px;color:var(--tx3)">◆ top-10 score (unproven)</span>':''}</td>${TN_LF_LON_BODIES.map(b=>tnLfPlanetCell(R,b,f.d)).join('')}<td style="white-space:nowrap;line-height:1.45;font-size:10.5px">${mt}</td><td style="min-width:120px;max-width:220px">${lab}</td></tr>`; }).join('');
+  const head=`<thead><tr><th style="white-space:nowrap;min-width:84px">Date</th>${TN_LF_LON_BODIES.map(b=>`<th style="color:${PLAN_COL[b]||'var(--tx1)'}" title="line 1: geocentric ecliptic latitude and its phase; line 2: sidereal (${tnEsc(tnAy())}) longitude, nakshatra, ℞ / station / combust">${b}</th>`).join('')}<th title="States active that day with ≥${TN_LF_MINSW} past swings whose hit rate beat the local chance and passed the Benjamini–Hochberg correction on the full history, strongest first. The Label column is coloured, with ★ and the pattern named, only when a PROVEN combined latitude + longitude pattern is active that day; otherwise grey: not proven — past hits ≈ random chance.">Backtest match</th><th>Label</th></tr></thead>`;
   const n=R.fut.filter(f=>f.ms.length).length;
   const btn=(on,v,lab)=>`<button onclick="window.TN.lfFutAll=${v};tnLfRepaint()" style="background:${on?'var(--bg3)':'var(--bg2)'};color:${on?'var(--acc)':'var(--tx1)'};border:1px solid ${on?'var(--acc)':'#104858'};border-radius:3px;padding:1px 6px;font-family:inherit;font-size:10px;cursor:pointer">${lab}</button>`;
-  return (R.html[hk]=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 2px"><span style="font-size:10.5px;color:var(--acc);font-weight:700">FUTURE DATES — planetary latitude &amp; longitude (${R.fut.length} days, ${R.fut[0]?R.fut[0].ds:''} → ${R.futEnd})</span>${btn(!all,'false','only days with a match')}${btn(all,'true','all days')}<span style="font-size:10px;color:var(--tx3)">${n} of ${R.fut.length} days match a backtested state · ★ = 10 strongest</span></div>
+  return (R.html[hk]=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 2px"><span style="font-size:10.5px;color:var(--acc);font-weight:700">FUTURE DATES — planetary latitude &amp; longitude (${R.fut.length} days, ${R.fut[0]?R.fut[0].ds:''} → ${R.futEnd})</span>${btn(!all,'false','only days with a match')}${btn(all,'true','all days')}<span style="font-size:10px;color:var(--tx3)">${n} of ${R.fut.length} days match a backtested state · ★ = a PROVEN pattern is active (${R.fut.filter(f=>f.pv&&f.pv.length).length} days) · ◆ = 10 highest scores, unproven</span></div>
     <div class="ts" style="max-height:360px;overflow:auto"><table class="tbl">${head}<tbody>${body||`<tr><td colspan="${TN_LF_LON_BODIES.length+3}" style="color:var(--tx3)">no rows</td></tr>`}</tbody></table></div>`); }
 function tnLfCellFilt(q){ window.TN.lfQ=q||''; const tb=document.getElementById('tnLfCellTb'); if(!tb) return; q=String(q||'').toLowerCase();
   for(const tr of tb.rows) tr.style.display=!q||String(tr.getAttribute('data-k')||'').includes(q)?'':'none'; }
@@ -10276,7 +10383,7 @@ function tnLfCellsHTML(R){
   const F=R.FULL, q=String(window.TN.lfQ||'').toLowerCase();
   const list=F.tested.slice(0,60); F.pass.forEach(c=>{ if(!list.includes(c)) list.push(c); });
   const row=c=>{ const edge=tnLfEdge(c), k=c.k.toLowerCase();
-    return `<tr data-k="${tnEsc(k)}" style="${c.pass?'':'opacity:.6'}${q&&!k.includes(q)?';display:none':''}"><td style="white-space:nowrap">${tnEsc(c.k)}</td><td style="color:var(--tx3)">${tnEsc(c.fam)}</td><td style="text-align:right">${c.n}</td><td style="text-align:right">${c.sw}</td><td style="text-align:right">${c.hits}</td><td style="text-align:right">${tnPct(c.rate)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(c.chance)}</td><td style="text-align:right">${tnPct(c.topShare)}</td><td style="text-align:right">${tnPct(c.majShare)}</td><td style="text-align:right">${tnPfmt(c.p)}</td><td style="text-align:right">${tnPfmt(c.bh)}</td><td style="white-space:nowrap">${c.wf&&!c.wf.n?'<span style="color:var(--tx3)">state did not occur 2019 →</span>':c.wf?`${c.wf.hits}/${c.wf.n} = ${tnPct(c.wf.rate)} vs ${tnPct(c.wf.chance)} (p ${tnPfmt(c.wf.p)})`:'<span style="color:var(--tx3)">—</span>'}</td><td style="white-space:nowrap;font-weight:700;color:${edge?(c.dir==='TOP'?'var(--bear)':c.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)'}">${edge?tnLfCellLab(c):c.pass?tnLfCellLab(c)+' · not held out of sample':'no measured edge'}</td></tr>`; };
+    return `<tr data-k="${tnEsc(k)}" style="${c.pass?'':'opacity:.6'}${q&&!k.includes(q)?';display:none':''}"><td style="white-space:nowrap">${tnEsc(c.k)}</td><td style="color:var(--tx3)">${tnEsc(c.fam)}</td><td style="text-align:right">${c.n}</td><td style="text-align:right">${c.sw}</td><td style="text-align:right">${c.hits}</td><td style="text-align:right">${tnPct(c.rate)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(c.chance)}</td><td style="text-align:right">${tnPct(c.topShare)}</td><td style="text-align:right">${tnPct(c.majShare)}</td><td style="text-align:right">${tnPfmt(c.p)}</td><td style="text-align:right">${tnPfmt(c.bh)}</td><td style="white-space:nowrap">${c.wf&&!c.wf.n?'<span style="color:var(--tx3)">state did not occur 2019 →</span>':c.wf?`${c.wf.hits}/${c.wf.n} = ${tnPct(c.wf.rate)} vs ${tnPct(c.wf.chance)} (p ${tnPfmt(c.wf.p)})`:'<span style="color:var(--tx3)">—</span>'}</td><td style="white-space:nowrap;font-weight:700;color:${edge?(c.dir==='TOP'?'var(--bear)':c.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)'}">${edge?tnLfCellLab(c):c.pass?tnLfCellLab(c)+' · not held out of sample':'not proven — past hits ≈ random chance'}</td></tr>`; };
   return `<details open style="margin-top:6px"><summary style="cursor:pointer;font-size:10px;color:var(--acc);font-weight:700">BACKTEST OF EVERY PLANET STATE on ≥${R.thr.minPct}% swings (${R.s0} → ${F.lastDate}) — ${F.m} states tested, ${F.pass.length} passed Benjamini–Hochberg q=0.05, ${F.pass.filter(tnLfEdge).length} also held up out of sample</summary>
     <div style="display:flex;gap:6px;align-items:center;margin:3px 0"><input type="search" placeholder="filter by planet (e.g. Venus)" value="${tnEsc(window.TN.lfQ||'')}" oninput="tnLfCellFilt(this.value)" style="width:200px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:10.5px;padding:1px 4px"><span style="font-size:10px;color:var(--tx3)">${list.length} rows: the 60 lowest p plus every passing state, sorted by p</span></div>
     <div class="ts" style="max-height:280px;overflow:auto"><table class="tbl"><thead><tr><th>Planet state</th><th>Family</th><th style="text-align:right">Days</th><th style="text-align:right">Swings</th><th style="text-align:right">Hit days</th><th style="text-align:right">Hit</th><th style="text-align:right">Chance</th><th style="text-align:right">Tops</th><th style="text-align:right">Major</th><th style="text-align:right">p</th><th style="text-align:right">BH q</th><th>Walk-forward 2019 → (hit vs chance)</th><th>Label</th></tr></thead><tbody id="tnLfCellTb">${list.map(row).join('')}</tbody></table></div>
@@ -10317,7 +10424,7 @@ function tnLfRows(R,only,cols){
 }
 function tnLfTableHTML(){
   const T=window.TN, C=T.lf||(T.lf={}), mode=planKind(), key=tnLfKey(), R=C[key], only=!!T.lfOnly, lat=mode==='lat';
-  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate: no directional edge. Each label below sits beside its measured hit rate and chance baseline.">49.0% measured, no edge</span>`;
+  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate: not proven — past hits ≈ random chance. Each label below sits beside its measured hit rate and chance baseline. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>`;
   const btn=(on,v,lab)=>`<button onclick="window.TN.lfOnly=${v};tnLfRepaint()" style="background:${on?'var(--bg3)':'var(--bg2)'};color:${on?'var(--acc)':'var(--tx1)'};border:1px solid ${on?'var(--acc)':'#104858'};border-radius:3px;padding:1px 6px;font-family:inherit;font-size:10px;cursor:pointer">${lab}</button>`;
   if(!R) setTimeout(()=>tnLfBuild(key,planInstKey(),mode),0);
   let body, count='';
@@ -10329,7 +10436,7 @@ function tnLfTableHTML(){
       `<th title="${lat?`Latitude peaks (northern extreme, turning South) and bottoms (southern extreme, turning North) of ${R.FAM[0].bodies.join(', ')}`:`Stations (retro / direct) of ${TN_LF_STN_BODIES.join(', ')}`} that day, with the ≥${R.thr.minPct}% swing pivot actually found within ±2 trading days. Grey = no swing.${lat?'':' Columns show the tab\'s tropical longitude; states use the sidereal ('+tnEsc(tnAy())+') sign.'}">${lat?'Lat':'Lon'} turn</th></tr></thead>`;
     const sub=t=>`<div style="font-size:10px;color:var(--acc);font-weight:700;margin:6px 0 2px">${t}</div>`;
     const empty=`<tr><td colspan="${cols.length+2}" style="color:var(--tx3)">no rows</td></tr>`;
-    body=tnLfOosHTML(R)+tnLfFutHTML(R)+tnLfCellsHTML(R)+tnLfLedgerHTML(R)+tnLfCmpHTML(mode)+
+    body=tnLfProvenHTML(R)+tnLfOosHTML(R)+tnLfFutHTML(R)+tnLfCellsHTML(R)+tnLfLedgerHTML(R)+tnLfCmpHTML(mode)+
       `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 2px">${sub(`PAST (from ${R.s0} to ${R.lastBar}, newest first) — what price actually did`)}${btn(!only,'false','all days')}${btn(only,'true',lat?'peak &amp; bottom days only':'station days only')}</div>`+
       `<div class="ts" style="max-height:320px;overflow:auto"><table class="tbl">${head}<tbody>${H.past||empty}</tbody></table></div>`; }
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px"><span style="font-size:10.5px;color:var(--acc);font-weight:700">PLANET LATITUDE &amp; LONGITUDE vs ≥${tnLfThr().minPct}% SWINGS (daily, from ${TN_LF_START})</span>${pill}${count}</div>${tnLfThrHTML(R)}${body}`;
@@ -11144,7 +11251,7 @@ ${s.why}</title></circle>`).join('');
   return`
   <div class="pnl">
     <div class="ph" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
-      <span><span class="dot" style="background:${dayCol}"></span>◈ BIAS CHART — ${ovInstKey()} · ${SR.label} · <span style="color:${dayCol};font-weight:800">DAY: ${D.combinedLabel} ${D.combinedScore>0?'+':''}${D.combinedScore}</span>${hitSummary?' · '+hitSummary:''}<span class="pill" title="Graded on 6,618 sessions since 2000-01-04: this call is right 49.0% of the time against a 53.9% base rate, and no component of it beats always-long at 95% confidence. Treat it as the rulebook's reading, not as a probability." style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);margin-left:8px;font-weight:700">rulebook · 49.0% measured, no edge</span></span>
+      <span><span class="dot" style="background:${dayCol}"></span>◈ BIAS CHART — ${ovInstKey()} · ${SR.label} · <span style="color:${dayCol};font-weight:800">DAY: ${D.combinedLabel} ${D.combinedScore>0?'+':''}${D.combinedScore}</span>${hitSummary?' · '+hitSummary:''}<span class="pill" title="Graded on 6,618 sessions since 2000-01-04: this call is right 49.0% of the time against a 53.9% base rate, and no component of it beats always-long at 95% confidence. Treat it as the rulebook's reading, not as a probability. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw." style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);margin-left:8px;font-weight:700;white-space:normal">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span></span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         ${ovDateNavHTML()}
         <select class="ci" style="font-size:11px;padding:2px 4px;max-width:160px" onchange="ovSelInst(this.value)">${instSel}</select>
@@ -11952,7 +12059,7 @@ function ovvPanelHTML(v){
     ${v.abstain
       ? `<div style="font-size:13px;font-weight:800;color:var(--tx3);margin-bottom:6px">NO CALL</div>
          <div style="font-size:11.5px;color:var(--tx3)">Conviction is in the bottom ${Math.round(v.pct)}th percentile.
-         Measured accuracy in this band is ${pc(v.acc)} against a ${pc(v.base)} majority class — no edge, so no call.</div>`
+         Measured accuracy in this band is ${pc(v.acc)} against a ${pc(v.base)} majority class — not proven (≈ random chance), so no call.</div>`
       : `<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;margin-bottom:8px">
            <span style="font-size:20px;font-weight:800;color:${col}">${v.call}</span>
            <span style="font-size:12px;color:var(--tx2)">${v.label}</span>
@@ -14870,11 +14977,11 @@ function tmGrade(T,bars){      // descriptive only: slot band sign vs the bar th
 }
 function tmHTML(){
   const T0=tmGet(true);
-  if(!T0) return `<div class="pnl"><div class="ph"><span class="dot"></span>BOOK READING PER ${tmIv()}-MIN SLOT · ${S.date}</div><div class="pb" style="font-size:11.5px;color:var(--tx3)">Reading the book engine for every slot of the session… <span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700">49.0% measured vs 53.9% base · no edge</span></div></div>`;
+  if(!T0) return `<div class="pnl"><div class="ph"><span class="dot"></span>BOOK READING PER ${tmIv()}-MIN SLOT · ${S.date}</div><div class="pb" style="font-size:11.5px;color:var(--tx3)">Reading the book engine for every slot of the session… <span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span></div></div>`;
   const T=T0, P=window.TMPX, px=(P.key===tmPxKey()&&P.bars)?P.bars:null, iv=tmIv(), g=tmGrade(T,px);
   const pc=x=>g.n?Math.round(x/g.n*100):0, sel=(S.tmSel!=null&&T.slots[S.tmSel])?T.slots[S.tmSel]:null;
   const instSel=Object.keys(PLAN_INST).map(k=>`<option value="${reEsc(k)}" ${ovInstKey()===k?'selected':''}>${reEsc(k)}</option>`).join('');
-  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the rulebook's directional calls scored 49.0% against a 53.9% always-bullish base rate. One session of slots is far too small a sample to read as skill.">49.0% measured vs 53.9% base · no edge</span>`;
+  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the rulebook's directional calls scored 49.0% against a 53.9% always-bullish base rate. One session of slots is far too small a sample to read as skill. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>`;
   const pxMsg=P.key!==tmPxKey()||P.status==='loading'?'loading bars…':P.status==='error'?`price unavailable: ${reEsc(P.err||'fetch failed')}`:reEsc(P.note||'');
   const dirC=d=>d>0?'var(--bull)':d<0?'var(--bear)':'var(--tx3)';
   const rl=(r,sg)=>`<span style="color:${dirC(r.dir)}" title="§ ${reEsc(r.sec||'')}${r.detail?' - '+reEsc(String(r.detail)):''}">${sg||''}${reEsc(String(r.name||r.id).slice(0,46))}</span>`;
@@ -14946,7 +15053,7 @@ function tTiming(){
 <div style="display:flex;flex-direction:column;gap:10px">
   ${_hstrip}
   <div id="tm-host" style="display:flex;flex-direction:column;gap:10px">${tmHTML()}</div>
-  <details class="pnl"><summary class="ph" style="cursor:pointer"><span><span class="dot"></span>KP hora (legacy) · not from the source book · houses frozen at the header TIME · no measured edge</span></summary>
+  <details class="pnl"><summary class="ph" style="cursor:pointer"><span><span class="dot"></span>KP hora (legacy) · not from the source book · houses frozen at the header TIME · not proven — past hits ≈ random chance</span></summary>
   <div style="display:flex;flex-direction:column;gap:10px;padding:8px">
   <div class="pnl">
     <div class="ph">
@@ -16831,7 +16938,7 @@ function dfCol(v){ return v>0?'var(--bull)':v<0?'var(--bear)':'var(--neut)'; }
 function dfCls(v){ return v>0?'pb-b':v<0?'pb-r':'pb-n'; }
 function dfSecKey(sec){ return String(sec||'').replace(/ #\d+.*$/,'').trim(); }
 function dfPill(){
-  return '<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions this rulebook scored 49.0% against a 53.9% always-bullish base rate. Every label on this tab is what the book says, not a forecast with measured skill.">49.0% measured vs 53.9% base rate — no edge</span>';
+  return '<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions this rulebook scored 49.0% against a 53.9% always-bullish base rate. Every label on this tab is what the book says, not a forecast with measured skill. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>';
 }
 
 /* ── Stages 1-3 (astro) and 4 (chart) — §Concept of Argh Martand ── */
@@ -18209,7 +18316,7 @@ function panchakLevelsHTML(){
   return `<div class="pnl">${head}${winInfo}${summary}
     <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th style="text-align:right">Panchak High<div style="font-size:9px;font-weight:400">bullish above</div></th><th style="text-align:right">Panchak Low<div style="font-size:9px;font-weight:400">bearish below</div></th><th style="text-align:right">Range</th><th style="text-align:right">Range %</th><th>Panchak sessions (rules 1/2)</th><th style="text-align:right">Last</th><th>Now vs Range</th></tr></thead>
     <tbody>${rows}</tbody></table></div>
-    <div style="padding:6px 12px;font-size:10px;color:var(--tx3)">Rows sorted: sustained breakouts (▲/▼) first, both-side breaks (later break decides), then failed pokes and untouched ranges. "Failed break" is an app heuristic — the book only says bullish above the High, bearish below the Low, later break stronger — so it is shown neutral. "Last" is the newest daily close on or before the selected date, stamped with its date. Extension % = max excursion versus the range width. <span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700">rulebook graded 49.0% vs 53.9% base rate — no directional edge measured</span></div></div>`;
+    <div style="padding:6px 12px;font-size:10px;color:var(--tx3)">Rows sorted: sustained breakouts (▲/▼) first, both-side breaks (later break decides), then failed pokes and untouched ranges. "Failed break" is an app heuristic — the book only says bullish above the High, bearish below the Low, later break stronger — so it is shown neutral. "Last" is the newest daily close on or before the selected date, stamped with its date. Extension % = max excursion versus the range width. <span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span></div></div>`;
 }
 
 /* ── PANCHAK HISTORY — every past Panchak on one instrument's daily bars, what
@@ -18297,7 +18404,7 @@ async function panchakHistoryCompute(bars, sess, ayMode, ayDeg){
 }
 function panchakHistoryHTML(){
   const H=window.PANCHAKHIST||{}, name=S.panchakInst||'NIFTY 50';
-  const pill='<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the whole rulebook scored 49.0% against a 53.9% base rate. Nothing in this panel overturns that unless a row beats BOTH trivial callers with a real sample.">rulebook graded 49.0% vs 53.9% base rate — no directional edge measured</span>';
+  const pill='<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the whole rulebook scored 49.0% against a 53.9% base rate. Nothing in this panel overturns that unless a row beats BOTH trivial callers with a real sample. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>';
   const head=`<div class="ph" style="justify-content:space-between;flex-wrap:wrap;gap:6px"><span><span class="dot"></span>◷ PANCHAK HISTORY — what happened afterwards · ${name}</span>
     <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${pill}<button class="ci" style="font-size:11px;padding:2px 10px;cursor:pointer" onclick="panchakHistoryLoad()">${H.status==='ready'?'↻ re-run':'▶ RUN'}</button></span></div>`;
   if(H.status==='loading') return `<div class="pnl">${head}<div class="pb" style="color:var(--acc);font-size:11.5px;padding:16px;text-align:center">⏳ loading daily history and grading every past Panchak…</div></div>`;
@@ -18307,7 +18414,7 @@ function panchakHistoryHTML(){
   const statRows=H.stats.map(s=>{
     const best=Math.max(s.bull,s.flat), small=s.n<30;
     const beats=!small && s.hits>best && s.pv<0.05;
-    const tag=s.n===0?'never fired':small?'sample too small (n<30)':beats?'beats both baselines (p '+s.pv.toFixed(3)+')':'no edge over baselines';
+    const tag=s.n===0?'never fired':small?'sample too small (n<30)':beats?'Proven in backtest ✓ (beats both baselines, p '+s.pv.toFixed(3)+')':'not proven — no better than the baselines';
     const high=['1','3','8','9'].includes(s.id);
     return `<tr><td style="font-weight:700;color:var(--tx1);white-space:nowrap">${s.id}${high?' <span class="pill pb-b" style="font-size:9px">HIGH-PROBABLE</span>':''}</td>
       <td style="color:var(--tx3);font-size:10.5px">${s.hz}</td><td style="text-align:right">${s.n}</td>
@@ -20176,7 +20283,7 @@ function srbCabinet(ds, ay){
 }
 
 /* ── hooks used by sectorPlanetScores / computeSectorRows ── */
-const SR_NOEDGE_PILL='<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px" title="Across 6,618 graded sessions this rulebook scored 49.0% against a 53.9% base rate. Sector labels are what the book says, not a forecast with measured skill — see the BOOK CALLS vs SECTOR RETURNS panel.">49.0% measured vs 53.9% base — no edge</span>';
+const SR_NOEDGE_PILL='<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px" title="Across 6,618 graded sessions this rulebook scored 49.0% against a 53.9% base rate. Sector labels are what the book says, not a forecast with measured skill — see the BOOK CALLS vs SECTOR RETURNS panel. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>';
 function srRulebookPlanet(n, D, pl){
   const out={delta:0, flags:[]};
   try{ const B=srBookEval(D); const a=B.perPlanet[n]; if(!a) return out;
@@ -20580,7 +20687,7 @@ function panchakWinCardHTML(I, title, state, withPrices){
         <div style="margin-left:auto;text-align:center"><div style="font-size:10.5px;color:var(--tx3)">BOOK RESULTS 3–9, NET</div>
           <div style="font-size:22px;font-weight:800;color:${vC(I.verdict)}">${I.verdict}</div>
           <div style="font-size:10.5px;color:var(--tx3)">score ${I.score>0?'+':''}${I.score}</div>
-          <div><span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px" title="Across 6,618 graded sessions this rulebook scored 49.0% against a 53.9% base rate. The label is what the book says, not a forecast with measured skill — see the history panel below.">49.0% vs 53.9% base — no edge measured</span></div></div>
+          <div><span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px" title="Across 6,618 graded sessions this rulebook scored 49.0% against a 53.9% base rate. The label is what the book says, not a forecast with measured skill — see the history panel below. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span></div></div>
       </div>
       <div class="ts"><table class="tbl"><thead><tr><th>#</th><th>Book result</th><th>Status</th><th>Call</th><th>Basis</th></tr></thead>
         <tbody>${panchakNineRowsHTML(I, withPrices)}</tbody></table></div>
@@ -20945,7 +21052,7 @@ function tSector(){
       <div><div style="font-size:10px;color:var(--bull);font-weight:700;margin-bottom:4px">▲ book-bullish sectors · constituents</div>${bulls.slice(0,6).map(r=>wlRow(r,'var(--bull)')).join('')||'<div style="font-size:11px;color:var(--tx3)">none</div>'}</div>
       <div><div style="font-size:10px;color:var(--bear);font-weight:700;margin-bottom:4px">▼ book-bearish sectors · constituents</div>${bears.slice(0,6).map(r=>wlRow(r,'var(--bear)')).join('')||'<div style="font-size:11px;color:var(--tx3)">none</div>'}</div>
     </div>
-    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">क्षेत्र के घटक F&amp;O शेयर। किसी नाम पर क्लिक करें → वह शेयर ★ Vyapaar Ratna चार्ट में price + तेजी/मंदी overlay के साथ खुलेगा। मैपिंग सूचक है, exhaustive नहीं। Study aid — the sector label carries no measured edge.</div></div></div>`;
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">क्षेत्र के घटक F&amp;O शेयर। किसी नाम पर क्लिक करें → वह शेयर ★ Vyapaar Ratna चार्ट में price + तेजी/मंदी overlay के साथ खुलेगा। मैपिंग सूचक है, exhaustive नहीं। Study aid — the sector label is not proven — past hits ≈ random chance.</div></div></div>`;
 
   return `<div style="display:flex;flex-direction:column;gap:10px">${hdr}<div id="sr-host">${srPanelHTML(rows)}</div><div id="srbt-host">${srBacktestHTML()}</div>${srBookPanelHTML(D)}${fwdPanel}${tablePanel}${watchPanel}${cardsPanel}
     <div style="font-size:10.5px;color:var(--tx3)">स्रोत: Tech Astro Analysis sector tables (§SECTORAL REPRESENTATION, §SECTORS AND LORDS, §TECHNOLOGY AND LORDS) + व्यापार-रत्न दृष्टि-योग इंजन + अष्टकवर्ग + वर्षेश + ग्रह-गरिमा + नक्षत्र-गति। अध्ययन-सहायक, निवेश-सलाह नहीं। ${SR_NOEDGE_PILL}</div></div>`;
@@ -24752,15 +24859,15 @@ function reBar(v,max,col){
 function rePill(t,col,bg){ return `<span class="pill" style="color:${col};background:${bg||'var(--bg3)'};border:1px solid ${col}">${t}</span>`; }
 // The measured record of the whole rulebook, shown beside every graded surface.
 function reNoEdgePill(){
-  return '<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the whole rulebook scored 49.0% against a 53.9% base rate. Nothing in this tab overturns that unless a row beats BOTH trivial callers with a real sample.">rulebook graded 49.0% vs 53.9% base rate — no directional edge measured</span>';
+  return '<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Across 6,618 graded sessions the whole rulebook scored 49.0% against a 53.9% base rate. Nothing in this tab overturns that unless a row beats BOTH trivial callers with a real sample. Proven = beat random chance on 2000–2018 AND again on 2019–2026 data it never saw.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>';
 }
 function reFlagCell(s){
   if(s.flagCommon) return rePill('TOO COMMON','var(--tx3)','var(--bg3)');
   if(s.flagSmall)  return rePill('LOW-N','var(--neut)','var(--neut3)');
   if(s.flagEp)     return rePill('ONE-OFF','var(--neut)','var(--neut3)');
-  if(s.flagWeak)   return rePill('NOT SIG','var(--tx3)','var(--bg3)');
-  if(s.flagFdr)    return rePill('NOT SIG (FDR)','var(--tx3)','var(--bg3)');
-  if(!s.reliable)  return rePill('MARGINAL','var(--tx3)','var(--bg3)');
+  if(s.flagWeak)   return rePill('NOT PROVEN','var(--tx3)','var(--bg3)');
+  if(s.flagFdr)    return rePill('NOT PROVEN (FDR)','var(--tx3)','var(--bg3)');
+  if(!s.reliable)  return rePill('BORDERLINE (unproven)','var(--tx3)','var(--bg3)');
   if(s.oos && s.oos.nBase>=5 && s.oos.lift!=null && s.oos.lift<=1) return rePill('IN-SAMPLE ONLY','var(--neut)','var(--neut3)');
   if(s.lift>=1.5)  return rePill('STRONG','var(--bull)','var(--bull3)');
   return rePill('OK','var(--acc)','var(--bg3)');
@@ -25005,7 +25112,7 @@ function reValidationHTML(m){
     hits.sort((a,b)=>(b.reliable?1:0)-(a.reliable?1:0)||reRank(b)-reRank(a));
     const evt=hits.slice(0,5).map(h=>{
       const offs=reWinOffs(w,h.id), ph=rePhaseTxt(reWinPhase(w,h.id));
-      const flag=h.flagCommon?'too common':h.flagSmall?'low-n':h.flagEp?'one-off':h.flagWeak?'not sig':h.flagFdr?'not sig (FDR)':h.reliable?'reliable':'marginal';
+      const flag=h.flagCommon?'too common':h.flagSmall?'low-n':h.flagEp?'one-off':h.flagWeak?'not proven':h.flagFdr?'not proven (FDR)':h.reliable?'Proven in backtest ✓':'borderline, unproven';
       return `<div style="margin:1px 0"><span class="pill" style="background:var(--bg3);color:${reCatColor(h.cat)};border:1px solid var(--bd);font-size:10.5px;font-family:monospace;opacity:${h.reliable?1:.6}"
         title="${flag} · lift ${h.lift.toFixed(2)}× · ${h.nSw}/${h.nBase} days · p=${rePFmt(h.p)} · q=${reQFmt(h.q)}${h.cat==='Rulebook'&&reBookLabel(h.tok)?' · '+reEsc(reBookLabel(h.tok)):''}">${reEsc(h.tok)} <i style="color:var(--tx3)">[${reOffBlocks(offs,m.span)}] ${h.lift.toFixed(2)}×</i></span>
         <span style="font-size:9.5px;color:var(--tx3)">${ph}</span></div>`;
@@ -25158,7 +25265,7 @@ function reComboHTML(m){
       <td style="text-align:right">${c.h!=null?c.h.toFixed(2):'—'}</td>
       <td>${dirTxt}<div style="font-size:9.5px;color:var(--tx3)">${(c.majShare*100).toFixed(0)}% major</div></td>
       <td style="text-align:right;color:${oosL==null?'var(--tx3)':oosL>1?'var(--acc)':'var(--bear)'}" title="lift on the most recent 30% of the history (${c.oos?c.oos.nSw+'/'+c.oos.nBase:'—'} days)">${oosL==null?'—':oosL.toFixed(2)+'×'}</td>
-      <td>${c.reliable?rePill('RELIABLE','var(--bull)','var(--bull3)'):(c.q!=null&&c.q>RE_FDR_Q&&c.p<=0.05)?rePill('NOT SIG (FDR)','var(--tx3)','var(--bg3)'):rePill('WEAK','var(--neut)','var(--neut3)')}</td></tr>`;
+      <td>${c.reliable?rePill('Proven in backtest ✓','var(--bull)','var(--bull3)'):(c.q!=null&&c.q>RE_FDR_Q&&c.p<=0.05)?rePill('NOT PROVEN (FDR)','var(--tx3)','var(--bg3)'):rePill('WEAK','var(--neut)','var(--neut3)')}</td></tr>`;
   }).join('');
   const C=m.combos;
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
@@ -25474,7 +25581,7 @@ function reExplain(ds){
       <td style="text-align:right;white-space:nowrap">${c.nTop}▲ ${c.nBot}▼<div style="font-size:9.5px;color:var(--tx3)">${c.nMaj} maj · ${c.nMin} min</div></td>
       <td style="text-align:right;font-weight:700;color:${c.lift>=1.5?'var(--bull)':'var(--acc)'}">${c.lift.toFixed(2)}×</td>
       <td style="text-align:right;color:${c.p<=0.05?'var(--acc)':'var(--tx3)'}">${rePFmt(c.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${reQFmt(c.q)}</div></td>
-      <td>${c.reliable?rePill('RELIABLE','var(--bull)','var(--bull3)'):rePill('WEAK','var(--neut)','var(--neut3)')}</td>
+      <td>${c.reliable?rePill('Proven in backtest ✓','var(--bull)','var(--bull3)'):rePill('WEAK','var(--neut)','var(--neut3)')}</td>
       <td style="font-size:10.5px">${prec}</td></tr>`;
   }).join('');
   const bt=f.bias==='TOP', predN=cb?(bt?cb.nTop:cb.nBot):0, predCI=cb?reWilson(predN,cb.nBase):[0,0];
@@ -25646,7 +25753,7 @@ function reForecastBodyHTML(){
   // VALIDATED needs lift AND an episode-level p; a model saved before the
   // episode test existed cannot be called validated until it is rebuilt.
   const trust = (pEp!=null && wf.liftExact>=1.4 && pEp<=0.05) ? ['VALIDATED','var(--bull)','var(--bull3)']
-              : (pEp!=null && wf.liftExact>=1.1 && pEp<=0.20) ? ['MARGINAL','var(--neut)','var(--neut3)']
+              : (pEp!=null && wf.liftExact>=1.1 && pEp<=0.20) ? ['BORDERLINE (unproven)','var(--neut)','var(--neut3)']
               : ['NOT VALIDATED','var(--bear)','var(--bear3)'];
   // Timing and direction pass or fail independently — say so where the
   // direction call is actually read, not only in the validation tab. The gate
