@@ -9921,7 +9921,7 @@ function tnInnerHTML(){
    One engine for both tabs; only the per-planet "state function" differs (latitude phase vs sign/motion/combust + nakshatra).
    Each instrument is learned on its own history (never pooled). */
 function tnPlanKey(){ try{ return dsKeyForYahooSym(PLAN_INST[planInstKey()])||'NIFTY'; }catch(e){ return 'NIFTY'; } }
-const TN_LF_START='2000-01-01', TN_LF_TRAIN_END='2018-12-31', TN_LF_WIN=126;
+const TN_LF_START='2000-01-01', TN_LF_TRAIN_END='2018-12-31', TN_LF_WIN=126, TN_LF_FUT=180, TN_LF_MINSW=5;
 // one-sided normal tail (Abramowitz–Stegun 7.1.26)
 function tnLfNormSf(z){ const x=Math.abs(z)/Math.SQRT2, t=1/(1+0.3275911*x), e=t*(0.254829592+t*(-0.284496736+t*(1.421413741+t*(-1.453152027+t*1.061405429))))*Math.exp(-x*x); return z>=0?e/2:1-e/2; }
 const TN_LF_LAT_STATES=['N-rising','N-peak','N-falling','S-falling','S-bottom','S-rising','N-bottom','S-peak','crossing→N','crossing→S'];
@@ -9929,11 +9929,26 @@ const TN_LF_LON_BODIES=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn'
 const TN_LF_STN_BODIES=['Mercury','Venus','Mars','Jupiter','Saturn'];
 const TN_LF_CMP=['NIFTY 50','BANK NIFTY','XAUUSD · GOLD'];
 function tnLfKind(inst){ try{ const k=dsKeyForYahooSym(PLAN_INST[inst]); return (k&&RE_UNIV[k]&&RE_UNIV[k].kind)||'index'; }catch(e){ return 'index'; } }
-function tnLfKey(inst,mode){ inst=inst||planInstKey(); mode=mode||planKind(); const thr=reThresholds(tnLfKind(inst));
-  return [mode,inst,tnAy(),planFwd(),thr.minPct,thr.majPct,thr.minIncl?1:0,(typeof dsEpoch==='function'?dsEpoch():'')].join('|'); }
+/* swing size for these two tabs only (separate from the Backtesting thresholds): SWING ≥ x% and MAJOR ≥ y%, remembered per browser */
+function tnLfThr(){ const T=window.TN||{}; let s=T.swingPct, m=T.majPct;
+  if(s==null){ try{ s=parseFloat(localStorage.getItem('astralTnSwingPct')); }catch(e){} }
+  if(m==null){ try{ m=parseFloat(localStorage.getItem('astralTnMajorPct')); }catch(e){} }
+  if(!(s>=0.5&&s<=50)) s=5; if(!(m>=0.5&&m<=80)) m=10; if(m<s) m=s;
+  return {minPct:s,majPct:m,minIncl:true}; }
+function tnLfSetThr(which,v){ v=parseFloat(v); if(!(v>=0.5&&v<=80)) return; const T=window.TN;
+  if(which==='maj'){ T.majPct=v; try{ localStorage.setItem('astralTnMajorPct',String(v)); }catch(e){} }
+  else { T.swingPct=v; try{ localStorage.setItem('astralTnSwingPct',String(v)); }catch(e){} }
+  tnLfRepaint(); }
+function tnLfKey(inst,mode){ inst=inst||planInstKey(); mode=mode||planKind(); const thr=tnLfThr();
+  return [mode,inst,tnAy(),planFwd(),'sw'+thr.minPct,'mj'+thr.majPct,(typeof dsEpoch==='function'?dsEpoch():'')].join('|'); }
 function tnLfSgn(v){ return (v<0?'−':'+')+Math.abs(v).toFixed(2)+'°'; }
-function tnLfSid(R,b,d){ return n360(R.V[b][d]-R.ayan[d]); }
+function tnLfNS(v){ return Math.abs(v).toFixed(2)+'°'+(v>=0?'N':'S'); }
+function tnLfSid(R,b,d){ return n360(R.VO[b][d]-R.ayan[d]); }
 function tnLfSignTxt(v){ return (v%30).toFixed(1)+'° '+TA_SIGNS[Math.floor(v/30)%12]; }
+function tnLfSignShort(v){ return TA_SIGNS[Math.floor(v/30)%12].slice(0,3)+' '+(v%30).toFixed(1)+'°'; }
+// "▲ TOP −5.44%" / "▼ MAJOR BOTTOM +11.70%"
+function tnLfSwLab(s){ const top=s.type==='H'; return `${top?'▲':'▼'} ${s.cls==='MAJOR'?'MAJOR ':''}${top?'TOP':'BOTTOM'} ${top?'−':'+'}${(+s.mag).toFixed(2)}%`; }
+function tnLfCellLab(c){ return (c.mag==='MAJOR'?'MAJOR ':'')+c.dir; }
 
 /* state families: {id, bodies, arr:{body:Uint8Array}, name(code)} — 255 = no state */
 function tnLfLatFamily(V,nD,bodies){
@@ -9947,7 +9962,7 @@ function tnLfLatFamily(V,nD,bodies){
       const N=X[d]>=0;
       s[d]=e===1?(N?1:7):e===2?(N?6:4):c===1?8:c===2?9:(X[d+1]>X[d]?(N?0:5):(N?2:3)); }
     arr[b]=s; }
-  return [{id:'lat',bodies:bodies.filter(b=>arr[b]),arr,name:c=>TN_LF_LAT_STATES[c]}];
+  return [{id:'lat',label:'latitude',bodies:bodies.filter(b=>arr[b]),arr,name:c=>TN_LF_LAT_STATES[c]}];
 }
 function tnLfLonFamilies(V,ayan,nD,bodies){
   const sign={}, nak={}, spd={};
@@ -9961,8 +9976,8 @@ function tnLfLonFamilies(V,ayan,nD,bodies){
       let comb=0; if(b==='Mercury'||b==='Venus'){ const el=Math.abs(reAngDiff(X[d],V.Sun[d])); comb=el<(COMBUST_ORB[b+(mot===1?'R':'')]||COMBUST_ORB[b])?1:0; }
       s[d]=Math.floor(sid/30)%12*6+mot*2+comb; k[d]=Math.floor(sid/(360/27))%27; }
     sign[b]=s; nak[b]=k; }
-  return [{id:'sign',bodies,arr:sign,name:c=>{ const mot=(c%6)>>1; return `${mot===1?'retro':mot===2?'stationary':'direct'} in ${TA_SIGNS[Math.floor(c/6)]}${c%2?' combust':''}`; }},
-          {id:'nak',bodies,arr:nak,name:c=>'in '+NAKS[c].n}];
+  return [{id:'sign',label:'sign + motion',bodies,arr:sign,name:c=>{ const mot=(c%6)>>1; return `${mot===1?'retro':mot===2?'stationary':'direct'} in ${TA_SIGNS[Math.floor(c/6)]}${c%2?' combust':''}`; }},
+          {id:'nak',label:'nakshatra',bodies,arr:nak,name:c=>'in '+NAKS[c].n}];
 }
 
 function tnLfBuild(key, inst, mode){ const C=window.TN.lf||(window.TN.lf={});
@@ -9974,7 +9989,7 @@ async function tnLfBuild0(key, inst, mode){
   const prog=v=>{ R.prog=v; const p=document.getElementById('tnLfProg'); if(p&&key===tnLfKey()) p.textContent=v+'%'; };
   try{
     const sym=PLAN_INST[inst], k=dsKeyForYahooSym(sym), u=k&&RE_UNIV[k];
-    const kind=tnLfKind(inst), thr=reThresholds(kind), today=tnToday(), ay=tnAy();
+    const kind=tnLfKind(inst), thr=tnLfThr(), today=tnToday(), ay=tnAy();
     let rows;
     if(u) rows=dsHasBake(k) ? await dsBars(k,'days','1',TN_LF_START,today,()=>reFetchOHLCYahoo(u.sym,'max')) : await reFetchOHLC(u.sym,'max',k);
     else rows=await reFetchOHLC(sym,'max');
@@ -9984,89 +9999,108 @@ async function tnLfBuild0(key, inst, mode){
       .sort((a,b)=>a.date<b.date?-1:1).forEach(b=>{ if(!seen.has(b.date)){ seen.add(b.date); bars.push(b); } });
     if(bars.length<200) throw new Error(`only ${bars.length} daily bars for ${inst}`);
     await reYield();
-    const swings=reDetectSwings(bars,thr.minPct,thr.majPct,thr.minIncl);
-    // swing days by date, so the latitude table can mark the day the market turned
+    // swings of this tab's own size: a pivot counts when the move that follows it is ≥ SWING % (≥ MAJOR % → MAJOR)
+    const swings=reDetectSwings(bars,thr.minPct,thr.majPct,true);
     R.swingByDs={}; swings.forEach(s=>{ R.swingByDs[s.date]=s; });
     try{ R.pendLeg=rePendingLeg(bars,thr); }catch(e){ R.pendLeg=null; }
+    // recent turns the 3% index rule sees that this size leaves out (shown as a one-line note under the control)
+    R.excl=[]; if(thr.minPct>3){ try{ const big=new Set(swings.map(s=>s.date)), from=reShift(bars[bars.length-1].date,-240);
+      R.excl=reDetectSwings(bars,3,Math.max(thr.majPct,3),true).filter(s=>s.date>=from&&!big.has(s.date)&&s.mag<thr.minPct).slice(-8); }catch(e){} }
     const N=bars.length, piv=new Array(N).fill(null);
     swings.forEach(s=>{ const i=(s.i!=null&&bars[s.i]&&bars[s.i].date===s.date)?s.i:tnIdx(bars,s.date); if(i>=0) piv[i]=s; });
     let lastP=-1; for(let i=0;i<N;i++) if(piv[i]) lastP=i;
     const near=i=>{ let best=null,bd=99; for(let j=Math.max(0,i-2);j<=Math.min(N-1,i+2);j++){ if(!piv[j]) continue; const d=Math.abs(j-i); if(d<bd){bd=d;best=piv[j];} } return best; };
-    const s0=bars[0].date>TN_LF_START?bars[0].date:TN_LF_START, lastBar=bars[N-1].date, end=reShift(lastBar,planFwd());
+    const nearP=new Array(N); for(let i=0;i<N;i++) nearP[i]=near(i);
+    const s0=bars[0].date>TN_LF_START?bars[0].date:TN_LF_START, lastBar=bars[N-1].date;
+    const futEnd=reShift(lastBar,TN_LF_FUT), fwEnd=reShift(lastBar,planFwd()), end=fwEnd>futEnd?fwEnd:futEnd;
     const i0=Math.max(0,tnIdx(bars,s0));
-    let dom=0,nb=0; for(let i=i0;i<=lastP;i++){ dom++; if(near(i)) nb++; }
+    let dom=0,nb=0; for(let i=i0;i<=lastP;i++){ dom++; if(nearP[i]) nb++; }
     const base=dom?nb/dom:0;
-    // daily series with the tab's own helpers at the tab's instant (00:00 UTC of the date)
-    const a=reShift(s0,-3), nD=Math.round((reMs(end)-reMs(a))/86400000)+4, dsA=new Array(nD), V={}, ayan=new Float64Array(nD);
-    const bodies=mode==='lat'?PLAN_ORDER.slice():PLAN_ORDER.concat(TN_LF_LON_BODIES.filter(b=>!PLAN_ORDER.includes(b)));
-    bodies.forEach(b=>V[b]=new Float64Array(nD));
+    // daily latitude AND longitude of every planet at the tab's instant (00:00 UTC of the date)
+    const a=reShift(s0,-3), nD=Math.round((reMs(end)-reMs(a))/86400000)+4, dsA=new Array(nD), VL={}, VO={}, ayan=new Float64Array(nD);
+    PLAN_ORDER.forEach(b=>{ VL[b]=new Float64Array(nD); VO[b]=new Float64Array(nD); });
     for(let d=0; d<nD; d++){
       const ds=reShift(a,d); dsA[d]=ds; const J=planJDfromMs(planMs(ds));
-      if(mode==='lat') for(const b of bodies) V[b][d]=geoLat(b,J);
-      else { for(const b of bodies) V[b][d]=n360(geoLon(b,J)); ayan[d]=getAyanamsa(J,ay); }
-      if(d%300===299){ prog(Math.round(d/nD*80)); await reYield(); }
+      for(const b of PLAN_ORDER){ VL[b][d]=geoLat(b,J); VO[b][d]=n360(geoLon(b,J)); }
+      ayan[d]=getAyanamsa(J,ay);
+      if(d%300===299){ prog(Math.round(d/nD*75)); await reYield(); }
     }
+    const V=mode==='lat'?VL:VO;
     const dOf=ds=>Math.round((reMs(ds)-reMs(a))/86400000);
-    const FAM=mode==='lat'?tnLfLatFamily(V,nD,TN_LAT_BODIES):tnLfLonFamilies(V,ayan,nD,TN_LF_LON_BODIES);
+    const FAM=tnLfLatFamily(VL,nD,TN_LAT_BODIES).concat(tnLfLonFamilies(VO,ayan,nD,TN_LF_LON_BODIES));
     // dated events for the past rows (lat: peaks / bottoms; lon: stations), graded against the swing within ±2 trading days
     const evByDs={}, events=[];
     const addEv=e=>{ if(e.ds<s0||e.ds>end) return; e.fut=e.ds>lastBar;
-      if(!e.fut){ const i=tnIdx(bars,e.ds); e.i=i; e.piv=i>=0?near(i):null; e.pending=!e.piv&&(i<0||i+2>lastP); }
+      if(!e.fut){ const i=tnIdx(bars,e.ds); e.i=i; e.piv=i>=0?nearP[i]:null; e.pending=!e.piv&&(i<0||i+2>lastP); }
       events.push(e); (evByDs[e.ds]||(evByDs[e.ds]=[])).push(e); };
-    if(mode==='lat'){ for(const b of FAM[0].bodies){ const X=V[b];
+    if(mode==='lat'){ for(const b of FAM[0].bodies){ const X=VL[b];
       for(let d=1; d<nD-1; d++){ let type=null; if(X[d]>X[d-1]&&X[d]>=X[d+1]) type='peak'; else if(X[d]<X[d-1]&&X[d]<=X[d+1]) type='bottom';
         if(type) addEv({ds:dsA[d],b,type,txt:`${b} lat ${type} ${tnLfSgn(X[d])}`,
           book:`${b} latitude at its ${type==='peak'?'northern extreme (peak), turning South':'southern extreme (bottom), turning North'} — book §${type==='peak'?TN_SEC.latS:TN_SEC.latN}: a ${type==='peak'?'bottom':'top'} is the book's reading (Shar South bullish / North bearish, obs. #5–#6).`}); } } }
-    else { for(const b of TN_LF_STN_BODIES){ const X=V[b];
+    else { for(const b of TN_LF_STN_BODIES){ const X=VO[b];
       for(let d=2; d<nD-1; d++){ const s1=reAngDiff(X[d],X[d-1]), s2=reAngDiff(X[d+1],X[d]); if((s1>0)===(s2>0)) continue;
         const type=s2<0?'station retro':'station direct', sid=n360(X[d]-ayan[d]);
         addEv({ds:dsA[d],b,type,txt:`${b} ${type} at ${tnLfSignTxt(sid)}`,book:`${b} ${type} (sidereal ${tnLfSignTxt(sid)}) — §${TN_SEC.stn}.`}); } } }
-    // per planet + event type, over every past occurrence since 2000 (±2 trading days)
     const st={};
     for(const e of events){ if(e.fut||e.i==null||e.i<0||e.i>lastP) continue;
       const s=st[e.b+'|'+e.type]||(st[e.b+'|'+e.type]={b:e.b,type:e.type,n:0,hits:0,maj:0,top:0});
       s.n++; if(e.piv){ s.hits++; if(e.piv.cls==='MAJOR') s.maj++; if(e.piv.type==='H') s.top++; } }
     Object.values(st).forEach(s=>{ s.rate=s.n?s.hits/s.n:0; s.base=base; s.p=tnBinomUpper(s.n,s.hits,base);
-      s.majShare=s.hits?s.maj/s.hits:0; s.mag=s.majShare>=0.5?'MAJOR':'MINOR'; s.edge=s.n>=10&&s.rate>base&&s.p<0.05; });
-    // ── learn: which planet states recur on swing-pivot days ──
+      s.majShare=s.hits?s.maj/s.hits:0; s.mag=s.majShare>=0.5?'MAJOR':'SWING'; s.edge=s.n>=10&&s.rate>base&&s.p<0.05; });
+    // ── backtest every state: latitude, sign+motion, nakshatra (singles + 2-planet pairs within a family) ──
     const keyMemo=new Map();
     const cellKeys=d=>{ let r=keyMemo.get(d); if(r) return r; r=[];
       for(const F of FAM){ const one=[]; for(const b of F.bodies){ const v=F.arr[b][d]; if(v!==255) one.push(b+' '+F.name(v)); }
         for(const x of one) r.push(x); for(let x=0;x<one.length;x++) for(let y=x+1;y<one.length;y++) r.push(one[x]+' + '+one[y]); }
       keyMemo.set(d,r); return r; };
+    const famOf={}; FAM.forEach(F=>F.bodies.forEach(b=>{ for(let v=0; v<255; v++){ let n; try{ n=F.name(v); }catch(e){ break; } if(n==null) break; famOf[b+' '+n]=F.label; } }));
     const bD=new Int32Array(N); for(let i=0;i<N;i++){ const d=dOf(bars[i].date); bD[i]=(d>=2&&d<nD-2)?d:-1; }
-    // chance for each day = the swing density of the surrounding year (±${TN_LF_WIN} bars, inside the learning span), so a slow
-    // planet state that merely coincides with a volatile era does not count as an edge
-    const PC=new Int32Array(N+1); for(let i=0;i<N;i++) PC[i+1]=PC[i]+(piv[i]?1:0);
-    const learn=(iA,iB)=>{ let n=0,h=0,tp=0; const C={};
-      for(let i=iA;i<=iB;i++){ const d=bD[i]; if(d<0) continue; const p=piv[i]; n++; if(p){ h++; if(p.type==='H') tp++; }
+    // chance for each day = how often a day of the surrounding ±TN_LF_WIN trading days sat within ±2 days of a swing
+    const PC=new Int32Array(N+1); for(let i=0;i<N;i++) PC[i+1]=PC[i]+(nearP[i]?1:0);
+    const learn=(iA,iB)=>{ let n=0,h=0; const C={};
+      for(let i=iA;i<=iB;i++){ const d=bD[i]; if(d<0) continue; const p=nearP[i]; n++; if(p) h++;
         const lo=Math.max(iA,i-TN_LF_WIN), hi=Math.min(iB,i+TN_LF_WIN), q=(PC[hi+1]-PC[lo])/(hi-lo+1);
-        for(const k of cellKeys(d)){ const c=C[k]||(C[k]={k,pair:k.includes(' + '),n:0,hits:0,top:0,maj:0,mu:0,va:0}); c.n++; c.mu+=q; c.va+=q*(1-q); if(p){ c.hits++; if(p.type==='H') c.top++; if(p.cls==='MAJOR') c.maj++; } } }
+        for(const k of cellKeys(d)){ const c=C[k]||(C[k]={k,pair:k.includes(' + '),n:0,hits:0,sw:0,swTop:0,swMaj:0,last:null,mu:0,va:0}); c.n++; c.mu+=q; c.va+=q*(1-q);
+          if(p){ c.hits++; if(c.last!==p){ c.last=p; c.sw++; if(p.type==='H') c.swTop++; if(p.cls==='MAJOR') c.swMaj++; } } } }
       const chance=n?h/n:0, tested=[];
-      Object.values(C).forEach(c=>{ c.rate=c.n?c.hits/c.n:0; c.chance=c.n?c.mu/c.n:0; c.ci=tnWilson(c.hits,c.n); c.p=c.va>0?tnLfNormSf((c.hits-0.5-c.mu)/Math.sqrt(c.va)):1;
-        c.topShare=c.hits?c.top/c.hits:0; c.majShare=c.hits?c.maj/c.hits:0; c.dir=c.topShare>=0.5?'TOP':'BOTTOM'; c.mag=c.majShare>=0.5?'MAJOR':'MINOR';
-        c.pass=false; c.bh=1; if(c.pair?c.hits>=5:c.n>=20) tested.push(c); });
+      Object.values(C).forEach(c=>{ c.last=null; c.rate=c.n?c.hits/c.n:0; c.chance=c.n?c.mu/c.n:0; c.ci=tnWilson(c.hits,c.n); c.p=c.va>0?tnLfNormSf((c.hits-0.5-c.mu)/Math.sqrt(c.va)):1;
+        c.fam=famOf[c.pair?c.k.split(' + ')[0]:c.k]||'';
+        c.topShare=c.sw?c.swTop/c.sw:0; c.majShare=c.sw?c.swMaj/c.sw:0; c.dir=c.topShare>=0.6?'TOP':c.topShare<=0.4?'BOTTOM':'TURN'; c.mag=c.majShare>=0.5?'MAJOR':'SWING';
+        c.pass=false; c.bh=1; if(c.sw>=TN_LF_MINSW&&(c.pair||c.n>=20)) tested.push(c); });
       tested.sort((x,y)=>x.p-y.p); const m=tested.length; let kmax=0;
       tested.forEach((c,j)=>{ c.bh=Math.min(1,c.p*m/(j+1)); if(c.p<=(j+1)/m*0.05) kmax=j+1; });
       for(let j=tested.length-2;j>=0;j--) tested[j].bh=Math.min(tested[j].bh,tested[j+1].bh);
       for(let j=0;j<kmax;j++) if(tested[j].rate>tested[j].chance) tested[j].pass=true;
       return {n,h,chance,C,tested,m,pass:tested.filter(c=>c.pass),lastDate:bars[Math.max(iA,iB)].date}; };
     let iEnd=lastP; while(iEnd>=0&&bD[iEnd]<0) iEnd--;
-    prog(85); await reYield();
+    prog(80); await reYield();
     const FULL=learn(i0,iEnd);
-    prog(92); await reYield();
+    prog(88); await reYield();
     let iTr=i0; while(iTr+1<=iEnd&&bars[iTr+1].date<=TN_LF_TRAIN_END) iTr++;
     const TRAIN=learn(i0,iTr), tp=new Set(TRAIN.pass.map(c=>c.k));
-    // out of sample: days from 2019 whose state matches a cell that passed on 2000–2018
+    prog(94); await reYield();
+    // walk-forward per cell: a cell that passed on 2000–2018, scored on 2019 → last swing
+    const TEST=iTr+1<=iEnd?learn(iTr+1,iEnd):{C:{}};
+    for(const k of tp){ const c=FULL.C[k], t=TEST.C[k]; if(!c) continue;
+      c.wf=t?{n:t.n,hits:t.hits,rate:t.rate,chance:t.chance,p:t.p}:{n:0,hits:0,rate:0,chance:0,p:1};
+      c.held=c.wf.n>0&&c.wf.rate>c.wf.chance&&c.wf.p<0.05; }
+    // out of sample, all passing cells together: days from 2019 whose state matches a cell that passed on 2000–2018
     const OOS={from:bars[Math.min(iTr+1,N-1)].date,to:bars[Math.max(iEnd,0)].date,n:0,h:0,days:0,piv:0,dirN:0,dirOk:0};
-    for(let i=iTr+1;i<=iEnd;i++){ const d=bD[i]; if(d<0) continue; const p=piv[i]; OOS.days++; if(p) OOS.piv++;
+    for(let i=iTr+1;i<=iEnd;i++){ const d=bD[i]; if(d<0) continue; const p=nearP[i]; OOS.days++; if(p) OOS.piv++;
       const hit=cellKeys(d).filter(k=>tp.has(k)); if(!hit.length) continue;
       const best=hit.map(k=>TRAIN.C[k]).sort((x,y)=>x.p-y.p)[0]; OOS.n++;
-      if(p){ OOS.h++; OOS.dirN++; if((best.dir==='TOP')===(p.type==='H')) OOS.dirOk++; } }
+      if(p){ OOS.h++; if(best.dir!=='TURN'){ OOS.dirN++; if((best.dir==='TOP')===(p.type==='H')) OOS.dirOk++; } } }
     OOS.chance=OOS.days?OOS.piv/OOS.days:0; OOS.rate=OOS.n?OOS.h/OOS.n:0; OOS.p=OOS.n?tnBinomUpper(OOS.n,OOS.h,OOS.chance):1;
     OOS.dirP=OOS.dirN?tnBinomUpper(OOS.dirN,OOS.dirOk,0.5):1;
     const ledger=swings.filter(s=>s.date>=s0&&s.date<=lastBar).map(s=>({s,d:dOf(s.date)})).reverse();
-    Object.assign(R,{status:'ready',kind,thr,bars,swings,lastP,base,s0,end,lastBar,a,nD,dsA,V,ayan,FAM,events,evByDs,st,FULL,TRAIN,OOS,ledger,dayLab:{},cellKeys});
+    // future dates: every calendar day of the next TN_LF_FUT days, with the backtested states active that day
+    const fut=[];
+    for(let d=0; d<nD; d++){ const ds=dsA[d]; if(ds<=lastBar||ds>futEnd) continue;
+      const ms=(d>=2&&d<nD-2?cellKeys(d):[]).map(k=>FULL.C[k]).filter(c=>c&&c.sw>=TN_LF_MINSW&&(c.pair||c.n>=20)&&c.pass).sort((x,y)=>x.p-y.p);
+      let score=0; ms.forEach((c,j)=>{ if(c.pass&&c.held) score+=10; if(j<5) score+=Math.min(12,-Math.log10(Math.max(c.p,1e-12))); });
+      fut.push({d,ds,ms,score,edge:ms.filter(c=>c.pass&&c.held).length}); }
+    const strong=new Set(fut.filter(f=>f.ms.length).sort((x,y)=>y.score-x.score).slice(0,10).map(f=>f.ds));
+    Object.assign(R,{status:'ready',kind,thr,bars,swings,lastP,base,s0,end,futEnd,lastBar,a,nD,dsA,V,VL,VO,ayan,FAM,events,evByDs,st,FULL,TRAIN,TEST,OOS,ledger,fut,strong,dayLab:{},cellKeys});
   }catch(e){ R.status='error'; R.err=String(e&&e.message||e); }
   tnLfRepaint();
   if(R.status==='ready') setTimeout(()=>{ try{ if(!(S.tab==='planlat'||S.tab==='planlon')||!S.planRaw||planKind()!==mode) return;
@@ -10076,82 +10110,98 @@ async function tnLfBuild0(key, inst, mode){
 
 function tnLfEntry(e,R){
   const s=R.st[e.b+'|'+e.type];
-  const meas=s?`${e.b} ${e.type} ${R.s0}→${R.lastBar}: n ${s.n}, ${tnPct(s.rate)} within ±2 trading days of a swing vs ${tnPct(s.base)} chance, p ${tnPfmt(s.p)}; ${tnPct(s.majShare)} of hits major, ${s.top}/${s.hits} tops. ${s.edge?'Beats chance.':'Does not beat chance: no measured edge.'}`:'No past occurrences of this type.';
-  const rule=`Swings: reDetectSwings ${R.thr.minPct}% minor / ${R.thr.majPct}% major.`;
-  if(e.fut) return `<span style="color:var(--tx2)" title="${tnEsc(e.book+' Not scored for the forecast: the label on the last line comes only from the learned planet-state cells. '+meas)}">${tnEsc(e.txt)}</span>`;
+  const meas=s?`${e.b} ${e.type} ${R.s0}→${R.lastBar}: n ${s.n}, ${tnPct(s.rate)} within ±2 trading days of a ≥${R.thr.minPct}% swing vs ${tnPct(s.base)} chance, p ${tnPfmt(s.p)}; ${tnPct(s.majShare)} of hits major, ${s.top}/${s.hits} tops. ${s.edge?'Beats chance.':'Does not beat chance: no measured edge.'}`:'No past occurrences of this type.';
+  const rule=`Swings: reDetectSwings ${R.thr.minPct}% swing / ${R.thr.majPct}% major.`;
+  if(e.fut) return `<span style="color:var(--tx2)" title="${tnEsc(e.book+' '+meas)}">${tnEsc(e.txt)}</span>`;
   let lab,col,pv='';
-  if(e.piv){ const top=e.piv.type==='H'; lab=`→ ${e.piv.cls} ${top?'TOP':'BOTTOM'} ${e.piv.date}`; col=top?'var(--bear)':'var(--bull)';
-    pv=` Pivot: ${e.piv.cls} ${top?'top':'bottom'} ${e.piv.date} at ${e.piv.price}, following move ${e.piv.mag}%.`; }
+  if(e.piv){ const top=e.piv.type==='H'; lab=`→ ${tnLfSwLab(e.piv)} ${e.piv.date}`; col=top?'var(--bear)':'var(--bull)';
+    pv=` Pivot: ${e.piv.cls==='MAJOR'?'major ':''}${top?'top':'bottom'} ${e.piv.date} at ${e.piv.price}, following move ${e.piv.mag}%.`; }
   else if(e.pending){ lab='→ no swing yet (unconfirmed)'; col='var(--tx3)'; }
   else { lab='→ no swing'; col='var(--tx3)'; }
   return `<span style="color:${col}" title="${tnEsc(e.book+pv+' '+rule+' '+meas)}">${tnEsc(e.txt)} <b>${tnEsc(lab)}</b></span>`;
 }
-function tnLfDay(R,d){
-  if(R.dayLab[d]!==undefined) return R.dayLab[d];
-  const cs=R.cellKeys(d).map(k=>R.FULL.C[k]).filter(c=>c&&(c.pair?c.hits>=5:c.n>=20)).sort((x,y)=>x.p-y.p);
-  const pass=cs.find(c=>c.pass);
-  return (R.dayLab[d]=pass?{c:pass,pass:true}:cs.length?{c:cs[0],pass:false}:null);
-}
-function tnLfCellTxt(c){ return `${c.hits}/${c.n} days, ${tnPct(c.rate)} vs ${tnPct(c.chance)} chance; tops ${c.top}/${c.hits}, major ${c.maj}/${c.hits}`; }
-function tnLfCellTip(c,R){ return `Cell "${c.k}" learned on ${R.s0}→${R.FULL.lastDate}: a swing pivot fell on ${c.hits} of ${c.n} trading days in this state (${tnPct(c.rate)}, 95% CI ${tnPct(c.ci[0])}–${tnPct(c.ci[1])}) vs ${tnPct(c.chance)} local chance (swing density of the surrounding year); p ${tnPfmt(c.p)}, BH-adjusted ${tnPfmt(c.bh)} over ${R.FULL.m} tested cells → ${c.pass?'passes':'does not pass'} the correction. Tops ${tnPct(c.topShare)}, major ${tnPct(c.majShare)} of those pivots. Swings: reDetectSwings ${R.thr.minPct}% minor / ${R.thr.majPct}% major.`; }
-function tnLfFutCell(R,d){
-  const L=tnLfDay(R,d); if(!L) return '<span style="color:var(--tx3)">no tested cell</span>';
-  const c=L.c, col=L.pass?(c.dir==='TOP'?'var(--bear)':'var(--bull)'):'var(--tx3)';
-  return `<span style="color:${col}" title="${tnEsc(tnLfCellTip(c,R))}">${tnEsc(c.k)} <b>→ historically ${c.mag} ${c.dir}</b> <span style="font-size:10px">(${tnLfCellTxt(c)})</span>${L.pass?'':' <span style="font-size:10px">(no measured edge)</span>'}</span>`;
-}
-function tnLfLedgerCell(R,b,d){
-  if(d<2||d>=R.nD-2) return '—';
-  if(R.mode==='lat'){ const F=R.FAM[0], v=F.arr[b]?F.arr[b][d]:255; return `${tnLfSgn(R.V[b][d])} <span style="color:var(--tx2)">${v===255?'—':F.name(v)}</span>`; }
-  const sg=R.FAM[0].arr[b][d], nk=R.FAM[1].arr[b][d], mot=(sg%6)>>1;
-  return `${tnLfSignTxt(tnLfSid(R,b,d))}${mot===1?' ℞':mot===2?' st':''}${sg%2?' comb':''} <span style="color:var(--tx2)">· ${NAKS[nk].n}</span>`;
-}
-function tnLfExtrasHTML(R){
-  const O=R.OOS, F=R.FULL, T=R.TRAIN, bodies=R.FAM[0].bodies;
+function tnLfCellTxt(c,R){ return `${c.hits}/${c.n} days hit a ≥${R.thr.minPct}% swing, ${tnPct(c.rate)} vs ${tnPct(c.chance)} chance, ${c.swTop} of ${c.sw} swings were tops, ${c.swMaj} major`; }
+function tnLfCellTip(c,R){ return `State "${c.k}" (${c.fam}) backtested on ${R.s0}→${R.FULL.lastDate}: ${c.hits} of ${c.n} trading days in this state sat within ±2 trading days of a ≥${R.thr.minPct}% swing pivot (${tnPct(c.rate)}, 95% CI ${tnPct(c.ci[0])}–${tnPct(c.ci[1])}) vs ${tnPct(c.chance)} local chance; ${c.sw} distinct swings, ${c.swTop} tops, ${c.swMaj} major. p ${tnPfmt(c.p)}, BH-adjusted ${tnPfmt(c.bh)} over ${R.FULL.m} tested states → ${c.pass?'passes':'does not pass'} the correction.${c.wf?` Walk-forward (learned 2000–2018, tested ${R.OOS.from}→${R.OOS.to}): ${c.wf.hits}/${c.wf.n} = ${tnPct(c.wf.rate)} vs ${tnPct(c.wf.chance)} chance, p ${tnPfmt(c.wf.p)} → ${c.held?'held up':'did not hold up'}.`:' Did not pass on 2000–2018, so there is no walk-forward test.'}`; }
+function tnLfEdge(c){ return !!(c&&c.pass&&c.held); }
+function tnLfLatLine(R,b,d){
+  const F=R.FAM[0], v=R.VL[b][d];
+  if(!F.arr[b]) return `${tnLfNS(v)} <span style="color:var(--tx3)">ecliptic</span>`;
+  const s=F.arr[b][d]; return `${tnLfNS(v)} <span style="color:var(--tx2)">${s===255?'—':F.name(s)}</span>`; }
+function tnLfLonLine(R,b,d){
+  const sg=R.FAM[1].arr[b][d], nk=R.FAM[2].arr[b][d], mot=sg===255?0:(sg%6)>>1, node=b==='Rahu'||b==='Ketu';
+  return `${tnLfSignShort(tnLfSid(R,b,d))}${nk===255?'':' <span style="color:var(--tx2)">'+NAKS[nk].n+'</span>'}${!node&&mot===1?' <span style="color:var(--bear)">℞</span>':''}${!node&&mot===2?' <span style="color:var(--neut)">station</span>':''}${sg!==255&&sg%2?' <span style="color:var(--neut)">combust</span>':''}`; }
+function tnLfPlanetCell(R,b,d){ if(d<2||d>=R.nD-2) return '<td>—</td>';
+  return `<td style="white-space:nowrap;line-height:1.35;color:${PLAN_COL[b]||'var(--tx1)'}">${tnLfLatLine(R,b,d)}<br>${tnLfLonLine(R,b,d)}</td>`; }
+function tnLfThrHTML(R){
+  const thr=tnLfThr(), inp=(w,v)=>`<input type="number" min="0.5" max="80" step="0.5" value="${v}" onchange="tnLfSetThr('${w}',this.value)" style="width:46px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:10.5px;padding:0 3px">`;
+  const ex=R&&R.status==='ready'&&R.excl&&R.excl.length?R.excl.map(s=>`${s.date} ${s.type==='H'?'high':'low'} ${s.type==='H'?'−':'+'}${(+s.mag).toFixed(2)}%`).join(' · '):'';
+  return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:10.5px;color:var(--tx1);margin:2px 0"><b style="color:var(--acc)">SWING ≥</b>${inp('sw',thr.minPct)}%<b style="color:var(--acc)">MAJOR ≥</b>${inp('maj',thr.majPct)}%<span style="color:var(--tx3)">(these two tabs only; the Backtesting thresholds are separate)</span></div>`+
+    `<div style="font-size:10px;color:var(--tx3);margin-bottom:4px">A top or bottom counts when the move that follows it is ≥ ${thr.minPct}%; moves under ${thr.minPct}% are not counted${ex?': '+tnEsc(ex):'.'}</div>`; }
+function tnLfOosHTML(R){
+  const O=R.OOS, T=R.TRAIN;
   const oosTxt=!T.pass.length
-    ? `Walk-forward: learned on ${R.s0} → ${TN_LF_TRAIN_END}, <b>${T.pass.length} of ${T.m}</b> planet-state cells passed the BH correction, so nothing carries into ${O.from} → ${O.to}: no out-of-sample edge to test.`
-    : `Walk-forward: learned on ${R.s0} → ${TN_LF_TRAIN_END}, ${T.pass.length} of ${T.m} cells passed BH. Out of sample ${O.from} → ${O.to}: days matching a passing cell caught a swing pivot on <b>${O.h}/${O.n} = ${tnPct(O.rate)}</b> vs <b>${tnPct(O.chance)}</b> chance (p ${tnPfmt(O.p)}) · direction right ${O.dirOk}/${O.dirN}${O.dirN?' = '+tnPct(O.dirOk/O.dirN):''} vs 50% (p ${tnPfmt(O.dirP)}). ${O.n&&O.p<0.05&&O.rate>O.chance?'Held up on hit rate.':'Did not hold up.'}`;
-  const oos=`<div style="border:1px solid var(--bd2);border-left:3px solid var(--neut2);background:var(--bg2);padding:6px 8px;margin:4px 0 6px;font-size:11px;color:var(--tx1);line-height:1.5">${oosTxt}<br><span style="color:var(--tx3)">The app's measured daily direction call is 49.0% vs a 53.9% up-day base rate: no directional edge. Labels below are research output, not a recommendation.</span></div>`;
-  const cellRow=c=>`<tr style="${c.pass?'':'opacity:.55'}"><td style="white-space:nowrap">${tnEsc(c.k)}</td><td style="text-align:right">${c.n}</td><td style="text-align:right">${c.hits}</td><td style="text-align:right">${tnPct(c.rate)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(c.chance)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(c.ci[0])}–${tnPct(c.ci[1])}</td><td style="text-align:right">${tnPfmt(c.p)}</td><td style="text-align:right">${tnPfmt(c.bh)}</td><td style="text-align:right">${tnPct(c.topShare)}</td><td style="text-align:right">${tnPct(c.majShare)}</td><td style="font-weight:700;color:${c.pass?(c.dir==='TOP'?'var(--bear)':'var(--bull)'):'var(--tx3)'}">${c.pass?c.mag+' '+c.dir:'no measured edge'}</td></tr>`;
-  const near=F.tested.filter(c=>!c.pass).slice(0,12);
-  const fams=R.mode==='lat'?'Latitude state per planet: hemisphere + motion (N-rising, N-falling, S-falling, S-rising), N-peak / S-bottom (or N-bottom / S-peak) within ±2 days of an extreme, crossing→N / crossing→S within ±2 days of 0°.'
-    :'Longitude states per planet, two separate families: sidereal sign + motion (direct / retro / stationary within ±2 days of a station; Mercury and Venus also combust or not), and nakshatra (27). Pairs are formed within a family.';
-  const cells=`<details open style="margin-top:4px"><summary style="cursor:pointer;font-size:10px;color:var(--acc);font-weight:700">LEARNED PLANET-STATE CELLS (${R.s0} → ${F.lastDate}) — ${F.pass.length} of ${F.m} passed Benjamini–Hochberg q=0.05</summary>
-    ${F.pass.length?'':`<div style="font-size:10.5px;color:var(--tx2);margin:3px 0">No single-planet or two-planet state passed the correction. The closest cells are listed greyed.</div>`}
-    <div class="ts" style="max-height:240px;overflow:auto"><table class="tbl"><thead><tr><th>Cell (planet state)</th><th style="text-align:right">Days</th><th style="text-align:right">Swings</th><th style="text-align:right">Hit</th><th style="text-align:right">Chance</th><th style="text-align:right">95% CI</th><th style="text-align:right">p</th><th style="text-align:right">BH p</th><th style="text-align:right">Tops</th><th style="text-align:right">Major</th><th>Label</th></tr></thead><tbody>${F.pass.slice(0,60).map(cellRow).join('')}${near.map(cellRow).join('')}</tbody></table></div>
-    <div style="font-size:10px;color:var(--tx3);margin-top:2px">${fams} Single cells need ≥20 days, two-planet combos ≥5 swings. Hit = a swing pivot on that exact trading day. Chance = the swing density of the surrounding ±${TN_LF_WIN} trading days, averaged over the cell's days (normal approximation p). Correction across all ${F.m} tested cells. Slow planets hold one state for months, so their days are not independent and p-values stay optimistic; the walk-forward line above is the check that matters.</div></details>`;
+    ? `Walk-forward: learned on ${R.s0} → ${TN_LF_TRAIN_END}, <b>${T.pass.length} of ${T.m}</b> planet states passed the BH correction, so nothing carries into ${O.from} → ${O.to}: no out-of-sample edge to test.`
+    : `Walk-forward: learned on ${R.s0} → ${TN_LF_TRAIN_END}, ${T.pass.length} of ${T.m} states passed BH. Out of sample ${O.from} → ${O.to}: days matching a passing state were within ±2 days of a ≥${R.thr.minPct}% swing on <b>${O.h}/${O.n} = ${tnPct(O.rate)}</b> vs <b>${tnPct(O.chance)}</b> chance (p ${tnPfmt(O.p)}) · top/bottom right ${O.dirOk}/${O.dirN}${O.dirN?' = '+tnPct(O.dirOk/O.dirN):''} vs 50% (p ${tnPfmt(O.dirP)}). ${O.n&&O.p<0.05&&O.rate>O.chance?'Held up on hit rate.':'Did not hold up.'}`;
+  return `<div style="border:1px solid var(--bd2);border-left:3px solid var(--neut2);background:var(--bg2);padding:6px 8px;margin:4px 0 6px;font-size:11px;color:var(--tx1);line-height:1.5">${oosTxt}<br><span style="color:var(--tx3)">The app's measured daily direction call is 49.0% vs a 53.9% up-day base rate: no directional edge. Labels below are research output, not a recommendation.</span></div>`; }
+function tnLfMatchHTML(R,c){
+  const edge=tnLfEdge(c), col=edge?(c.dir==='TOP'?'var(--bear)':c.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)';
+  return `<span style="color:${edge?'var(--tx1)':'var(--tx3)'}" title="${tnEsc(tnLfCellTip(c,R))}">${tnEsc(c.k)}: <span style="font-size:10px">${tnEsc(tnLfCellTxt(c,R))}</span> <b style="color:${col}">→ ${tnLfCellLab(c)}</b>${edge?'':' <span style="font-size:10px">(no measured edge)</span>'}</span>`; }
+function tnLfFutHTML(R){
+  const all=!!window.TN.lfFutAll, hk='fut'+(all?1:0); if(R.html[hk]) return R.html[hk];
+  const rows=R.fut.filter(f=>all||f.ms.length);
+  const body=rows.map(f=>{ const hi=R.strong.has(f.ds), top=f.ms[0];
+    const lab=top?`<b style="color:${tnLfEdge(top)?(top.dir==='TOP'?'var(--bear)':top.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)'}">${tnLfCellLab(top)}</b>${tnLfEdge(top)?'':'<br><span style="font-size:9.5px;color:var(--tx3)">no measured edge</span>'}`:'<span style="color:var(--tx3)">—</span>';
+    const mt=f.ms.length?f.ms.slice(0,3).map(c=>tnLfMatchHTML(R,c)).join('<br>')+(f.ms.length>3?`<br><span style="font-size:10px;color:var(--tx3)">+${f.ms.length-3} more states</span>`:''):'<span style="color:var(--tx3)">no backtested state passed the correction</span>';
+    return `<tr${hi?' style="background:rgba(255,190,60,.12)"':''}><td style="white-space:nowrap;min-width:84px">${f.ds}${hi?'<br><b style="font-size:9.5px;color:var(--neut)">★ strongest</b>':''}</td>${TN_LF_LON_BODIES.map(b=>tnLfPlanetCell(R,b,f.d)).join('')}<td style="white-space:nowrap;line-height:1.45;font-size:10.5px">${mt}</td><td style="white-space:nowrap">${lab}</td></tr>`; }).join('');
+  const head=`<thead><tr><th style="white-space:nowrap;min-width:84px">Date</th>${TN_LF_LON_BODIES.map(b=>`<th style="color:${PLAN_COL[b]||'var(--tx1)'}" title="line 1: geocentric ecliptic latitude and its phase; line 2: sidereal (${tnEsc(tnAy())}) longitude, nakshatra, ℞ / station / combust">${b}</th>`).join('')}<th title="States active that day with ≥${TN_LF_MINSW} past swings whose hit rate beat the local chance and passed the Benjamini–Hochberg correction on the full history, strongest first. Coloured only when the state also held up out of sample (2019 →); otherwise grey, no measured edge.">Backtest match</th><th>Label</th></tr></thead>`;
+  const n=R.fut.filter(f=>f.ms.length).length;
+  const btn=(on,v,lab)=>`<button onclick="window.TN.lfFutAll=${v};tnLfRepaint()" style="background:${on?'var(--bg3)':'var(--bg2)'};color:${on?'var(--acc)':'var(--tx1)'};border:1px solid ${on?'var(--acc)':'#104858'};border-radius:3px;padding:1px 6px;font-family:inherit;font-size:10px;cursor:pointer">${lab}</button>`;
+  return (R.html[hk]=`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 2px"><span style="font-size:10.5px;color:var(--acc);font-weight:700">FUTURE DATES — planetary latitude &amp; longitude (${R.fut.length} days, ${R.fut[0]?R.fut[0].ds:''} → ${R.futEnd})</span>${btn(!all,'false','only days with a match')}${btn(all,'true','all days')}<span style="font-size:10px;color:var(--tx3)">${n} of ${R.fut.length} days match a backtested state · ★ = 10 strongest</span></div>
+    <div class="ts" style="max-height:360px;overflow:auto"><table class="tbl">${head}<tbody>${body||`<tr><td colspan="${TN_LF_LON_BODIES.length+3}" style="color:var(--tx3)">no rows</td></tr>`}</tbody></table></div>`); }
+function tnLfCellFilt(q){ window.TN.lfQ=q||''; const tb=document.getElementById('tnLfCellTb'); if(!tb) return; q=String(q||'').toLowerCase();
+  for(const tr of tb.rows) tr.style.display=!q||String(tr.getAttribute('data-k')||'').includes(q)?'':'none'; }
+function tnLfCellsHTML(R){
+  const F=R.FULL, q=String(window.TN.lfQ||'').toLowerCase();
+  const list=F.tested.slice(0,60); F.pass.forEach(c=>{ if(!list.includes(c)) list.push(c); });
+  const row=c=>{ const edge=tnLfEdge(c), k=c.k.toLowerCase();
+    return `<tr data-k="${tnEsc(k)}" style="${c.pass?'':'opacity:.6'}${q&&!k.includes(q)?';display:none':''}"><td style="white-space:nowrap">${tnEsc(c.k)}</td><td style="color:var(--tx3)">${tnEsc(c.fam)}</td><td style="text-align:right">${c.n}</td><td style="text-align:right">${c.sw}</td><td style="text-align:right">${c.hits}</td><td style="text-align:right">${tnPct(c.rate)}</td><td style="text-align:right;color:var(--tx3)">${tnPct(c.chance)}</td><td style="text-align:right">${tnPct(c.topShare)}</td><td style="text-align:right">${tnPct(c.majShare)}</td><td style="text-align:right">${tnPfmt(c.p)}</td><td style="text-align:right">${tnPfmt(c.bh)}</td><td style="white-space:nowrap">${c.wf&&!c.wf.n?'<span style="color:var(--tx3)">state did not occur 2019 →</span>':c.wf?`${c.wf.hits}/${c.wf.n} = ${tnPct(c.wf.rate)} vs ${tnPct(c.wf.chance)} (p ${tnPfmt(c.wf.p)})`:'<span style="color:var(--tx3)">—</span>'}</td><td style="white-space:nowrap;font-weight:700;color:${edge?(c.dir==='TOP'?'var(--bear)':c.dir==='BOTTOM'?'var(--bull)':'var(--neut)'):'var(--tx3)'}">${edge?tnLfCellLab(c):c.pass?tnLfCellLab(c)+' · not held out of sample':'no measured edge'}</td></tr>`; };
+  return `<details open style="margin-top:6px"><summary style="cursor:pointer;font-size:10px;color:var(--acc);font-weight:700">BACKTEST OF EVERY PLANET STATE on ≥${R.thr.minPct}% swings (${R.s0} → ${F.lastDate}) — ${F.m} states tested, ${F.pass.length} passed Benjamini–Hochberg q=0.05, ${F.pass.filter(tnLfEdge).length} also held up out of sample</summary>
+    <div style="display:flex;gap:6px;align-items:center;margin:3px 0"><input type="search" placeholder="filter by planet (e.g. Venus)" value="${tnEsc(window.TN.lfQ||'')}" oninput="tnLfCellFilt(this.value)" style="width:200px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;font-family:inherit;font-size:10.5px;padding:1px 4px"><span style="font-size:10px;color:var(--tx3)">${list.length} rows: the 60 lowest p plus every passing state, sorted by p</span></div>
+    <div class="ts" style="max-height:280px;overflow:auto"><table class="tbl"><thead><tr><th>Planet state</th><th>Family</th><th style="text-align:right">Days</th><th style="text-align:right">Swings</th><th style="text-align:right">Hit days</th><th style="text-align:right">Hit</th><th style="text-align:right">Chance</th><th style="text-align:right">Tops</th><th style="text-align:right">Major</th><th style="text-align:right">p</th><th style="text-align:right">BH q</th><th>Walk-forward 2019 → (hit vs chance)</th><th>Label</th></tr></thead><tbody id="tnLfCellTb">${list.map(row).join('')}</tbody></table></div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:2px">Families: latitude phase (N-rising, N-peak, N-falling, S-falling, S-bottom, S-rising, crossings), sidereal sign + motion (direct / ℞ / stationary, Mercury and Venus combust or not), nakshatra. Pairs are two planets within one family. Tested = ≥${TN_LF_MINSW} distinct swings (singles also ≥20 days). Hit = the day sits within ±2 trading days of a ≥${R.thr.minPct}% swing pivot; chance = the same rate over the surrounding ±${TN_LF_WIN} trading days. Slow planets hold one state for months, so days are not independent and p stays optimistic; the walk-forward column is the check that matters.</div></details>`; }
+function tnLfLedgerHTML(R){
+  const bodies=TN_LF_LON_BODIES, pl=R.pendLeg;
+  const pend=pl&&pl.date>R.lastBar===false&&!R.swingByDs[pl.date]?(()=>{ const d=Math.round((reMs(pl.date)-reMs(R.a))/86400000);
+    return `<tr style="opacity:.55"><td style="white-space:nowrap;min-width:84px">${pl.date}</td><td style="white-space:nowrap">${pl.type==='H'?'▲ TOP?':'▼ BOTTOM?'}<br><span style="font-size:9.5px">not yet confirmed</span></td><td style="text-align:right">${pl.price.toLocaleString('en-IN')}</td><td style="text-align:right;white-space:nowrap">${pl.type==='L'?'−':'+'}${pl.legPct.toFixed(2)}% so far</td>${bodies.map(b=>tnLfPlanetCell(R,b,d)).join('')}</tr>`; })():'';
   const led=R.ledger.map(x=>{ const s=x.s, top=s.type==='H';
-    return `<tr><td style="white-space:nowrap;min-width:84px">${s.date}</td><td style="white-space:nowrap;font-weight:700;color:${top?'var(--bear)':'var(--bull)'}">${s.cls} ${top?'TOP':'BOTTOM'}</td><td style="text-align:right">${s.mag}%</td>`+
-      bodies.map(b=>`<td style="white-space:nowrap;color:${PLAN_COL[b]||'var(--tx1)'}">${tnLfLedgerCell(R,b,x.d)}</td>`).join('')+'</tr>'; }).join('');
-  const ledger=`<details open style="margin-top:4px"><summary style="cursor:pointer;font-size:10px;color:var(--acc);font-weight:700">SWING-DAY ${R.mode==='lat'?'LATITUDE':'LONGITUDE'} LEDGER — ${R.ledger.length} swings since ${R.s0}, newest first (${R.mode==='lat'?'latitude and state':'sidereal sign, motion, nakshatra'} on the pivot day)</summary>
-    <div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th style="white-space:nowrap;min-width:84px">Swing date</th><th>Swing</th><th style="text-align:right">% move</th>${bodies.map(b=>`<th style="color:${PLAN_COL[b]||'var(--tx1)'}">${b}</th>`).join('')}</tr></thead><tbody>${led}</tbody></table></div></details>`;
-  return oos+cells+ledger;
-}
+    return `<tr><td style="white-space:nowrap;min-width:84px">${s.date}</td><td style="white-space:nowrap;font-weight:700;color:${top?'var(--bear)':'var(--bull)'}">${top?'▲':'▼'} ${s.cls==='MAJOR'?'MAJOR ':''}${top?'TOP':'BOTTOM'}</td><td style="text-align:right">${s.price.toLocaleString('en-IN')}</td><td style="text-align:right">${top?'−':'+'}${(+s.mag).toFixed(2)}%</td>`+
+      bodies.map(b=>tnLfPlanetCell(R,b,x.d)).join('')+'</tr>'; }).join('');
+  return `<details open style="margin-top:6px"><summary style="cursor:pointer;font-size:10px;color:var(--acc);font-weight:700">SWING LEDGER — ${R.ledger.length} tops &amp; bottoms ≥${R.thr.minPct}% since ${R.s0} (MAJOR ≥${R.thr.majPct}%), newest first · planet latitude &amp; longitude on the pivot day</summary>
+    <div class="ts" style="max-height:340px;overflow:auto"><table class="tbl"><thead><tr><th style="white-space:nowrap;min-width:84px">Swing date</th><th>Swing</th><th style="text-align:right">Price</th><th style="text-align:right">Following move</th>${bodies.map(b=>`<th style="color:${PLAN_COL[b]||'var(--tx1)'}">${b}<br><span style="font-size:9px;font-weight:400">lat · phase / sid. lon · nakshatra</span></th>`).join('')}</tr></thead><tbody>${pend}${led}</tbody></table></div></details>`; }
 function tnLfCmpHTML(mode){
   const rows=TN_LF_CMP.map(i=>{ const R=(window.TN.lf||{})[tnLfKey(i,mode)];
     if(!R||R.status!=='ready') return `<tr><td style="white-space:nowrap">${tnEsc(i)}</td><td colspan="4" style="color:var(--tx3)">${R&&R.status==='error'?'⚠ '+tnEsc(R.err):'computing…'}</td></tr>`;
     const O=R.OOS; return `<tr><td style="white-space:nowrap">${tnEsc(i)}</td><td style="text-align:right">${R.ledger.length}</td><td style="text-align:right">${R.FULL.pass.length}/${R.FULL.m}</td><td style="text-align:right">${R.TRAIN.pass.length}/${R.TRAIN.m}</td><td>${R.TRAIN.pass.length?`${O.h}/${O.n} = ${tnPct(O.rate)} vs ${tnPct(O.chance)} chance (p ${tnPfmt(O.p)})`:'nothing passed in 2000–2018 to test'}</td></tr>`; }).join('');
   return `<div style="font-size:10px;color:var(--acc);font-weight:700;margin:6px 0 2px">SAME METHOD, EACH MARKET SEPARATELY (never pooled)</div>
-    <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th style="text-align:right">Swings</th><th style="text-align:right">Cells passed (all)</th><th style="text-align:right">Passed 2000–2018</th><th>Out of sample 2019 →</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th style="text-align:right">Swings</th><th style="text-align:right">States passed (all)</th><th style="text-align:right">Passed 2000–2018</th><th>Out of sample 2019 →</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function tnLfRows(R,only,cols){
   const hk=(only?1:0)+'|'+cols.join(','); if(R.html[hk]) return R.html[hk];
-  const past=[], fut=[];
+  const past=[];
   const row=d=>{ const ds=R.dsA[d], ev=R.evByDs[ds];
     let tds=''; for(const b of cols){ const v=R.V[b][d];
       const rr=R.mode==='lon'&&(b==='Rahu'||b==='Ketu'||reAngDiff(R.V[b][Math.min(d+1,R.nD-1)],R.V[b][Math.max(d-1,0)])<0)&&b!=='Sun'&&b!=='Moon'?'<span style="color:var(--bear)">℞</span>':'';
       tds+=`<td style="text-align:right;color:${PLAN_COL[b]||'var(--tx1)'}">${v.toFixed(2)}°${rr}</td>`; }
-    const parts=(ev||[]).map(e=>tnLfEntry(e,R)); if(ds>R.lastBar) parts.push(tnLfFutCell(R,d));
-    // the day the market itself turned: planet values on this row are the ones to study
+    const parts=(ev||[]).map(e=>tnLfEntry(e,R));
     const sw=R.swingByDs&&R.swingByDs[ds], pl=R.pendLeg&&R.pendLeg.date===ds?R.pendLeg:null;
     if(sw){ const top=sw.type==='H';
-      parts.unshift(`<b style="color:${top?'var(--bear)':'var(--bull)'}">${top?'▲':'▼'} SWING ${sw.cls} ${top?'TOP':'BOTTOM'} here · ${sw.price.toLocaleString('en-IN')} · then ${top?'−':'+'}${sw.mag.toFixed(2)}%</b>`); }
+      parts.unshift(`<b style="color:${top?'var(--bear)':'var(--bull)'}">${tnLfSwLab(sw)} here · ${sw.price.toLocaleString('en-IN')}</b>`); }
     else if(pl){ parts.unshift(`<b style="color:var(--neut)">⏳ ${pl.type==='L'?'lowest':'highest'} so far · ${pl.price.toLocaleString('en-IN')} · ${pl.type==='L'?'−':'+'}${pl.legPct.toFixed(2)}% from ${pl.fromDate} (not confirmed as a swing yet)</b>`); }
     const cell=parts.length?`<td style="white-space:nowrap;line-height:1.45">${parts.join('<br>')}</td>`:'<td style="color:var(--tx3)">—</td>';
     const hl=sw?` style="background:${sw.type==='H'?'rgba(255,60,80,.10)':'rgba(0,200,120,.10)'}"`:pl?' style="background:rgba(255,190,60,.10)"':'';
     return `<tr${hl}><td style="white-space:nowrap;min-width:84px">${ds}</td>${tds}${cell}</tr>`; };
   for(let d=R.nD-1; d>=0; d--){ const ds=R.dsA[d]; if(ds<R.s0||ds>R.lastBar) continue; if(only&&!R.evByDs[ds]&&!(R.swingByDs&&R.swingByDs[ds])&&!(R.pendLeg&&R.pendLeg.date===ds)) continue; past.push(row(d)); }
-  for(let d=0; d<R.nD; d++){ const ds=R.dsA[d]; if(ds<=R.lastBar||ds>R.end) continue; if(only&&!R.evByDs[ds]&&!((tnLfDay(R,d)||{}).pass)) continue; fut.push(row(d)); }
-  return (R.html[hk]={past:past.join(''),fut:fut.join(''),nP:past.length,nF:fut.length});
+  return (R.html[hk]={past:past.join(''),nP:past.length});
 }
 function tnLfTableHTML(){
   const T=window.TN, C=T.lf||(T.lf={}), mode=planKind(), key=tnLfKey(), R=C[key], only=!!T.lfOnly, lat=mode==='lat';
@@ -10159,24 +10209,22 @@ function tnLfTableHTML(){
   const btn=(on,v,lab)=>`<button onclick="window.TN.lfOnly=${v};tnLfRepaint()" style="background:${on?'var(--bg3)':'var(--bg2)'};color:${on?'var(--acc)':'var(--tx1)'};border:1px solid ${on?'var(--acc)':'#104858'};border-radius:3px;padding:1px 6px;font-family:inherit;font-size:10px;cursor:pointer">${lab}</button>`;
   if(!R) setTimeout(()=>tnLfBuild(key,planInstKey(),mode),0);
   let body, count='';
-  if(!R||R.status==='loading') body=`<div style="font-size:11px;color:var(--tx2);padding:6px"><span class="spin-anim">⟳</span> computing daily ${lat?'latitudes':'longitudes'} ${TN_LF_START} → horizon and learning planet states on ${tnEsc(planInstKey())} swings … <b id="tnLfProg">${R?R.prog:0}%</b></div>`;
+  if(!R||R.status==='loading') body=`<div style="font-size:11px;color:var(--tx2);padding:6px"><span class="spin-anim">⟳</span> computing daily latitudes and longitudes ${TN_LF_START} → +${TN_LF_FUT} days and backtesting planet states on ${tnEsc(planInstKey())} swings ≥${tnLfThr().minPct}% … <b id="tnLfProg">${R?R.prog:0}%</b></div>`;
   else if(R.status==='error') body=`<div style="font-size:11px;color:var(--bear);padding:6px">⚠ ${tnEsc(R.err)} <button onclick="delete window.TN.lf['${tnEsc(key)}'];tnLfRepaint()" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;font-size:11px;cursor:pointer">↻ Retry</button></div>`;
   else { const cols=planBodies().filter(b=>R.V[b]), H=tnLfRows(R,only,cols);
-    count=`<span style="font-size:10px;color:var(--tx3)">${(H.nP+H.nF).toLocaleString('en-IN')} rows (${H.nP.toLocaleString('en-IN')} past · ${H.nF} forecast)</span>`;
+    count=`<span style="font-size:10px;color:var(--tx3)">${H.nP.toLocaleString('en-IN')} past rows · ${R.fut.length} future days</span>`;
     const head=`<thead><tr><th style="white-space:nowrap;min-width:84px">Date</th>`+cols.map(b=>`<th style="text-align:right;color:${PLAN_COL[b]||'var(--tx1)'}">${b}</th>`).join('')+
-      `<th title="${lat?`Latitude peaks (northern extreme, turning South) and bottoms (southern extreme, turning North) of ${R.FAM[0].bodies.join(', ')}`:`Stations (retro / direct) of ${TN_LF_STN_BODIES.join(', ')}`} that day. Past rows: the swing pivot actually found within ±2 trading days (reDetectSwings ${R.thr.minPct}% / ${R.thr.majPct}%). Forecast rows: the planet-state cell of that day learned from the swing-day history (single planets and 2-planet combos), labelled only when a cell passed the BH correction. Grey = no swing / no measured edge.${lat?'':' Columns show the tab\'s tropical longitude; states use the sidereal ('+tnEsc(tnAy())+') sign.'}">${lat?'Lat':'Lon'} turn</th></tr></thead>`;
-    const sub=t=>`<div style="font-size:10px;color:var(--acc);font-weight:700;margin:5px 0 2px">${t}</div>`;
+      `<th title="${lat?`Latitude peaks (northern extreme, turning South) and bottoms (southern extreme, turning North) of ${R.FAM[0].bodies.join(', ')}`:`Stations (retro / direct) of ${TN_LF_STN_BODIES.join(', ')}`} that day, with the ≥${R.thr.minPct}% swing pivot actually found within ±2 trading days. Grey = no swing.${lat?'':' Columns show the tab\'s tropical longitude; states use the sidereal ('+tnEsc(tnAy())+') sign.'}">${lat?'Lat':'Lon'} turn</th></tr></thead>`;
+    const sub=t=>`<div style="font-size:10px;color:var(--acc);font-weight:700;margin:6px 0 2px">${t}</div>`;
     const empty=`<tr><td colspan="${cols.length+2}" style="color:var(--tx3)">no rows</td></tr>`;
-    body=tnLfExtrasHTML(R)+tnLfCmpHTML(mode)+sub(`PAST (from ${R.s0} to ${R.lastBar}, newest first) — what price actually did`)+
-      `<div class="ts" style="max-height:320px;overflow:auto"><table class="tbl">${head}<tbody>${H.past||empty}</tbody></table></div>`+
-      `<details open style="margin-top:4px"><summary style="cursor:pointer;font-size:10px;color:var(--acc);font-weight:700">FORECAST (next ${planFwd()} days, ${R.lastBar} → ${R.end}, nearest first) — only from the learned planet-state cells</summary>`+
-      `<div class="ts" style="max-height:260px;overflow:auto"><table class="tbl">${head}<tbody>${H.fut||empty}</tbody></table></div></details>`; }
-  return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px"><span style="font-size:10.5px;color:var(--acc);font-weight:700">PLANET ${lat?'LATITUDES':'LONGITUDES'} (daily, from ${TN_LF_START})</span>${pill}
-    ${btn(!only,'false','all days')}${btn(only,'true',lat?'peak &amp; bottom days only':'station days only')}${count}</div>${body}`;
+    body=tnLfOosHTML(R)+tnLfFutHTML(R)+tnLfCellsHTML(R)+tnLfLedgerHTML(R)+tnLfCmpHTML(mode)+
+      `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:6px 0 2px">${sub(`PAST (from ${R.s0} to ${R.lastBar}, newest first) — what price actually did`)}${btn(!only,'false','all days')}${btn(only,'true',lat?'peak &amp; bottom days only':'station days only')}</div>`+
+      `<div class="ts" style="max-height:320px;overflow:auto"><table class="tbl">${head}<tbody>${H.past||empty}</tbody></table></div>`; }
+  return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:3px"><span style="font-size:10.5px;color:var(--acc);font-weight:700">PLANET LATITUDE &amp; LONGITUDE vs ≥${tnLfThr().minPct}% SWINGS (daily, from ${TN_LF_START})</span>${pill}${count}</div>${tnLfThrHTML(R)}${body}`;
 }
 function tnLfRepaint(){ const h=document.getElementById('tnLfHost'); if(h) h.innerHTML=tnLfTableHTML(); }
 window.tnEvents=tnEvents; window.tnMeasure=tnMeasure; window.tnLoad=tnLoad; window.tnAstralPanelHTML=tnAstralPanelHTML;
-window.tnLfBuild=tnLfBuild; window.tnLfTableHTML=tnLfTableHTML; window.tnLfRepaint=tnLfRepaint; window.tnSetInst=tnSetInst;
+window.tnLfBuild=tnLfBuild; window.tnLfSetThr=tnLfSetThr; window.tnLfCellFilt=tnLfCellFilt; window.tnLfTableHTML=tnLfTableHTML; window.tnLfRepaint=tnLfRepaint; window.tnSetInst=tnSetInst;
 
 function planChart(kind){
   const key=planInstKey()+'|'+planRange(); const st=window.PLAN.status, ohlc=window.PLAN.ohlc[key];
