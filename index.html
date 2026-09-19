@@ -17976,7 +17976,30 @@ function marsBearishCombos(planets){
     const pos=posFrom(m,o);
     // full result needs both planets direct; Rahu is always retrograde and exempt
     const bothDirect=[m,o].every(x=>x.name==='Rahu'||!x.retro);
-    return {pair:d.a+'–'+d.b, rel:d.rel, pos, mSign:m.sign, oSign:o.sign, active:d.set.includes(pos), bothDirect, vs:!!d.vs, note:d.note}; }).filter(Boolean);
+    return {a:d.a, b:d.b, pair:d.a+'–'+d.b, rel:d.rel, pos, mSign:m.sign, oSign:o.sign, active:d.set.includes(pos), bothDirect, vs:!!d.vs, note:d.note}; }).filter(Boolean);
+}
+/* Book condition for this section: the effect starts as the two planets close
+   in on the aspect and ends once they move apart. For a sign aspect "exact"
+   is the same degree in both signs (the engine's permutation rule scores the
+   same way: full at 0° apart, nothing beyond 10°). Direction comes from
+   whether that gap is shrinking between today and tomorrow. */
+function comboPhase(c, ds, ay){
+  try{
+    const t0=taSky(ds,9.25,ay), t1=taSky(taShift(ds,1),9.25,ay);
+    const A0=t0.p[c.a], B0=t0.p[c.b], A1=t1.p[c.a], B1=t1.p[c.b];
+    if(!A0||!B0||!A1||!B1) return null;
+    const g0=Math.abs(A0.deg-B0.deg), g1=Math.abs(A1.deg-B1.deg);
+    return {gap:g0, closing:g1<g0-1e-6, inOrb:g0<10};
+  }catch(e){ return null; }
+}
+function comboPhaseCell(c, ph){
+  if(!ph) return '<span style="color:var(--tx3)">—</span>';
+  const g=ph.gap.toFixed(1)+'°';
+  if(!c.active) return `<span style="color:var(--tx3)">${ph.closing?'closing':'widening'} · Δ${g}</span>`;
+  if(!ph.inOrb) return `<span style="color:var(--tx3)" title="beyond 10° the engine gives it no weight">Δ${g} · outside orb</span>`;
+  return ph.closing
+    ? `<b style="color:var(--bear)" title="impact building until the exact degree">▶ APPROACHING</b> <span style="color:var(--tx2)">Δ${g}</span>`
+    : `<b style="color:var(--tx2)" title="past exact — impact fading">◀ SEPARATING</b> <span style="color:var(--tx3)">Δ${g}</span>`;
 }
 
 
@@ -19946,12 +19969,13 @@ function tPanchak(){
   const nAct=combos.filter(c=>c.active).length;
   const combosPanel=`<div class="pnl"><div class="ph" style="justify-content:space-between"><span><span class="dot"></span>STRONG BEARISH PERMUTATION &amp; COMBINATION — sign aspects (live)</span>
       <span class="pill ${nAct?'pb-r':'pb-a'}">${nAct?'⚠ '+nAct+' ACTIVE':'none active today'}</span></div>
-    <div class="ts"><table class="tbl"><thead><tr><th>Pair</th><th>Bearish relationship</th><th>Current (first→second)</th><th>Status</th><th>Note</th></tr></thead><tbody>
+    <div class="ts"><table class="tbl"><thead><tr><th>Pair</th><th>Bearish relationship</th><th>Current (first→second)</th><th>Status</th><th title="the effect builds while the planets close on the exact degree and ends as they separate">Approaching / separating</th><th>Note</th></tr></thead><tbody>
       ${combos.map(c=>`<tr ${c.active?'class="tr-r"':''}>
         <td style="font-weight:700;color:var(--mars)">${c.pair}${c.vs?' <span class="pill pb-r" style="font-size:9px">VERY STRONG</span>':''}</td>
         <td style="color:var(--tx1)">${c.rel}</td>
         <td style="font-family:monospace;color:var(--tx2)">${c.mSign.slice(0,3)} → ${c.oSign.slice(0,3)} · ${c.pos}${c.pos===1?'st':c.pos===2?'nd':c.pos===3?'rd':'th'} house</td>
         <td style="font-weight:800;color:${c.active?'var(--bear)':'var(--tx3)'}">${c.active?'⚠ ACTIVE'+(c.bothDirect?' · both direct (full result)':' · one retrograde (reduced)'):'—'}</td>
+        <td style="font-size:11px;white-space:nowrap">${comboPhaseCell(c, comboPhase(c, S.date, S.ayMode))}</td>
         <td style="color:var(--tx3);font-size:11px">${c.note}</td></tr>`).join('')}
     </tbody></table></div>
     <div style="padding:6px 12px;font-size:10.5px;color:var(--tx3)">House position counts the second planet's sign from the first planet's sign. Dwidwadash = 2nd/12th (adjacent signs); Shadashtak = 6th/8th; Kendra = 4th/10th; Trine = 5th/9th. Impact builds as the pair closes on the aspect and ends once it separates. Both planets must be direct for the full result (Rahu, always retrograde, excepted).</div>
