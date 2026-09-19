@@ -9072,8 +9072,8 @@ function tAstral(){
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px">${taHonestyPill()}
         <span style="font-size:11px;color:var(--tx2)">Reading for <b>${taEsc(RE_UNIV[taInst()]?RE_UNIV[taInst()].label:taInst())}</b> · class <b>${taEsc(cls)}</b>${cls==='equity'?' (Gold / Silver / Sugar prophecy chapters listed, not summed)':' (its own prophecy chapter is summed; the other commodities\' are not)'} · ${m?'backward test for these controls built '+m.built:'no backward test for these controls yet'}</span></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div class="cg"><span class="cl">HORIZON</span><div style="display:flex;gap:5px;flex-wrap:wrap">${tb('intraday','⏱ Intraday 5-min')}${tb('daily','▪ Daily')}${tb('weekly','▤ Weekly')}${tb('monthly','▦ Monthly')}</div></div>
-        <div class="cg"><span class="cl">VIEW</span><div style="display:flex;gap:5px;flex-wrap:wrap">${vb('forward','▶ Forward')}${vb('backward','◀ Backward test')}${vb('context','◈ Sectors / Vedh')}${vb('audit','☑ Rule audit')}</div></div>
+        <div class="cg"><span class="cl">HORIZON</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">${tb('intraday','⏱ Intraday 5-min')}${tb('daily','▪ Daily')}${tb('weekly','▤ Weekly')}${tb('monthly','▦ Monthly')}</div></div>
+        <div class="cg"><span class="cl">VIEW</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">${vb('forward','▶ Forward')}${vb('backward','◀ Backward test')}${vb('context','◈ Sectors / Vedh')}${vb('audit','☑ Rule audit')}</div></div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:9px">
         <div class="cg"><span class="cl">FROM DATE</span><input type="date" class="ci" style="width:140px" value="${taDate()}" onchange="taSet('taDate',this.value)"></div>
