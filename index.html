@@ -9069,7 +9069,7 @@ function tAstral(){
         `<option value="${o.key}" ${o.key===taInst()?'selected':''}>${taEsc(o.label)}</option>`).join('')+`</optgroup>`).join('')+`</select>`;
   const m=taAct(), cls=taCls();
   return `
-  <div class="pnl"><div class="ph" data-noco><span class="dot"></span>✦ ASTRAL FORECAST — ${TA_SOURCE} rule engine</div>
+  <div class="pnl"><div class="ph" data-noco><span class="dot"></span>✦ ASTRAL FORECAST</div>
     <div class="pb">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px">${taHonestyPill()}
         <span style="font-size:11px;color:var(--tx2)">Reading for <b>${taEsc(RE_UNIV[taInst()]?RE_UNIV[taInst()].label:taInst())}</b> · class <b>${taEsc(cls)}</b>${cls==='equity'?' (Gold / Silver / Sugar prophecy chapters listed, not summed)':' (its own prophecy chapter is summed; the other commodities\' are not)'} · ${m?'backward test for these controls built '+m.built:'no backward test for these controls yet'}</span></div>
