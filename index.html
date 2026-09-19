@@ -9071,21 +9071,22 @@ function tAstral(){
     <div class="pb">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:9px">${taHonestyPill()}
         <span style="font-size:11px;color:var(--tx2)">Reading for <b>${taEsc(RE_UNIV[taInst()]?RE_UNIV[taInst()].label:taInst())}</b> · class <b>${taEsc(cls)}</b>${cls==='equity'?' (Gold / Silver / Sugar prophecy chapters listed, not summed)':' (its own prophecy chapter is summed; the other commodities\' are not)'} · ${m?'backward test for these controls built '+m.built:'no backward test for these controls yet'}</span></div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div class="cg"><span class="cl">HORIZON</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">${tb('intraday','⏱ Intraday 5-min')}${tb('daily','▪ Daily')}${tb('weekly','▤ Weekly')}${tb('monthly','▦ Monthly')}</div></div>
-        <div class="cg"><span class="cl">VIEW</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">${vb('forward','▶ Forward')}${vb('backward','◀ Backward test')}${vb('context','◈ Sectors / Vedh')}${vb('audit','☑ Rule audit')}</div></div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:9px">
-        <div class="cg"><span class="cl">FROM DATE</span><input type="date" class="ci" style="width:140px" value="${taDate()}" onchange="taSet('taDate',this.value)"></div>
-        <div class="cg"><span class="cl">INSTRUMENT</span>${instSel}</div>
-        <div class="cg"><span class="cl">AYANAMSA</span><select class="ci" style="width:110px" onchange="taSet('taAy',this.value)">
-          ${[['lahiri','Lahiri'],['kp','KP New'],['kpold','KP Old'],['raman','Raman'],['sayana','Sayana']].map(([v,l])=>`<option value="${v}" ${taAy()===v?'selected':''}>${l}</option>`).join('')}</select></div>
-        <div class="cg" style="${tf==='intraday'?'':'display:none'}"><span class="cl">INTRADAY SPAN</span><select class="ci" style="width:120px" onchange="taSet('taIntraDays',this.value)">${[[30,'30 days · ~30 s'],[120,'120 days · ~2 min'],[365,'1 year · ~5 min'],[0,'all baked · ~20 min']].map(([v,l])=>`<option value="${v}" ${String(S.taIntraDays||120)===String(v)?'selected':''}>${l}</option>`).join('')}</select>
-          <div style="font-size:9.5px;color:var(--tx3);margin-top:2px">every slot is scored on its own sky, so time scales with bars</div></div>
-        <div class="cg"><span class="cl">CHAPTER 2 TECHNICALS</span><select class="ci" style="width:110px" onchange="taSet('taTech',this.value)">
-          <option value="1" ${S.taTech!=='0'?'selected':''}>included</option><option value="0" ${S.taTech==='0'?'selected':''}>astro only</option></select></div>
-        <button onclick="taRun()" ${window.TA.status==='running'?'disabled':''}
-          style="background:var(--acc3);color:#001318;border:1px solid var(--acc);padding:7px 16px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">▶ RUN BACKWARD TEST</button>
+      <!-- controls on the left, horizon and view beside them -->
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(150px,210px));gap:8px 10px;align-items:start">
+          <div class="cg"><span class="cl">FROM DATE</span><input type="date" class="ci" style="width:100%" value="${taDate()}" onchange="taSet('taDate',this.value)"></div>
+          <div class="cg"><span class="cl">INSTRUMENT</span>${instSel}</div>
+          <div class="cg"><span class="cl">AYANAMSA</span><select class="ci" style="width:100%" onchange="taSet('taAy',this.value)">
+            ${[['lahiri','Lahiri'],['kp','KP New'],['kpold','KP Old'],['raman','Raman'],['sayana','Sayana']].map(([v,l])=>`<option value="${v}" ${taAy()===v?'selected':''}>${l}</option>`).join('')}</select></div>
+          <div class="cg" style="${tf==='intraday'?'':'display:none'}"><span class="cl">INTRADAY SPAN</span><select class="ci" style="width:100%" onchange="taSet('taIntraDays',this.value)">${[[30,'30 days · ~30 s'],[120,'120 days · ~2 min'],[365,'1 year · ~5 min'],[0,'all baked · ~20 min']].map(([v,l])=>`<option value="${v}" ${String(S.taIntraDays||120)===String(v)?'selected':''}>${l}</option>`).join('')}</select>
+            <div style="font-size:9.5px;color:var(--tx3);margin-top:2px">every slot is scored on its own sky, so time scales with bars</div></div>
+          <div class="cg"><span class="cl">CHAPTER 2 TECHNICALS</span><select class="ci" style="width:100%" onchange="taSet('taTech',this.value)">
+            <option value="1" ${S.taTech!=='0'?'selected':''}>included</option><option value="0" ${S.taTech==='0'?'selected':''}>astro only</option></select></div>
+          <div class="cg" style="justify-content:flex-end"><button onclick="taRun()" ${window.TA.status==='running'?'disabled':''}
+            style="background:var(--acc3);color:#001318;border:1px solid var(--acc);padding:7px 16px;border-radius:3px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:800">▶ RUN BACKWARD TEST</button></div>
+        </div>
+        <div class="cg" style="flex:1 1 260px;min-width:0"><span class="cl">HORIZON</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">${tb('intraday','⏱ Intraday 5-min')}${tb('daily','▪ Daily')}${tb('weekly','▤ Weekly')}${tb('monthly','▦ Monthly')}</div></div>
+        <div class="cg" style="flex:1 1 260px;min-width:0"><span class="cl">VIEW</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px">${vb('forward','▶ Forward')}${vb('backward','◀ Backward test')}${vb('context','◈ Sectors / Vedh')}${vb('audit','☑ Rule audit')}</div></div>
       </div>
 
           <div id="ta-prog" style="margin-top:8px">${taProgressHTML()}</div>
