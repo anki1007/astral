@@ -76,6 +76,18 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_yahoo.py
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Forward-test log (predict next session, grade past)
+        # Logs the engine's forecasts for the next session and the next 30
+        # sessions' turn windows, and grades earlier ones against the bars just
+        # baked. Committed below, so git timestamps every forecast before its
+        # session. Never fatal: the bake is what this job is for.
+        continue-on-error: true
+        run: node scripts/forward_log.js
+
       - name: Summarise
         run: |
           echo "### Upstox bake" >> "$GITHUB_STEP_SUMMARY"
@@ -95,7 +107,7 @@ jobs:
         run: |
           git config user.name  "astral-bot"
           git config user.email "astral@users.noreply.github.com"
-          git add data/nse data/yahoo
+          git add data/nse data/yahoo data/forward
           if git diff --cached --quiet; then
             echo "no changes"; exit 0
           fi

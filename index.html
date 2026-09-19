@@ -4602,10 +4602,122 @@ function rHdr(){
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// FORWARD TEST — the paper-trading log written by scripts/forward_log.js
+// (GitHub Action, after each close). Read-only here: the page never edits
+// a forecast, it only shows what was logged and how it was graded.
+// ═══════════════════════════════════════════════════════════════════
+window.FWD = window.FWD || {st:'idle', sum:null, log:null, err:'', at:0};
+const FWD_SRC = {astral:'Astral turn windows', latlon:'Planet Lat/Lon labels'};
+function fwdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fwdNum(v,d){ return (v==null||!isFinite(v))?'—':(+v).toFixed(d==null?1:d); }
+function fwdPct(v){ return (v==null||!isFinite(v))?'—':(+v).toFixed(1)+'%'; }
+function fwdP(p){ return (p==null||!isFinite(p))?'—':(p<0.001?'&lt;0.001':(+p).toFixed(3)); }
+function fwdToday(){ try{ return dsIstToday(); }catch(e){ return new Date().toISOString().slice(0,10); } }
+async function fwdLoad(){
+  const F=window.FWD; F.st='loading'; F.err='';
+  try{
+    const get=u=>fetch(u,{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
+    const [s,l]=await Promise.all([get('data/forward/summary.json'),get('data/forward/log.json')]);
+    F.sum=s; F.log=l; F.st='ready'; F.at=Date.now();
+  }catch(e){ F.st='ready'; F.err=String(e&&e.message||e); }
+  fwdRepaint();
+}
+function fwdRepaint(){ const h=document.getElementById('fwdHost'); if(h) h.innerHTML=fwdHTML(); }
+function tFwd(){
+  const F=window.FWD;
+  if(F.st==='idle'||(F.st==='ready'&&Date.now()-F.at>300000)) setTimeout(fwdLoad,0);
+  return `<div id="fwdHost" style="display:flex;flex-direction:column;gap:10px">${fwdHTML()}</div>`;
+}
+function fwdCall(v){ return v>0?'<span class="pill pb-b">▲ UP</span>':v<0?'<span class="pill pb-r">▼ DOWN</span>':'<span class="pill pb-n">– aside</span>'; }
+function fwdMark(r){ return r==='hit'?'<b style="color:var(--bull)">✓</b>':r==='miss'?'<b style="color:var(--bear)">✗</b>':'<span style="color:var(--tx3)">–</span>'; }
+function fwdHTML(){
+  const F=window.FWD, S=F.sum||{}, L=F.log||{}, E=L.entries||[], R=L.reversals||[];
+  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate over 6,618 graded sessions: no directional edge. This log exists to test that again, forward.">49.0% measured, no edge</span>`;
+  const head=`<div class="pnl"><div class="ph" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dot"></span>FORWARD TEST — paper-trading log ${pill}</div>
+    <div class="pb" style="font-size:11.5px;color:var(--tx1);line-height:1.6">
+      Forecasts are written by the GitHub Action right after each close, for the next session (turn windows for the next 30 sessions).<br>
+      Each one is committed to git before its session starts, so the commit timestamp proves it was made in advance; it is never edited after.<br>
+      It is graded only when that session's bar is baked: turn windows need a ≥5% swing pivot inside the window, confirmed within 20 sessions.
+      ${S.since?`<br><span style="color:var(--tx3)">Since ${fwdEsc(S.since)} · last graded ${fwdEsc(S.lastGraded||'—')} · ${S.nDays||0} graded session${S.nDays===1?'':'s'}</span>`:''}
+    </div></div>`;
+  if(F.st!=='ready') return head+`<div class="pnl"><div class="pb" style="font-size:11.5px;color:var(--tx2)"><span class="spin-anim">⟳</span> loading the forward log …</div></div>`;
+  if(!E.length&&!R.length){
+    const d=L.since||fwdToday();
+    return head+`<div class="pnl"><div class="pb" style="font-size:12px;color:var(--tx2)">Logging started ${fwdEsc(d)} — first grades arrive after the next session.${F.err?` <span style="color:var(--bear)">${fwdEsc(F.err)}</span>`:''}</div></div>`;
+  }
+  const insts=['NIFTY','BANKNIFTY','GOLD'];
+  const few=n=>n<30?' <span style="color:var(--tx3);font-size:10px">too few days</span>':'';
+  // ── 1. turn-date scoreboard ──
+  const T=S.turns||{}, CH=S.chance||{};
+  const tRows=insts.map(k=>Object.keys(FWD_SRC).map(src=>{ const t=(T[k]||{})[src]; if(!t) return '';
+    const sig=t.graded>=30&&t.p!=null&&t.p<0.05&&t.hitPct>t.chancePct;
+    return `<tr><td>${k}</td><td>${FWD_SRC[src]}</td><td style="text-align:right">${t.made}</td><td style="text-align:right">${t.graded}</td><td style="text-align:right">${t.hits}</td>
+      <td style="text-align:right;${sig?'color:var(--bull);font-weight:800':''}">${fwdPct(t.hitPct)}${t.graded?` <span style="color:var(--tx3);font-size:10px">${fwdNum(t.ci95[0])}–${fwdNum(t.ci95[1])}</span>`:''}${few(t.graded)}</td>
+      <td style="text-align:right;color:var(--tx3)">${fwdPct(t.chancePct)}</td><td style="text-align:right">${fwdP(t.p)}</td>
+      <td style="text-align:right">${t.typeN?`${t.typeOk}/${t.typeN} = ${fwdPct(t.typePct)} <span style="color:var(--tx3);font-size:10px">vs 50%, p ${fwdP(t.typeP)}</span>`:'<span style="color:var(--tx3)">—</span>'}</td>
+      <td style="text-align:right">${t.pending}</td></tr>`; }).join('')).join('');
+  const chLine=insts.filter(k=>CH[k]).map(k=>`${k} ${fwdPct(CH[k].window5)} <span style="color:var(--tx3)">(${CH[k].pivots} pivots ${fwdEsc(CH[k].from)} → ${fwdEsc(CH[k].to)})</span>`).join(' · ');
+  const turns=`<div class="pnl"><div class="ph"><span class="dot"></span>TURN-DATE SCOREBOARD — hit = a ≥5% swing pivot inside the window</div><div class="pb">
+    <div class="ts"><table class="tbl"><thead><tr><th>Instrument</th><th>Source</th><th style="text-align:right">Made</th><th style="text-align:right">Graded</th><th style="text-align:right">Hits</th><th style="text-align:right">Hit% · 95% CI</th><th style="text-align:right">Chance</th><th style="text-align:right">p</th><th style="text-align:right">Type right</th><th style="text-align:right">Pending</th></tr></thead><tbody>${tRows}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Chance = how often a random window of the same length held a ≥5% pivot on the full history (mean over the graded windows). A random 5-session window: ${chLine||'—'}. Coloured only when n ≥ 30 and p &lt; 0.05. Type right = top vs bottom, graded only when the forecast named one.</div></div></div>`;
+  // ── 2. upcoming turn dates ──
+  const up=R.filter(f=>!f.graded).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.inst<b.inst?-1:1);
+  const upRows=up.map(f=>{ const col=/TOP/.test(f.type)?'var(--bear)':/BOTTOM/.test(f.type)?'var(--bull)':f.edge?'var(--neut)':'var(--tx3)';
+    return `<tr><td style="white-space:nowrap">${fwdEsc(f.from)} → ${fwdEsc(f.to)}</td><td>${fwdEsc(f.inst)}</td><td style="color:var(--tx2)">${FWD_SRC[f.source]||fwdEsc(f.source)}</td>
+      <td><b style="color:${col}">${fwdEsc(f.type)}</b>${f.edge?'':' <span style="color:var(--tx3);font-size:10px">no measured edge</span>'}</td>
+      <td><details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">${(f.reasons||[]).length} reason${(f.reasons||[]).length===1?'':'s'} · made ${fwdEsc(String(f.made||'').slice(0,10))}</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px;color:var(--tx2)">${(f.reasons||[]).map(x=>`<li>${fwdEsc(x)}</li>`).join('')}</ul></details></td></tr>`; }).join('');
+  const upcoming=`<div class="pnl"><div class="ph"><span class="dot"></span>UPCOMING TURN DATES — logged, not yet graded (${up.length})</div><div class="pb">
+    <div class="ts" style="max-height:380px;overflow:auto"><table class="tbl"><thead><tr><th>Window (±2 sessions)</th><th>Inst</th><th>Source</th><th>Predicted</th><th>Why</th></tr></thead><tbody>${upRows||'<tr><td colspan="5" style="color:var(--tx3)">none pending</td></tr>'}</tbody></table></div></div></div>`;
+  // ── 3. daily direction scoreboard ──
+  const D=S.direction||{};
+  const dRow=(k,lab,r,grey,isBase)=>{ if(!r) return '';
+    const sig=!isBase&&!grey&&r.n>=30&&r.p!=null&&r.p<0.05&&r.vsBullPP>0;
+    const st=grey?'color:var(--tx3)':'';
+    return `<tr style="${grey?'opacity:.7':''}"><td style="${st}">${k}</td><td style="${st}">${lab}</td><td style="text-align:right;${st}">${r.n}</td>
+      <td style="text-align:right;${sig?'color:var(--bull);font-weight:800':st}">${fwdPct(r.hitPct)}${few(r.n)}</td>
+      <td style="text-align:right;color:var(--tx3)">${r.n?fwdNum(r.ci95[0])+'–'+fwdNum(r.ci95[1]):'—'}</td>
+      <td style="text-align:right;${st}">${isBase?'—':(r.vsBullPP==null?'—':(r.vsBullPP>0?'+':'')+fwdNum(r.vsBullPP)+' pp')}</td>
+      <td style="text-align:right;${st}">${isBase?'—':fwdP(r.p)}</td><td style="text-align:right;${st}">${isBase?'—':r.aside}</td></tr>`; };
+  const dRows=insts.map(k=>{ const r=D[k]; if(!r) return '';
+    return dRow(k,'<b>Astro only</b> (|score| ≥ 7)',r.astroOnly,false,false)+dRow(k,'always bullish',r.alwaysBullish,false,true)
+      +dRow(k,'always neutral (flat ±0.1%)',r.alwaysNeutral,false,true)+dRow(k,'price-action baseline (book ch. 2)',r.techOnly,true,false); }).join('');
+  const dir=`<div class="pnl"><div class="ph"><span class="dot"></span>DAILY DIRECTION — astro only vs the trivial calls</div><div class="pb">
+    <div class="ts"><table class="tbl"><thead><tr><th>Inst</th><th>Call</th><th style="text-align:right">n</th><th style="text-align:right">Hit%</th><th style="text-align:right">95% CI</th><th style="text-align:right">vs always-bullish</th><th style="text-align:right">p</th><th style="text-align:right">Stood aside</th></tr></thead><tbody>${dRows}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Direction = close vs the previous close beyond ±0.1% (else flat). "vs always-bullish" compares with calling UP on the same days the call was made; p is one-sided binomial against that rate. Coloured only when n ≥ 30 and p &lt; 0.05.</div></div></div>`;
+  // ── 4. next session ──
+  const nx=E.filter(e=>!e.graded);
+  const nxRows=nx.map(e=>`<tr><td style="white-space:nowrap">${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td>
+      <td>${fwdCall(e.calls.astroOnly)} <span style="font-size:10.5px;color:var(--tx2)">score ${e.astro.score>0?'+':''}${e.astro.score} · ${fwdEsc(e.astro.band)} · vol ${fwdEsc(e.vol||'—')}</span>
+        <details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">top astro rules</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px;color:var(--tx2)">${(e.astro.top||[]).map(r=>`<li><b style="color:${r.dir>0?'var(--bull)':'var(--bear)'}">${r.dir>0?'▲':'▼'}</b> ${fwdEsc(r.name)} <span style="color:var(--tx3)">§${fwdEsc(r.sec)}</span></li>`).join('')||'<li>none</li>'}</ul></details></td>
+      <td style="color:var(--tx3);font-size:10.5px">${e.calls.techOnly>0?'▲':e.calls.techOnly<0?'▼':'–'} net ${fwdNum(e.tech.net,2)}${(e.tech.fired||[]).length?': '+e.tech.fired.map(r=>(r.dir>0?'▲ ':'▼ ')+fwdEsc(r.name)).join('; '):''}</td>
+      <td style="text-align:right;color:var(--tx2)">${fwdNum(e.lastClose,2)} <span style="color:var(--tx3);font-size:10px">${fwdEsc(e.lastDate)}</span></td></tr>`).join('');
+  const next=`<div class="pnl"><div class="ph"><span class="dot"></span>NEXT SESSION — logged direction calls</div><div class="pb">
+    <div class="ts"><table class="tbl"><thead><tr><th>Session</th><th>Inst</th><th>Astro call</th><th>Price-action baseline</th><th style="text-align:right">Last close</th></tr></thead><tbody>${nxRows||'<tr><td colspan="5" style="color:var(--tx3)">none pending — the next run logs them after the close</td></tr>'}</tbody></table></div></div></div>`;
+  // ── 5. history ──
+  const g=E.filter(e=>e.graded).sort((a,b)=>a.target<b.target?1:a.target>b.target?-1:a.inst<b.inst?-1:1);
+  const hRows=g.map(e=>{ const G=e.graded;
+    if(G.noSession) return `<tr><td>${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td><td colspan="4" style="color:var(--tx3)">no session (holiday)</td></tr>`;
+    return `<tr><td style="white-space:nowrap">${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td><td>${fwdMark(G.results.astroOnly)} ${fwdCall(e.calls.astroOnly)}</td>
+      <td style="color:var(--tx3)">${fwdMark(G.results.techOnly)}</td><td style="text-align:right;color:${G.dir>0?'var(--bull)':G.dir<0?'var(--bear)':'var(--tx2)'};font-weight:700">${G.ccPct>0?'+':''}${fwdNum(G.ccPct,2)}%</td>
+      <td style="text-align:right;color:var(--tx3)">${fwdNum(G.rangePct,2)}% <span style="font-size:10px">(${fwdEsc(e.vol||'—')})</span></td></tr>`; }).join('');
+  const tg=R.filter(f=>f.graded).sort((a,b)=>a.to<b.to?1:-1);
+  const tgRows=tg.map(f=>{ const G=f.graded, p=G.pivot;
+    return `<tr><td style="white-space:nowrap">${fwdEsc(f.from)} → ${fwdEsc(f.to)}</td><td>${fwdEsc(f.inst)}</td><td style="color:var(--tx2)">${FWD_SRC[f.source]||fwdEsc(f.source)}</td><td>${fwdEsc(f.type)}</td>
+      <td>${G.status==='hit'?`<b style="color:var(--bull)">✓</b> ${p.cls==='MAJOR'?'major ':''}${p.type.toLowerCase()} ${fwdEsc(p.date)} @ ${fwdNum(p.price,2)}, move ${fwdNum(p.movePct,2)}%${G.typeRight==null?'':G.typeRight?' · type right':' · type wrong'}`:'<b style="color:var(--bear)">✗</b> <span style="color:var(--tx3)">no ≥5% pivot in the window</span>'}</td>
+      <td style="text-align:right;color:var(--tx3)">${fwdPct(G.chance*100)}</td></tr>`; }).join('');
+  const hist=`<div class="pnl"><div class="ph"><span class="dot"></span>HISTORY — graded, newest first</div><div class="pb">
+    <div class="ts" style="max-height:360px;overflow:auto"><table class="tbl"><thead><tr><th>Turn window</th><th>Inst</th><th>Source</th><th>Predicted</th><th>Result</th><th style="text-align:right">Chance</th></tr></thead><tbody>${tgRows||'<tr><td colspan="6" style="color:var(--tx3)">no turn window graded yet — a window is graded once it has passed and a pivot is confirmed (or 20 sessions go by without one)</td></tr>'}</tbody></table></div>
+    <div class="ts" style="max-height:360px;overflow:auto;margin-top:8px"><table class="tbl"><thead><tr><th>Session</th><th>Inst</th><th>Astro</th><th>Price action</th><th style="text-align:right">Actual</th><th style="text-align:right">Range (vol call)</th></tr></thead><tbody>${hRows||'<tr><td colspan="6" style="color:var(--tx3)">no session graded yet</td></tr>'}</tbody></table></div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:6px">Research log, not a recommendation.</div></div></div>`;
+  return head+turns+upcoming+dir+next+hist;
+}
+window.fwdLoad=fwdLoad;
+
+// ═══════════════════════════════════════════════════════════════════
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['fwd','✓ Forward Test'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
@@ -4625,7 +4737,7 @@ window.navGo=navGo;
 addEventListener('hashchange',()=>{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m && m[1]!==S.tab) gs({tab:m[1]}); });
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();

@@ -1,0 +1,1043 @@
+{
+ "version": 2,
+ "since": "2026-09-19",
+ "entries": [
+  {
+   "id": "2026-09-21|BANKNIFTY",
+   "target": "2026-09-21",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "lastClose": 56358.7,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 0,
+    "dir": 0,
+    "fired": [],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 0,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|GOLD",
+   "target": "2026-09-21",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "lastClose": 4424.8999,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 2,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Double top formed — watch the intermediate low"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  },
+  {
+   "id": "2026-09-21|NIFTY",
+   "target": "2026-09-21",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "lastClose": 23346.4,
+   "lastDate": "2026-09-18",
+   "astro": {
+    "score": -29,
+    "band": "BEARISH",
+    "volatility": 2.6,
+    "turning": 7.5,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Sextile / Triekadash (3-11) Jupiter",
+      "dir": 1,
+      "w": 1.66
+     },
+     {
+      "sec": "MANY IMPORTANT OBSERVATION",
+      "name": "Three Saturdays in this Shukla Paksha",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 0,
+    "dir": 0,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed ABOVE the 2-candle SMA",
+      "dir": -1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 0,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null
+  }
+ ],
+ "reversals": [
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; no measured edge)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; no measured edge)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; no measured edge)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; no measured edge)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; no measured edge)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; no measured edge)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; no measured edge)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; no measured edge)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; no measured edge)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; no measured edge)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-14..2026-09-17",
+   "from": "2026-09-21",
+   "to": "2026-09-21",
+   "rawFrom": "2026-09-10",
+   "rawTo": "2026-09-21",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-09-14 Mercury rises (combustion ends) in the West — the book: changes the trend running before it (book TURN; no measured edge)",
+    "2026-09-15 Mars reaches 28° Gemini (book TURN; no measured edge)",
+    "2026-09-17 Moon latitude at its southern extreme (−5.20°), turning North (book TOP; no measured edge)",
+    "2026-09-17 Mercury latitude crosses 0° North→South (book BOTTOM; no measured edge)",
+    "2026-09-17 Virgo Sankranti — the last ten days of the solar month set the trend / range (book TURN; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-09-10|2026-09-21|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-19..2026-09-22",
+   "from": "2026-09-21",
+   "to": "2026-09-24",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-09-24",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-09-19 Moon declination minimum (−27.97°) (book TURN; no measured edge)",
+    "2026-09-22 Moon latitude starts moving rapidly North (1.008°/day > 0.9°) (book TOP; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-09-17|2026-09-24|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-21..2026-09-30",
+   "from": "2026-09-21",
+   "to": "2026-10-02",
+   "rawFrom": "2026-09-17",
+   "rawTo": "2026-10-02",
+   "type": "TURN",
+   "edge": false,
+   "pick": "★ strongest (no measured edge)",
+   "score": 29.1,
+   "days": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25",
+    "2026-09-28",
+    "2026-09-29",
+    "2026-09-30"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (no measured edge)",
+    "Venus S-falling: 473/1485 days hit a ≥5% swing, 31.9% vs 25.4% chance, 70 of 132 swings were tops, 68 major (no measured edge)",
+    "Mercury S-falling + Venus S-falling: 140/363 days hit a ≥5% swing, 38.6% vs 25.5% chance, 21 of 41 swings were tops, 20 major (no measured edge)",
+    "Moon S-rising + Venus S-falling: 55/137 days hit a ≥5% swing, 40.1% vs 26.8% chance, 19 of 33 swings were tops, 17 major (no measured edge)"
+   ],
+   "id": "NIFTY|latlon|2026-09-17|2026-10-02|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; no measured edge)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; no measured edge)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; no measured edge)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; no measured edge)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-09-24..2026-09-26",
+   "from": "2026-09-22",
+   "to": "2026-09-29",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-09-24 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; no measured edge)",
+    "2026-09-24 Moon latitude crosses 0° South→North (book TOP; no measured edge)",
+    "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-09-22|2026-09-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; no measured edge)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; no measured edge)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; no measured edge)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; no measured edge)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; no measured edge)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; no measured edge)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; no measured edge)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; no measured edge)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-01..2026-10-04",
+   "from": "2026-09-29",
+   "to": "2026-10-06",
+   "rawFrom": "2026-09-29",
+   "rawTo": "2026-10-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-10-01 Moon latitude at its northern extreme (+5.13°), turning South (book BOTTOM; no measured edge)",
+    "2026-10-02 Moon declination maximum (+27.89°) (book TURN; no measured edge)",
+    "2026-10-03 Mars–Neptune Trine (5/9) exact at 8.1° — bearish impact is over once they separate (book BOTTOM; no measured edge)",
+    "2026-10-03 Venus stations Retrograde at 14.26° Libra (book TURN; no measured edge)",
+    "2026-10-04 Moon latitude starts moving rapidly South (0.959°/day > 0.9°) (book BOTTOM; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-09-29|2026-10-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; no measured edge)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; no measured edge)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; no measured edge)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; no measured edge)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; no measured edge)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; no measured edge)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; no measured edge)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; no measured edge)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-07..2026-10-11",
+   "from": "2026-10-05",
+   "to": "2026-10-13",
+   "rawFrom": "2026-10-05",
+   "rawTo": "2026-10-13",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-10-07 Venus declination minimum (−21.30°) (book TURN; no measured edge)",
+    "2026-10-07 Mercury–Venus conjunction at 14.1° Libra (the book's top needs them alone & malefic-aspected — not enforced) (book TOP; no measured edge)",
+    "2026-10-07 Moon latitude crosses 0° North→South (book BOTTOM; no measured edge)",
+    "2026-10-07 Saturn latitude at its southern extreme (−2.71°), turning North (book TOP; no measured edge)",
+    "2026-10-11 Venus latitude at its southern extreme (−7.58°), turning North (book TOP; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-10-05|2026-10-13|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; no measured edge)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; no measured edge)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-30",
+   "from": "2026-10-12",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-11-03",
+   "type": "MAJOR TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 29.7,
+   "days": [
+    "2026-10-14",
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Venus S-rising + Jupiter N-rising: 161/392 days hit a ≥5% swing, 41.1% vs 29.4% chance, 20 of 44 swings were tops, 22 major",
+    "Mercury S-bottom + Saturn S-rising: 33/74 days hit a ≥5% swing, 44.6% vs 25.9% chance, 5 of 13 swings were tops, 9 major (no measured edge)",
+    "Mars in Ashlesha: 126/267 days hit a ≥5% swing, 47.2% vs 37.8% chance, 18 of 36 swings were tops, 16 major (no measured edge)"
+   ],
+   "id": "BANKNIFTY|latlon|2026-10-12|2026-11-03|MAJOR TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; no measured edge)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; no measured edge)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-14..2026-10-17",
+   "from": "2026-10-12",
+   "to": "2026-10-20",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-10-20",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-10-14 Moon latitude at its southern extreme (−5.09°), turning North (book TOP; no measured edge)",
+    "2026-10-16 Moon declination minimum (−27.89°) (book TURN; no measured edge)",
+    "2026-10-17 Libra Sankranti — the middle ten days of the solar month set the trend / range (book TURN; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-10-12|2026-10-20|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; no measured edge)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; no measured edge)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; no measured edge)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; no measured edge)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; no measured edge)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; no measured edge)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; no measured edge)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; no measured edge)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; no measured edge)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; no measured edge)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; no measured edge)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; no measured edge)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-30",
+   "from": "2026-10-15",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "pick": "★ strongest (no measured edge)",
+   "score": 11.1,
+   "days": [
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "state label TOP (no measured edge)",
+    "Venus in Chitra + Ketu in Magha: 14/16 days hit a ≥5% swing, 87.5% vs 39.0% chance, 3 of 5 swings were tops, 2 major (no measured edge)",
+    "Mars in Ashlesha: 77/262 days hit a ≥5% swing, 29.4% vs 20.6% chance, 9 of 20 swings were tops, 7 major (no measured edge)",
+    "Moon N-peak + Mars N-rising: 75/285 days hit a ≥5% swing, 26.3% vs 18.9% chance, 15 of 32 swings were tops, 14 major (no measured edge)"
+   ],
+   "id": "GOLD|latlon|2026-10-15|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-19..2026-10-23",
+   "from": "2026-10-15",
+   "to": "2026-10-27",
+   "rawFrom": "2026-10-15",
+   "rawTo": "2026-10-27",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-10-19 Moon latitude starts moving rapidly North (0.946°/day > 0.9°) (book TOP; no measured edge)",
+    "2026-10-19 Venus latitude starts moving rapidly North (0.102°/day > 0.1°) (book TOP; no measured edge)",
+    "2026-10-19 Venus becomes combust (7.9° from the Sun) (book TURN; no measured edge)",
+    "2026-10-19 Mercury latitude at its southern extreme (−3.19°), turning North (book TOP; no measured edge)",
+    "2026-10-21 Panchak starts (Moon enters Dhanishtha pada 3) (book TURN; no measured edge)",
+    "2026-10-21 Moon latitude crosses 0° South→North (book TOP; no measured edge)",
+    "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-10-15|2026-10-27|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; no measured edge)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; no measured edge)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-24..2026-10-28",
+   "from": "2026-10-22",
+   "to": "2026-10-30",
+   "rawFrom": "2026-10-22",
+   "rawTo": "2026-10-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; no measured edge)",
+    "2026-10-28 Moon latitude at its northern extreme (+5.02°), turning South (book BOTTOM; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-10-22|2026-10-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; no measured edge)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; no measured edge)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; no measured edge)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; no measured edge)"
+   ],
+   "id": "BANKNIFTY|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "GOLD",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1611,
+    "rate": 0.5,
+    "base": 0.505
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; no measured edge)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; no measured edge)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; no measured edge)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; no measured edge)"
+   ],
+   "id": "GOLD|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-19T17:01:04.776Z",
+   "asOf": "2026-09-18",
+   "at": "2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-28",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-10-30 Moon declination maximum (+27.62°) (book TURN; no measured edge)",
+    "2026-10-30 Mercury latitude starts moving rapidly North (0.245°/day > 0.22°) (book TOP; no measured edge)",
+    "2026-10-30 Mercury becomes combust (11.7° from the Sun) (book TURN; no measured edge)",
+    "2026-10-30 Venus rises (combustion ends) in the East (book TURN; no measured edge)"
+   ],
+   "id": "NIFTY|astral|2026-10-28|2026-11-03|TURN",
+   "graded": null
+  }
+ ],
+ "runs": [
+  {
+   "at": "2026-09-19T17:01:04.776Z",
+   "target": "2026-09-21",
+   "added": 3,
+   "turnsAdded": 30,
+   "graded": 0,
+   "turnsGraded": 0,
+   "errors": []
+  },
+  {
+   "at": "2026-09-19T17:02:25.411Z",
+   "target": "2026-09-21",
+   "added": 0,
+   "turnsAdded": 0,
+   "graded": 0,
+   "turnsGraded": 0,
+   "errors": []
+  }
+ ]
+}

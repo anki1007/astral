@@ -1,0 +1,327 @@
+#!/usr/bin/env node
+/* Forward test ("paper-trading log") for the astro engine.
+ *
+ * Runs in the Upstox bake job, after the bake. It loads index.html headless,
+ * writes the engine's forecasts for the NEXT session (and the astro turn
+ * windows for the next 30 sessions) into data/forward/log.json, and grades
+ * every earlier forecast whose outcome is now in the baked bars. Git history
+ * timestamps each forecast before its session, so the log is honest
+ * out-of-sample evidence. A forecast is never changed once written.
+ *
+ * usage: node scripts/forward_log.js [--root DIR] [--html FILE]
+ * Node 20, no dependencies. Always exits 0; failures are recorded in the log.
+ */
+'use strict';
+const fs = require('fs'), path = require('path'), vm = require('vm');
+
+const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
+const ROOT = path.resolve(arg('--root', process.cwd()));
+const HTML = path.resolve(arg('--html', path.join(ROOT, 'index.html')));
+const OUT = path.join(ROOT, 'data', 'forward');
+const VERSION = 2, HORIZON = 30, FLAT = 0.1, ASTRO_MIN = 7, SW_MIN = 5, SW_MAJ = 10, CONFIRM_LAG = 20;
+const INSTS = [
+  { k: 'NIFTY', file: 'data/nse/NIFTY.json', plan: 'NIFTY 50' },
+  { k: 'BANKNIFTY', file: 'data/nse/BANKNIFTY.json', plan: 'BANK NIFTY' },
+  { k: 'GOLD', file: 'data/yahoo/GOLD.json', plan: 'XAUUSD · GOLD' },
+];
+
+/* ── headless page: index.html's inline scripts in a vm with a DOM stub ── */
+function loadPage() {
+  const html = fs.readFileSync(HTML, 'utf8');
+  const el = () => ({ style: {}, dataset: {}, classList: { add() {}, remove() {}, toggle() { return false; }, contains() { return false; } },
+    children: [], innerHTML: '', textContent: '', value: '', checked: false, appendChild(c) { return c; }, removeChild() {}, remove() {},
+    setAttribute() {}, getAttribute() { return null; }, addEventListener() {}, removeEventListener() {}, querySelector() { return null; },
+    querySelectorAll() { return []; }, getBoundingClientRect() { return { left: 0, top: 0, width: 1200, height: 600, right: 1200, bottom: 600 }; },
+    closest() { return null; }, focus() {}, blur() {}, click() {}, insertAdjacentHTML() {}, scrollIntoView() {}, getContext() { return null; },
+    contains() { return false; }, cloneNode() { return el(); }, offsetWidth: 1200, offsetHeight: 600, clientWidth: 1200, clientHeight: 600,
+    nextElementSibling: null, parentNode: null });
+  const store = {}, doc = { body: el(), documentElement: el(), head: el(), readyState: 'complete', hidden: false,
+    getElementById() { return el(); }, querySelector() { return el(); }, querySelectorAll() { return []; }, createElement() { return el(); },
+    createElementNS() { return el(); }, createTextNode() { return el(); }, addEventListener() {}, removeEventListener() {}, createDocumentFragment() { return el(); } };
+  // same-origin data/ reads come from disk; everything else is offline
+  const fetchLocal = async u => {
+    u = String(u).replace(/^\.?\//, '').split('?')[0];
+    if (!/^data\//.test(u)) throw new Error('offline: ' + u);
+    const p = path.join(ROOT, u);
+    if (!fs.existsSync(p)) return { ok: false, status: 404, headers: { get() { return null; } }, json: async () => { throw new Error('404'); }, text: async () => '' };
+    const t = fs.readFileSync(p, 'utf8');
+    return { ok: true, status: 200, headers: { get() { return null; } }, json: async () => JSON.parse(t), text: async () => t };
+  };
+  const ctx = { console: { log() {}, info() {}, warn() {}, error() {}, debug() {} }, Math, JSON, Date, Array, Object, String, Number, Boolean, RegExp, Error, Map, Set,
+    WeakMap, WeakSet, Symbol, Promise, parseFloat, parseInt, isFinite, isNaN, encodeURIComponent, decodeURIComponent, Intl, Float64Array, Float32Array,
+    Int32Array, Uint8Array, Uint32Array, Int16Array, Uint16Array, Int8Array, ArrayBuffer, DataView, BigInt, Reflect, Proxy, TextDecoder, TextEncoder,
+    URL, URLSearchParams, AbortController, document: doc, navigator: { userAgent: 'node', language: 'en', clipboard: {} },
+    location: { href: 'http://localhost/', search: '', hash: '', origin: 'http://localhost', pathname: '/', protocol: 'http:' },
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+    setTimeout: () => 0, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {}, requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
+    fetch: fetchLocal, matchMedia: () => ({ matches: false, addEventListener() {}, addListener() {} }), addEventListener() {}, removeEventListener() {},
+    dispatchEvent() {}, getComputedStyle: () => ({ getPropertyValue: () => '' }), ResizeObserver: class { observe() {} disconnect() {} unobserve() {} },
+    MutationObserver: class { observe() {} disconnect() {} }, IntersectionObserver: class { observe() {} disconnect() {} }, Image: class {},
+    performance: { now: () => Date.now() }, devicePixelRatio: 1, innerWidth: 1400, innerHeight: 900, scrollTo() {}, alert() {}, confirm() { return false; },
+    history: { replaceState() {}, pushState() {} }, HTMLElement: class {}, Element: class {}, Node: class {}, CustomEvent: class {}, Event: class {},
+    Blob: class {}, FileReader: class {} };
+  ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx; ctx.top = ctx; ctx.parent = ctx;
+  vm.createContext(ctx);
+  const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi; let m; const errs = [];
+  while ((m = re.exec(html))) { if (/\bsrc\s*=/.test(m[1])) continue;
+    try { vm.runInContext(m[2], ctx); } catch (e) { errs.push(String(e && e.message || e)); } }
+  // after load: real (async) timers so the engine's own yields resolve; never throw out of one
+  ctx.setTimeout = f => setTimeout(() => { try { f(); } catch (e) {} }, 0);
+  return { ctx, errs, E: s => vm.runInContext(s, ctx) };
+}
+
+/* ── small helpers ── */
+const readJSON = (p, d) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return d; } };
+const iso = d => d.toISOString().slice(0, 10);
+const shift = (ds, n) => { const d = new Date(ds + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const isWk = ds => { const w = new Date(ds + 'T00:00:00Z').getUTCDay(); return w > 0 && w < 6; };
+// Sessions are weekdays only: an exchange holiday simply grades as "no session".
+const nextSess = ds => { let d = shift(ds, 1); while (!isWk(d)) d = shift(d, 1); return d; };
+const prevSess = ds => { let d = shift(ds, -1); while (!isWk(d)) d = shift(d, -1); return d; };
+const sessAdd = (ds, n) => { let d = ds; for (let k = 0; k < Math.abs(n); k++) d = n > 0 ? nextSess(d) : prevSess(d); return d; };
+const onOrAfter = ds => isWk(ds) ? ds : nextSess(ds), onOrBefore = ds => isWk(ds) ? ds : prevSess(ds);
+const sign = v => v > 0 ? 1 : v < 0 ? -1 : 0;
+const r2 = v => Math.round(v * 100) / 100;
+function bars(inst) {
+  const j = readJSON(path.join(ROOT, inst.file), null);
+  if (!j || !Array.isArray(j.bars)) throw new Error('no bars in ' + inst.file);
+  return j.bars.map(b => ({ date: b[0], o: +b[1], h: +b[2], l: +b[3], c: +b[4] }))
+    .filter(b => b.date && isFinite(b.c) && b.c > 0).sort((a, b) => a.date < b.date ? -1 : 1);
+}
+function wilson(k, n) { if (!n) return [0, 0]; const z = 1.96, p = k / n, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d,
+  h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d; return [Math.max(0, c - h), Math.min(1, c + h)]; }
+function binomUpper(n, k, p) { // P(X >= k), X ~ Bin(n, p)
+  if (k <= 0 || n <= 0) return 1; if (p <= 0) return 0; if (p >= 1) return 1;
+  const lp = []; let v = n * Math.log(1 - p); const lr = Math.log(p / (1 - p));
+  for (let i = 0; i <= n; i++) { lp[i] = v; v += Math.log((n - i) / (i + 1)) + lr; }
+  const mx = Math.max(...lp); let a = 0, t = 0; lp.forEach((x, i) => { const e = Math.exp(x - mx); t += e; if (i >= k) a += e; });
+  return Math.min(1, a / t);
+}
+const pct = (k, n) => n ? r2(k / n * 100) : null;
+
+/* ── 1. direction forecast for the next session ── */
+function predictDay(P, inst, B, target, made) {
+  const last = B[B.length - 1], cls = P.E(`taInstClass(${JSON.stringify(inst.k)})`);
+  P.ctx.__q = { target, cls };
+  const a = P.E(`(()=>{ const ev=taRead(__q.target,9.25,'lahiri','daily',__q.cls);
+    const top=(ev.rules||[]).filter(r=>r.dir&&!taRuleExcluded(r,__q.cls)).sort((x,y)=>y.w-x.w).slice(0,5)
+      .map(r=>({sec:r.sec,name:r.name,dir:r.dir,w:Math.round(r.w*100)/100}));
+    return {score:ev.score,band:ev.band.t,volatility:ev.volatility||0,turning:ev.turning||0,top}; })()`);
+  // chapter-2 technicals on bars up to the last close; the session being predicted
+  // has no open yet, so its open is taken as the last close (a flat open)
+  const tb = B.map(b => Object.assign({}, b)); tb.push({ date: target, o: last.c, h: last.c, l: last.c, c: last.c });
+  P.ctx.__tb = tb;
+  const fired = P.E(`taTech(__tb, __tb.length-1, 'daily').map(r=>({sec:r.sec,name:r.name,dir:r.dir,w:r.w}))`);
+  const techNet = r2(fired.reduce((s, r) => s + r.dir * r.w, 0));
+  const t = sign(techNet), s = sign(a.score), strong = Math.abs(a.score) >= ASTRO_MIN;
+  const calls = {
+    astroOnly: strong ? s : 0,
+    techOnly: t,
+    techWithAstroFilter: (!strong || s === t) ? t : 0,
+    astroAndTech: (strong && s === t) ? t : 0,
+  };
+  // tertiles of the engine's volatility weight on NIFTY sessions 2019-2026 (<=2.3 | 2.3-3.2 | >=3.2)
+  const vol = a.volatility >= 3.2 ? 'wide' : a.volatility <= 2.3 ? 'quiet' : 'normal';
+  return { id: target + '|' + inst.k, target, inst: inst.k, made, lastClose: last.c, lastDate: last.date,
+    astro: { score: a.score, band: a.band, volatility: a.volatility, turning: a.turning, top: a.top },
+    tech: { net: techNet, dir: t, fired: fired.filter(r => r.dir).map(r => ({ sec: r.sec, name: r.name, dir: r.dir })),
+            setups: fired.filter(r => !r.dir).map(r => r.name), openAssumed: 'last close' },
+    calls, vol, graded: null };
+}
+function gradeDay(e, B) {
+  const b = B.find(x => x.date === e.target);
+  if (!b) {
+    if (B.length && B[B.length - 1].date > e.target) return { date: e.target, noSession: true };
+    return null;
+  }
+  const cc = (b.c / e.lastClose - 1) * 100, oc = (b.c / b.o - 1) * 100;
+  const dir = cc > FLAT ? 1 : cc < -FLAT ? -1 : 0, res = {};
+  for (const [k, v] of Object.entries(e.calls)) res[k] = v === 0 ? 'aside' : v === dir ? 'hit' : 'miss';
+  res.alwaysBullish = dir === 1 ? 'hit' : 'miss';
+  res.alwaysNeutral = dir === 0 ? 'hit' : 'miss';
+  return { date: b.date, o: b.o, c: b.c, ccPct: r2(cc), ocPct: r2(oc), dir, rangePct: r2((b.h - b.l) / e.lastClose * 100), results: res };
+}
+
+/* ── 2. reversal (turn-date) forecasts for the next 30 sessions ── */
+function winAroundRaw(from, to) { return { from: sessAdd(onOrAfter(from), -2), to: sessAdd(onOrBefore(to < from ? from : to), 2) }; }
+async function predictTurns(P, inst, target, horizonEnd, made, asOf) {
+  const out = [];
+  // a window never reaches back before the next session: that part is already known
+  // The raw window is the forecast's identity (dedupe key); a cluster already under way is
+  // looked up from a week back so its identity does not drift as the days pass.
+  const winAround = (f, t) => { const w = winAroundRaw(f, t); w.rawFrom = w.from; w.rawTo = w.to; if (w.from < target) w.from = target; return w; };
+  const look = shift(target, -7);
+  // (a) Astral "approaching turn dates": clustered astro events, labelled by their measured type
+  const X = await P.E(`tnLoad(${JSON.stringify(inst.k)})`);
+  if (!X) throw new Error('turn table: ' + P.E(`window.TN.err[${JSON.stringify(inst.k)}]`));
+  P.ctx.__q = { k: inst.k, a: look, b: horizonEnd };
+  const W = P.E(`(()=>{ const X=window.TN.tables[__q.k], M=X.M;
+    return tnCluster(X.events.filter(e=>e.ds>=__q.a&&e.ds<=__q.b)).map(w=>{ const L=tnWinLabel(w,M), G=M.groups[L.key];
+      return {from:w.from,to:w.to,label:L.label,edge:L.edge,dir:L.dir,mag:L.mag,
+        hist:G&&G.n?{n:G.n,rate:Math.round(G.rate*1000)/1000,base:Math.round(G.base*1000)/1000}:null,
+        events:w.ev.map(e=>{ const t=M.types[e.key]; return {ds:e.ds,what:e.what,hint:e.hint,measured:t&&t.edge?t.label:'no measured edge'}; })}; }); })()`);
+  for (const w of W) {
+    const win = winAround(w.from, w.to); if (win.to < target) continue;
+    const type = (w.edge ? (w.mag === 'Major' ? 'MAJOR ' : 'MINOR ') : '') + (w.dir === 'Top' ? 'TOP' : w.dir === 'Bottom' ? 'BOTTOM' : 'TURN');
+    out.push({ source: 'astral', inst: inst.k, made, asOf, at: w.from === w.to ? w.from : w.from + '..' + w.to, from: win.from, to: win.to, rawFrom: win.rawFrom, rawTo: win.rawTo,
+      type, edge: !!w.edge, hist: w.hist, reasons: w.events.map(e => `${e.ds} ${e.what} (book ${String(e.hint).toUpperCase()}; ${e.measured})`) });
+  }
+  // (b) Planet Lat / Lon future-date labels (SWING >= 5%, MAJOR >= 10%). The two tabs learn the
+  // same planet-state cells (latitude + longitude families), so one build serves both.
+  P.ctx.__q = { plan: inst.plan };
+  const R = await P.E(`(window.TN.swingPct=${SW_MIN}, window.TN.majPct=${SW_MAJ}, tnLfBuild(tnLfKey(__q.plan,'lat'),__q.plan,'lat'))`);
+  if (!R || R.status !== 'ready') throw new Error(`lat/lon: ${R && R.err}`);
+  P.ctx.__q = { plan: inst.plan, a: look, b: horizonEnd };
+  const days = P.E(`(()=>{ const R=window.TN.lf[tnLfKey(__q.plan,'lat')];
+    const F=R.fut.filter(f=>f.ds>=__q.a&&f.ds<=__q.b&&f.ms.length);
+    let pick=F.filter(f=>tnLfEdge(f.ms[0])), why='label';
+    if(!pick.length){ pick=F.slice().sort((x,y)=>y.score-x.score).slice(0,10); why='strongest'; }
+    return pick.sort((x,y)=>x.ds<y.ds?-1:1).map(f=>({ds:f.ds,why,score:Math.round(f.score*10)/10,label:tnLfCellLab(f.ms[0]),edge:tnLfEdge(f.ms[0]),
+      states:f.ms.slice(0,3).map(c=>c.k+': '+tnLfCellTxt(c,R)+(tnLfEdge(c)?'':' (no measured edge)'))})); })()`).filter(d => isWk(d.ds));
+  // one window per run of picked days whose ±2-session windows overlap
+  const runs = [];
+  for (const d of days) { const w = winAroundRaw(d.ds, d.ds), r = runs[runs.length - 1];
+    if (r && w.from <= r.to) { r.days.push(d); r.to = w.to; } else runs.push({ from: w.from, to: w.to, days: [d] }); }
+  for (const r of runs) {
+    if (r.to < target) continue;
+    const raw = winAroundRaw(r.days[0].ds, r.days[r.days.length - 1].ds);
+    const best = r.days.slice().sort((x, y) => y.score - x.score)[0], allEdge = r.days.every(d => d.edge);
+    const a = r.days[0].ds, b = r.days[r.days.length - 1].ds;
+    out.push({ source: 'latlon', inst: inst.k, made, asOf, at: a === b ? a : a + '..' + b, from: r.from < target ? target : r.from, to: r.to, rawFrom: raw.from, rawTo: raw.to,
+      type: allEdge ? best.label : 'TURN', edge: allEdge, pick: best.why === 'label' ? 'measured label' : '★ strongest (no measured edge)',
+      score: best.score, days: r.days.map(d => d.ds),
+      reasons: (best.edge ? [] : ['state label ' + best.label + ' (no measured edge)']).concat(best.states) });
+  }
+  return out;
+}
+function swingsOf(P, B) { P.ctx.__b = B; return P.E(`reDetectSwings(__b, ${SW_MIN}, ${SW_MAJ}, true)`); }
+function chanceFor(B, sw, len) { // P(a random window of `len` sessions holds a >=5% pivot), 2000 -> last pivot
+  const piv = new Uint8Array(B.length), ix = new Map(B.map((b, i) => [b.date, i]));
+  let lastP = -1; sw.forEach(s => { const i = ix.get(s.date); if (i != null) { piv[i] = 1; if (i > lastP) lastP = i; } });
+  const P = new Int32Array(B.length + 1); for (let i = 0; i < B.length; i++) P[i + 1] = P[i] + piv[i];
+  let c = 0, t = 0; for (let i = 0; i + len - 1 <= lastP; i++) { t++; if (P[i + len] - P[i] > 0) c++; }
+  return t ? c / t : 0;
+}
+function gradeTurn(f, B, sw) {
+  const last = B[B.length - 1].date; if (last < f.to) return null;         // window still open
+  const inWin = sw.filter(s => s.date >= f.from && s.date <= f.to);
+  const len = B.filter(b => b.date >= f.from && b.date <= f.to).length || 5;
+  const chance = Math.round(chanceFor(B, sw, len) * 10000) / 10000;
+  if (inWin.length) {
+    const p = inWin.slice().sort((a, b) => b.mag - a.mag)[0], top = p.type === 'H';
+    const pd = /TOP|BOTTOM/.test(f.type) ? /TOP/.test(f.type) === top : null;
+    const pm = /MAJOR|MINOR/.test(f.type) ? /MAJOR/.test(f.type) === (p.cls === 'MAJOR') : null;
+    return { status: 'hit', date: last, sessions: len, chance, pivot: { date: p.date, price: p.price, movePct: p.mag, type: top ? 'TOP' : 'BOTTOM', cls: p.cls },
+      typeRight: pd, majorRight: pm };
+  }
+  const after = B.filter(b => b.date > f.to).length;
+  if (after >= CONFIRM_LAG) return { status: 'miss', date: last, sessions: len, chance };
+  return null;                                                         // pending confirmation
+}
+
+/* ── 3. summary ── */
+function summarise(log, B, SW) {
+  const days = log.entries.filter(e => e.graded && !e.graded.noSession);
+  const S = { version: VERSION, generated: new Date().toISOString(), since: log.since || null,
+    lastGraded: days.reduce((m, e) => e.graded.date > m ? e.graded.date : m, '') || null,
+    nDays: new Set(days.map(e => e.target)).size, flatBandPct: FLAT, astroMin: ASTRO_MIN, direction: {}, volatility: {}, turns: {}, chance: {} };
+  const CALLS = ['astroOnly', 'techOnly', 'techWithAstroFilter', 'astroAndTech'];
+  for (const inst of INSTS.map(i => i.k)) {
+    const D = days.filter(e => e.inst === inst), row = {};
+    const upDays = D.filter(e => e.graded.dir === 1).length, flatDays = D.filter(e => e.graded.dir === 0).length;
+    for (const c of CALLS) {
+      const made = D.filter(e => e.graded.results[c] !== 'aside'), hits = made.filter(e => e.graded.results[c] === 'hit').length;
+      const bull = made.filter(e => e.graded.dir === 1).length, p0 = made.length ? bull / made.length : 0;
+      const ci = wilson(hits, made.length);
+      row[c] = { n: made.length, hits, hitPct: pct(hits, made.length), ci95: [r2(ci[0] * 100), r2(ci[1] * 100)],
+        bullPctSameDays: pct(bull, made.length), vsBullPP: made.length ? r2((hits - bull) / made.length * 100) : null,
+        p: made.length ? Math.round(binomUpper(made.length, hits, p0) * 1000) / 1000 : null, aside: D.length - made.length };
+    }
+    const ciB = wilson(upDays, D.length), ciN = wilson(flatDays, D.length);
+    row.alwaysBullish = { n: D.length, hits: upDays, hitPct: pct(upDays, D.length), ci95: [r2(ciB[0] * 100), r2(ciB[1] * 100)] };
+    row.alwaysNeutral = { n: D.length, hits: flatDays, hitPct: pct(flatDays, D.length), ci95: [r2(ciN[0] * 100), r2(ciN[1] * 100)] };
+    S.direction[inst] = row;
+    const V = {};
+    for (const k of ['quiet', 'normal', 'wide']) { const r = D.filter(e => e.vol === k).map(e => e.graded.rangePct);
+      V[k] = { n: r.length, meanRangePct: r.length ? r2(r.reduce((a, b) => a + b, 0) / r.length) : null }; }
+    S.volatility[inst] = V;
+    // turn windows
+    const T = {}, F = (log.reversals || []).filter(f => f.inst === inst);
+    for (const src of ['astral', 'latlon']) {
+      const all = F.filter(f => f.source === src), g = all.filter(f => f.graded), hits = g.filter(f => f.graded.status === 'hit');
+      const ch = g.length ? g.reduce((a, f) => a + f.graded.chance, 0) / g.length : null, ci = wilson(hits.length, g.length);
+      const td = hits.filter(f => f.graded.typeRight != null), tOk = td.filter(f => f.graded.typeRight).length;
+      const md = hits.filter(f => f.graded.majorRight != null), mOk = md.filter(f => f.graded.majorRight).length;
+      T[src] = { made: all.length, graded: g.length, pending: all.length - g.length, hits: hits.length, hitPct: pct(hits.length, g.length),
+        ci95: [r2(ci[0] * 100), r2(ci[1] * 100)], chancePct: ch == null ? null : r2(ch * 100),
+        p: g.length ? Math.round(binomUpper(g.length, hits.length, ch) * 1000) / 1000 : null,
+        typeN: td.length, typeOk: tOk, typePct: pct(tOk, td.length), typeP: td.length ? Math.round(binomUpper(td.length, tOk, 0.5) * 1000) / 1000 : null,
+        majorN: md.length, majorOk: mOk };
+    }
+    S.turns[inst] = T;
+    if (B[inst] && SW[inst]) S.chance[inst] = { window5: r2(chanceFor(B[inst], SW[inst], 5) * 100), window3: r2(chanceFor(B[inst], SW[inst], 3) * 100),
+      pivots: SW[inst].length, from: B[inst][0].date, to: B[inst][B[inst].length - 1].date, rule: `>=${SW_MIN}% swing, >=${SW_MAJ}% major` };
+  }
+  return S;
+}
+
+/* ── main ── */
+(async () => {
+  const made = new Date().toISOString();
+  const logP = path.join(OUT, 'log.json');
+  const log = readJSON(logP, null) || { version: VERSION, since: null, entries: [], reversals: [], runs: [] };
+  log.version = VERSION; log.entries = log.entries || []; log.reversals = log.reversals || []; log.runs = log.runs || [];
+  const run = { at: made, target: null, added: 0, turnsAdded: 0, graded: 0, turnsGraded: 0, errors: [] };
+  let P = null;
+  try { P = loadPage(); if (P.errs.length) run.errors.push('page load: ' + P.errs.slice(0, 3).join(' | ')); }
+  catch (e) { run.errors.push('page load failed: ' + e.message); }
+  const B = {}, SW = {};
+  for (const inst of INSTS) { try { B[inst.k] = bars(inst); } catch (e) { run.errors.push(inst.k + ': ' + e.message); } }
+  const nifty = B.NIFTY;
+  if (nifty && P) {
+    const target = nextSess(nifty[nifty.length - 1].date), horizonEnd = sessAdd(target, HORIZON - 1);
+    run.target = target;
+    const have = new Set(log.entries.map(e => e.id));
+    const turnKey = f => [f.inst, f.source, f.rawFrom || f.from, f.rawTo || f.to, f.type].join('|');
+    const haveT = new Set(log.reversals.map(turnKey));
+    for (const inst of INSTS) {
+      const bb = B[inst.k]; if (!bb) continue;
+      try { SW[inst.k] = swingsOf(P, bb); } catch (e) { run.errors.push(inst.k + ' swings: ' + e.message); }
+      // never overwrite: a prediction is frozen once written
+      if (!have.has(target + '|' + inst.k)) {
+        try {
+          const hist = bb.filter(b => b.date < target);
+          log.entries.push(predictDay(P, inst, hist, target, made)); run.added++;
+        } catch (e) { run.errors.push(inst.k + ' predict: ' + e.message); }
+      }
+      try {
+        const T = await predictTurns(P, inst, target, horizonEnd, made, bb[bb.length - 1].date);
+        for (const f of T) { const k = turnKey(f); if (haveT.has(k)) continue; haveT.add(k);
+          f.id = k; f.graded = null; log.reversals.push(f); run.turnsAdded++; }
+      } catch (e) { run.errors.push(inst.k + ' turns: ' + e.message); }
+    }
+  }
+  // grade whatever the baked bars now settle
+  for (const e of log.entries) { if (e.graded || !B[e.inst]) continue;
+    try { const g = gradeDay(e, B[e.inst]); if (g) { e.graded = g; run.graded++; } } catch (x) { run.errors.push(e.id + ' grade: ' + x.message); } }
+  for (const f of log.reversals) { if (f.graded || !B[f.inst] || !SW[f.inst]) continue;
+    try { const g = gradeTurn(f, B[f.inst], SW[f.inst]); if (g) { f.graded = g; run.turnsGraded++; } } catch (x) { run.errors.push(f.id + ' grade: ' + x.message); } }
+  if (!log.since && log.entries.length) log.since = log.entries.reduce((m, e) => e.made < m ? e.made : m, log.entries[0].made).slice(0, 10);
+  log.entries.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : a.inst < b.inst ? -1 : 1);
+  log.reversals.sort((a, b) => a.from < b.from ? -1 : a.from > b.from ? 1 : a.id < b.id ? -1 : 1);
+  log.runs.push(run); log.runs = log.runs.slice(-60);
+  const S = summarise(log, B, SW); S.lastRun = run;
+  fs.mkdirSync(OUT, { recursive: true });
+  fs.writeFileSync(logP, JSON.stringify(log, null, 1) + '\n');
+  fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(S, null, 1) + '\n');
+
+  // concise console report
+  console.log(`forward test · target ${run.target} · +${run.added} day forecasts · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns`);
+  for (const e of log.entries.filter(e => e.target === run.target))
+    console.log(`  ${e.inst.padEnd(9)} astro ${String(e.astro.score).padStart(4)} ${e.astro.band.padEnd(18)} tech ${String(e.tech.net).padStart(5)} → astroOnly ${e.calls.astroOnly} techOnly ${e.calls.techOnly} filter ${e.calls.techWithAstroFilter} both ${e.calls.astroAndTech} vol ${e.vol}`);
+  for (const [k, r] of Object.entries(S.direction))
+    console.log(`  ${k.padEnd(9)} astroOnly ${r.astroOnly.hits}/${r.astroOnly.n} · techOnly ${r.techOnly.hits}/${r.techOnly.n} · always-bull ${r.alwaysBullish.hits}/${r.alwaysBullish.n} · turns ${Object.entries(S.turns[k]).map(([s, t]) => `${s} ${t.hits}/${t.graded} (${t.pending} pending)`).join(', ')}`);
+  if (run.errors.length) console.log('  errors: ' + run.errors.join(' | '));
+  process.exit(0);
+})().catch(e => { console.log('forward_log failed: ' + (e && e.stack || e)); process.exit(0); });
