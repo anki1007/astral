@@ -21511,7 +21511,35 @@ const RE_UNIV = (function(){
 try{ RE_US_ROWS.forEach(([k])=>{ if(!PLAN_INST[k]) PLAN_INST[k]=k; }); }catch(e){}
 
 // THE RULE TABLE — single source of truth, surfaced verbatim in the UI.
+/* Adjustable swing threshold. The PRD's table stays the default; a user value
+   applies to one class group at a time (stocks, or index + commodity), is
+   remembered in this browser, and is labelled CUSTOM wherever it is used. */
+function reThrGroup(kind){ return (kind==='stock'||kind==='usstock')?'stock':'index'; }
+function reThrCustom(kind){
+  const g=reThrGroup(kind);
+  let mn=S['reMin_'+g], mj=S['reMaj_'+g];
+  try{ if(mn==null) mn=localStorage.getItem('astralReMin_'+g); if(mj==null) mj=localStorage.getItem('astralReMaj_'+g); }catch(e){}
+  mn=parseFloat(mn); mj=parseFloat(mj);
+  if(!(mn>0) && !(mj>0)) return null;
+  const def=reThresholdsPRD(kind);
+  mn=mn>0?mn:def.minPct; mj=mj>0?mj:def.majPct;
+  if(mj<=mn) mj=+(mn*2).toFixed(2);                   // a major must exceed the minor
+  return {minPct:mn, majPct:mj};
+}
+function reSetThr(kind, which, v){
+  const g=reThrGroup(kind), k=(which==='min'?'reMin_':'reMaj_')+g, x=parseFloat(v);
+  S[k]=(x>0)?String(x):'';
+  try{ if(x>0) localStorage.setItem('astral'+k.charAt(0).toUpperCase()+k.slice(1),String(x)); else localStorage.removeItem('astral'+k.charAt(0).toUpperCase()+k.slice(1)); }catch(e){}
+  if(typeof rePaintAll==='function') rePaintAll(); else render();
+}
+window.reSetThr=reSetThr;
 function reThresholds(kind){
+  const c=reThrCustom(kind), d=reThresholdsPRD(kind);
+  if(!c || (c.minPct===d.minPct && c.majPct===d.majPct)) return d;
+  return {minPct:c.minPct, majPct:c.majPct, minIncl:true, custom:true, label:d.label+' · CUSTOM',
+          rule:'CUSTOM: short-term correction ≥'+c.minPct+'% and &lt;'+c.majPct+'% &nbsp;·&nbsp; long-term correction ≥'+c.majPct+'% (PRD default '+d.minPct+'% / '+d.majPct+'%)'};
+}
+function reThresholdsPRD(kind){
   // PRD "Swing Classification": index minor is "3% or greater" (inclusive);
   // commodity and stock minors are strict ">".
   return (kind==='stock'||kind==='usstock')
@@ -24167,6 +24195,9 @@ function reHeadHTML(){
     <div class="cg"><span class="cl">HISTORY</span>${sel('reYears',[['max','Max · since 1998 / inception'],[25,'25 yr'],[20,'20 yr'],[15,'15 yr'],[10,'10 yr'],[5,'5 yr']],o.years,214)}</div>
     <div class="cg"><span class="cl">AYANAMSA</span>${sel('reAy',[['lahiri','Lahiri'],['kp','KP New'],['kpold','KP Old'],['raman','Raman'],['sayana','Sayana']],o.ay,104)}</div>
     <div class="cg"><span class="cl">EPHEM HOUR (IST)</span>${sel('reTod',todOpts,o.tod,132)}</div>
+    <div class="cg"><span class="cl">SWING MINOR %</span><input type="number" class="ci" style="width:70px" min="0.5" max="50" step="0.5" value="${thr.minPct}" title="PRD default ${reThresholdsPRD(u.kind).minPct}% — clear to restore" onchange="reSetThr('${u.kind}','min',this.value)"></div>
+    <div class="cg"><span class="cl">SWING MAJOR %</span><input type="number" class="ci" style="width:70px" min="1" max="80" step="0.5" value="${thr.majPct}" title="PRD default ${reThresholdsPRD(u.kind).majPct}% — clear to restore" onchange="reSetThr('${u.kind}','maj',this.value)"></div>
+    ${thr.custom?`<div class="cg"><span class="cl">&nbsp;</span><button class="ci" style="cursor:pointer;color:var(--sun)" onclick="reSetThr('${u.kind}','min','');reSetThr('${u.kind}','maj','')" title="back to ${reThresholdsPRD(u.kind).minPct}% / ${reThresholdsPRD(u.kind).majPct}%">↺ PRD default</button></div>`:''}
     <div class="cg"><span class="cl">RESEARCH WINDOW</span>${sel('reSpan',[[0,'swing day only'],[1,'±1 day'],[2,'±2 days'],[3,'±3 days']],o.span,128)}</div>
     <div class="cg"><span class="cl">ORB ×</span>${sel('reOrb',[[0.75,'0.75×'],[1,'1.0×'],[1.25,'1.25×'],[1.5,'1.5×']],(S.reOrb||1),76)}</div>
     <div class="cg"><span class="cl">MIN SUPPORT</span>${sel('reMinSup',[[3,'3'],[4,'4'],[5,'5'],[8,'8'],[12,'12']],o.minSup,66)}</div>
