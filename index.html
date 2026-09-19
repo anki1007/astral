@@ -17323,6 +17323,7 @@ function dfBodyHTML(){
   return `
   <div class="pnl"><div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px"><span><span class="dot" style="background:${dfCol(ev.score)}"></span>DAY FORECAST — ${ds} ${taEsc((ev.sky||{}).dayName||'')} · Tech-Astro rulebook · 09:15 IST read${picked?` <a href="#" onclick="dfPickDay('${S.date}');return false" style="color:var(--acc);font-weight:400">← back to ${S.date}</a>`:''}</span>${dfPill()}</div>
     <div class="pb">${dfHeadlineHTML(ds,ev,st,tv,k)}</div></div>
+  ${(()=>{ try{ return dpPanelHTML(); }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Proven daily patterns unavailable: ${taEsc((e&&e.message)||'error')}</div></div>`; } })()}
   ${dfStagesHTML(st,cy,u?u.label:k)}
   ${dfTithiVaarHTML(ev,tv,chg)}
   ${dfCardsHTML(ev,st)}
@@ -17355,6 +17356,276 @@ function tDayForecast(){
       ${legacy}
     </div></details>
 </div>`;
+}
+
+/* ══ DP: PROVEN DAILY PATTERNS ══════════════════════════════════════════════
+   The Planet Lat / Lon "proven pattern" method (tnLf) applied to DAILY outcomes.
+   Per trading day from 2000 (states read at the 09:15 IST session open; Gold uses the same instant of its date):
+   planet latitude phase (tnLfLatFamily), sign + motion + combust and nakshatra (tnLfLonFamilies, Moon included),
+   tithi (tithiCompute) and the Tech-Astro book's daily band (taRead(ds,9.25,ay,'daily',cls).band.t).
+   Three separate studies: (a) direction — up day (close > prev close +0.1%); (b) big-move day — true range in the
+   top 30% of the previous 250 gradable sessions; (c) gap day — |open − prev close| > 0.5%.
+   Every claim is scored against a local ±126-session base rate. Singles, all same- and cross-family pairs,
+   and pruned triples (from the 300 most active pairs with ≥60 in-sample days, capped at 3,000 by activity).
+   PROVEN = (i) BH q<0.05 on 2000–2018 only; (ii) 2019 → last bar: same direction, ≥30 days, one-sided binomial
+   p < 0.05 / (number that passed i), and p<0.05 on ISO-week blocks (majority outcome per week);
+   (iii) same direction in and out of sample and ≥3 percentage points out of sample.
+   CONFIRMED = also passes (i) and (ii) at p<0.05 (days and weeks, same direction) on another instrument. */
+const DP_START='2000-01-01', DP_TRAIN_END='2018-12-31', DP_WIN=126, DP_MIN=30, DP_TRI_MINPAIR=60, DP_TRI_PAIRS=300, DP_TRI_CAP=3000,
+  DP_FWD=75, DP_FLAT=0.1, DP_GAP=0.5, DP_BIG_WIN=250, DP_BIG_Q=0.7, DP_MIN_PP=0.03, DP_LOOK=60, DP_OPEN_H=3.75;
+const DP_INST=[['NIFTY','Nifty 50'],['BANKNIFTY','Bank Nifty'],['GOLD','Gold']];
+const DP_BOOK=['HIGH BEARISH','BEARISH','MILD BEARISH','FLAT / RANGEBOUND','MILD BULLISH','BULLISH','HIGH BULLISH'];
+const DP_TGT=[
+  {id:'dir',title:'DIRECTION',what:'up day = close above the previous close by more than 0.1%',yes:'Up day more likely',no:'Up day less likely',unit:'up days'},
+  {id:'big',title:'BIG-MOVE DAY',what:'true range in the top 30% of the previous 250 sessions',yes:'Big-move day likely',no:'Big-move day less likely',unit:'big-move days'},
+  {id:'gap',title:'GAP DAY',what:'open more than 0.5% away from the previous close',yes:'Gap open likely',no:'Gap open less likely',unit:'gap days'}];
+window.DP=window.DP||{sky:{},res:{}};
+function dpInstName(k){ const f=DP_INST.find(x=>x[0]===k); return f?f[1]:k; }
+function dpInst(){ let k='NIFTY'; try{ k=dfInst(); }catch(e){} return DP_INST.some(x=>x[0]===k)?k:'NIFTY'; }
+function dpAy(){ try{ return taAy(); }catch(e){ return 'lahiri'; } }
+function dpKey(k,ay){ return [k,ay||dpAy(),(typeof dsEpoch==='function'?dsEpoch():'')].join('|'); }
+function dpWk(ds){ const w=new Date(ds+'T00:00:00Z').getUTCDay(); return w>0&&w<6; }
+function dpWeekOf(ds){ const w=new Date(ds+'T00:00:00Z').getUTCDay(); return reShift(ds,-((w+6)%7)); }   // ISO week = its Monday
+function dpTithiName(c){ const t=c+1, p=t<=15?'Shukla':'Krishna', i=t<=15?t:t-15; return p+' '+(i===15?(p==='Shukla'?'Purnima':'Amavasya'):TITHI_NAMES[i-1]); }
+function dpPlain(k){ return String(k).split(' + ').map(s=>/^Tithi /.test(s)?'tithi '+s.slice(6):/^Book band: /.test(s)?'book engine reads '+s.slice(11):tnLfPlain(s)).join(' + '); }
+function dpClaim(tg,r){ return `${r.s>0?tg.yes:tg.no}: ${tnPct(r.oos.rate)} vs ${tnPct(r.oos.chance)}`; }
+function dpProg(){ const R=window.DP.res[dpKey(dpInst())]; if(!R) return; let p=R.prog||0;
+  if(R.status==='loading'&&R.phase!=='learn'){ const Z=window.DP.sky[R.ay+'|'+tnToday()]; if(Z) p=Math.round((Z.prog||0)*0.85); }
+  R.prog=p; try{ const e=document.getElementById('dpProg'); if(e) e.textContent=p+'%'; }catch(e){} }
+
+/* per-bar outcomes: 1 / 0, or −1 when the day cannot be graded. thr[i] = big-move cut for bar i, from the previous 250 gradable sessions only */
+function dpTargets(bars){ const N=bars.length, dir=new Int8Array(N).fill(-1), big=new Int8Array(N).fill(-1), gap=new Int8Array(N).fill(-1), thr=new Float64Array(N).fill(NaN), tr=new Float64Array(N).fill(NaN);
+  const win=[];
+  for(let i=1;i<N;i++){ const b=bars[i], pc=bars[i-1].c; if(!(pc>0)) continue;
+    dir[i]=(b.c/pc-1)*100>DP_FLAT?1:0;
+    if(!(b.o>0&&b.h>=b.l)||(b.o===b.h&&b.h===b.l&&b.l===b.c)) continue;   // placeholder bar (no real open / range)
+    gap[i]=Math.abs(b.o-pc)/pc*100>DP_GAP?1:0;
+    const t=(Math.max(b.h,pc)-Math.min(b.l,pc))/pc*100; tr[i]=t;
+    if(win.length>=DP_BIG_WIN){ const s=win.slice().sort((x,y)=>x-y); thr[i]=s[Math.floor(DP_BIG_Q*s.length)]; big[i]=t>thr[i]?1:0; }
+    win.push(t); if(win.length>DP_BIG_WIN) win.shift(); }
+  return {dir,big,gap,thr,tr}; }
+/* base rates as of the day after the last bar (last 250 gradable sessions) + the big-move cut for that next session */
+function dpBaseAsOf(bars){ const Y=dpTargets(bars), out={};
+  for(const t of ['dir','big','gap']){ let n=0,h=0; for(let i=bars.length-1;i>=1&&n<DP_BIG_WIN;i--){ if(Y[t][i]<0) continue; n++; if(Y[t][i]===1) h++; } out[t]=n?Math.round(h/n*10000)/10000:null; }
+  const w=[]; for(let i=bars.length-1;i>=1&&w.length<DP_BIG_WIN;i--) if(isFinite(Y.tr[i])) w.push(Y.tr[i]);
+  w.sort((x,y)=>x-y); out.bigThr=w.length>=DP_BIG_WIN?Math.round(w[Math.floor(DP_BIG_Q*w.length)]*10000)/10000:null; return out; }
+
+/* shared sky (every instrument): daily planet states at 09:15 IST + the book band per class, 2000 → today + 75 days */
+function dpSky(ay){ const T=window.DP, key=ay+'|'+tnToday(); let Z=T.sky[key];
+  if(!Z){ Z=T.sky[key]={status:'loading',prog:0}; Z.prom=dpSky0(Z,ay); } return Z.prom; }
+async function dpSky0(Z,ay){
+  const a=reShift(DP_START,-3), end=reShift(tnToday(),DP_FWD+5), nD=Math.round((reMs(end)-reMs(a))/86400000)+1;
+  const dsA=new Array(nD), VL={}, VO={}, ayan=new Float64Array(nD);
+  PLAN_ORDER.forEach(b=>{ VL[b]=new Float64Array(nD); VO[b]=new Float64Array(nD); });
+  for(let d=0; d<nD; d++){ const ds=reShift(a,d); dsA[d]=ds; const J=planJDfromMs(planMs(ds)+DP_OPEN_H*3600000);
+    for(const b of PLAN_ORDER){ VL[b][d]=geoLat(b,J); VO[b][d]=n360(geoLon(b,J)); }
+    ayan[d]=getAyanamsa(J,ay);
+    if(d%300===299){ Z.prog=Math.round(d/nD*25); dpProg(); await reYield(); } }
+  const FAM=tnLfLatFamily(VL,nD,TN_LAT_BODIES).concat(tnLfLonFamilies(VO,ayan,nD,TN_LF_LON_BODIES));
+  const ti=new Uint8Array(nD); for(let d=0;d<nD;d++) ti[d]=tithiCompute(VO.Sun[d],VO.Moon[d]).num-1;
+  FAM.push({id:'tithi',label:'tithi',bodies:['Tithi'],arr:{Tithi:ti},name:dpTithiName});
+  // the book engine's daily band (the slow part: one rulebook evaluation per weekday) — kept per browser after the first run
+  const bk={equity:new Uint8Array(nD).fill(255),GOLD:new Uint8Array(nD).fill(255)};
+  const ck='astralDpBook|'+TA_ENGINE_VER+'|'+ay+'|'+taLoc(); let cache=null;
+  try{ cache=JSON.parse(localStorage.getItem(ck)||'null'); }catch(e){ cache=null; }
+  if(!(cache&&cache.a===a&&typeof cache.eq==='string'&&typeof cache.gd==='string')) cache=null;
+  const todo=[];
+  for(let d=0;d<nD;d++){ if(!dpWk(dsA[d])||dsA[d]<DP_START) continue;
+    if(cache&&d<cache.eq.length&&d<cache.gd.length){ const x=cache.eq[d], y=cache.gd[d];
+      if(x!=='.'&&y!=='.'){ bk.equity[d]=x==='-'?255:+x; bk.GOLD[d]=y==='-'?255:+y; continue; } }
+    todo.push(d); }
+  for(let j=0;j<todo.length;j++){ const d=todo[j], ds=dsA[d];
+    try{ const raw=taEval(taEnrich(taSky(ds,9.25,ay)),'daily');
+      for(const cls of ['equity','GOLD']){ const o=Object.assign({},raw,taNetFor(raw.rules,cls),{cls}); taCentre(o,ay,ds,'daily');
+        const c=DP_BOOK.indexOf(o.band&&o.band.t); bk[cls][d]=c<0?255:c; } }catch(e){}
+    if(j%12===11){ Z.prog=25+Math.round(j/todo.length*75); dpProg(); await reYield(); } }
+  if(todo.length){ const enc=A=>Array.from(A,(v,d)=>(!dpWk(dsA[d])||dsA[d]<DP_START)?'.':v===255?'-':String(v)).join('');
+    try{ localStorage.setItem(ck,JSON.stringify({a,eq:enc(bk.equity),gd:enc(bk.GOLD)})); }catch(e){} }
+  Object.assign(Z,{status:'ready',prog:100,a,end,nD,dsA,FAM,bk,bookEvals:todo.length});
+  return Z;
+}
+
+function dpBuild(k,ay){ ay=ay||dpAy(); const key=dpKey(k,ay), C=window.DP.res;
+  if(C[key]) return C[key].prom||Promise.resolve(C[key]);
+  const R=C[key]={status:'loading',prog:0,k,ay,key}; R.prom=dpBuild0(R,k,ay); return R.prom; }
+async function dpBuild0(R,k,ay){
+  try{
+    const u=RE_UNIV[k]; if(!u) throw new Error('unknown instrument '+k);
+    const rows=dsHasBake(k) ? await dsBars(k,'days','1',DP_START,tnToday(),()=>reFetchOHLCYahoo(u.sym,'max')) : await reFetchOHLC(u.sym,'max',k);
+    const seen=new Set(), bars=[];
+    (rows||[]).map(r=>({date:r.date||reISO(r.ts),o:+r.o,h:+r.h,l:+r.l,c:+r.c}))
+      .filter(b=>b.date&&isFinite(b.h)&&isFinite(b.l)&&isFinite(b.c)&&b.c>0)
+      .sort((x,y)=>x.date<y.date?-1:1).forEach(b=>{ if(!seen.has(b.date)){ seen.add(b.date); bars.push(b); } });
+    if(bars.length<600) throw new Error(`only ${bars.length} daily bars for ${dpInstName(k)}`);
+    const Z=await dpSky(ay); R.phase='learn'; R.prog=86; dpProg(); await reYield();
+    const FAM=Z.FAM.concat([{id:'book',label:'book band',bodies:['Book'],arr:{Book:Z.bk[taInstClass(k)]||Z.bk.equity},name:c=>'band: '+DP_BOOK[c]}]);
+    const N=bars.length, Y=dpTargets(bars), dOf=ds=>Math.round((reMs(ds)-reMs(Z.a))/86400000);
+    const bD=new Int32Array(N); for(let i=0;i<N;i++){ const d=dOf(bars[i].date); bD[i]=(d>=2&&d<Z.nD-2)?d:-1; }
+    // states (ids) and cells (single / pair / triple of states)
+    const SK=new Map(), SN=[], SF=[], SB=[], SO=[], sMemo=new Map();
+    const sid=(fi,bi,v)=>{ const mk=(fi*64+bi)*256+v; let id=sMemo.get(mk); if(id!=null) return id; const F=FAM[fi], b=F.bodies[bi], key=b+' '+F.name(v);
+      id=SK.get(key); if(id==null){ id=SN.length; SK.set(key,id); SN.push(key); SF.push(fi); SB.push(b); SO.push(fi*100+bi); } sMemo.set(mk,id); return id; };
+    const stMemo=new Map();
+    const statesOn=d=>{ let r=stMemo.get(d); if(r) return r; const out=[];
+      if(d>=2&&d<Z.nD-2) FAM.forEach((F,fi)=>F.bodies.forEach((b,bi)=>{ const v=F.arr[b][d]; if(v!==255&&v!=null) out.push(sid(fi,bi,v)); }));
+      r=Int32Array.from(out.sort((x,y)=>x-y)); stMemo.set(d,r); return r; };
+    const iSign=FAM.findIndex(F=>F.id==='sign'), iNak=FAM.findIndex(F=>F.id==='nak');
+    const pairOk=(x,y)=>!(SB[x]===SB[y]&&((SF[x]===iSign&&SF[y]===iNak)||(SF[x]===iNak&&SF[y]===iSign)));   // a planet's nakshatra already fixes its sign
+    const CK=new Map(), CELL=[];
+    const cid=(key,parts)=>{ let id=CK.get(key); if(id==null){ id=CELL.length; CK.set(key,id);
+      const ps=parts.slice().sort((x,y)=>SO[x]-SO[y]||x-y), fams=[...new Set(ps.map(p=>SF[p]))].sort((x,y)=>x-y);
+      CELL.push({k:ps.map(p=>SN[p]).join(' + '),parts:ps,size:ps.length,fam:fams.map(f=>FAM[f].label).join(' × ')}); } return id; };
+    const Q=4096, pKey=(x,y)=>Q*(1+x)+y, tKey=s=>Q*Q*(1+s[0])+Q*(1+s[1])+s[2];
+    const baseMemo=new Map();
+    const dayBase=d=>{ let r=baseMemo.get(d); if(r) return r; const st=statesOn(d), out=[];
+      for(let x=0;x<st.length;x++){ out.push(cid(st[x],[st[x]])); for(let y=x+1;y<st.length;y++) if(pairOk(st[x],st[y])) out.push(cid(pKey(st[x],st[y]),[st[x],st[y]])); }
+      r=Int32Array.from(out); baseMemo.set(d,r); return r; };
+    let i0=0; while(i0<N&&(bars[i0].date<DP_START||bD[i0]<0||i0<1)) i0++;
+    let iEnd=N-1; while(iEnd>=0&&bD[iEnd]<0) iEnd--;
+    let iTr=i0; while(iTr+1<=iEnd&&bars[iTr+1].date<=DP_TRAIN_END) iTr++;
+    if(!(iEnd>iTr+DP_MIN)) throw new Error('not enough bars after 2018');
+    for(let i=i0;i<=iEnd;i++){ if(bD[i]>=0) dayBase(bD[i]); if(i%400===399){ await reYield(); } }
+    const nSingle=CELL.filter(c=>c.size===1).length, nPair=CELL.length-nSingle;
+    R.prog=90; dpProg(); await reYield();
+    // triples: the most active pairs (≥60 in-sample days) + one more state; cap by activity, never by hit rate
+    const act=new Int32Array(CELL.length); for(let i=i0;i<=iTr;i++){ if(bD[i]<0) continue; const ids=dayBase(bD[i]); for(let j=0;j<ids.length;j++) act[ids[j]]++; }
+    const cand=[]; for(let c=0;c<CELL.length;c++) if(CELL[c].size===2&&act[c]>=DP_TRI_MINPAIR) cand.push(c);
+    cand.sort((x,y)=>act[y]-act[x]||(CELL[x].k<CELL[y].k?-1:1));
+    const TRIP=new Set(cand.slice(0,DP_TRI_PAIRS));
+    const triOf=(d,fn)=>{ const ids=dayBase(d), st=statesOn(d);
+      for(const id of ids){ if(!TRIP.has(id)) continue; const [p,q]=CELL[id].parts;
+        for(const c of st){ if(c===p||c===q||!pairOk(c,p)||!pairOk(c,q)) continue; const s=[p,q,c].sort((x,y)=>x-y); fn(tKey(s),s); } } };
+    const tc=new Map();
+    for(let i=i0;i<=iTr;i++){ const d=bD[i]; if(d<0) continue; const seenT=new Set();
+      triOf(d,(key,s)=>{ if(seenT.has(key)) return; seenT.add(key); let t=tc.get(key); if(!t) tc.set(key,t={key,s,n:0}); t.n++; }); }
+    const triAll=[...tc.values()].filter(t=>t.n>=DP_MIN).sort((x,y)=>y.n-x.n||x.key-y.key), triSel=triAll.slice(0,DP_TRI_CAP);
+    const TRIS=new Map(triSel.map(t=>[t.key,cid(t.key,t.s)]));
+    const allMemo=new Map();
+    const dayAll=d=>{ let r=allMemo.get(d); if(r) return r; const ids=Array.from(dayBase(d)), seenT=new Set();
+      triOf(d,key=>{ const t=TRIS.get(key); if(t!=null&&!seenT.has(t)){ seenT.add(t); ids.push(t); } });
+      r=Int32Array.from(ids); allMemo.set(d,r); return r; };
+    const CNT={states:SN.length,singles:nSingle,pairs:nPair,triPairsElig:cand.length,triPairsUsed:TRIP.size,triBuilt:tc.size,triElig:triAll.length,triTested:triSel.length,cap:DP_TRI_CAP};
+    R.prog=93; dpProg(); await reYield();
+    // learn a range: per target, per cell — active days n, hits h, and the sum of the local ±126-session base rate
+    const learn=(iA,iB)=>{ const nC=CELL.length, out={};
+      for(const tg of DP_TGT){ const y=Y[tg.id], PS=new Float64Array(N+1), PV=new Float64Array(N+1), q=new Float64Array(N).fill(NaN);
+        for(let i=0;i<N;i++){ const ok=i>=iA&&i<=iB&&y[i]>=0; PS[i+1]=PS[i]+(ok&&y[i]===1?1:0); PV[i+1]=PV[i]+(ok?1:0); }
+        const n=new Int32Array(nC), h=new Int32Array(nC), mu=new Float64Array(nC), va=new Float64Array(nC); let dn=0,dh=0;
+        for(let i=iA;i<=iB;i++){ const d=bD[i]; if(d<0||y[i]<0) continue;
+          const lo=Math.max(iA,i-DP_WIN), hi=Math.min(iB,i+DP_WIN), qi=(PS[hi+1]-PS[lo])/Math.max(1,PV[hi+1]-PV[lo]), hit=y[i]===1; q[i]=qi; dn++; if(hit) dh++;
+          const ids=dayAll(d); for(let j=0;j<ids.length;j++){ const c=ids[j]; n[c]++; if(hit) h[c]++; mu[c]+=qi; va[c]+=qi*(1-qi); } }
+        out[tg.id]={n,h,mu,va,q,dn,dh,base:dn?dh/dn:0}; }
+      return out; };
+    const TR=learn(i0,iTr); R.prog=96; dpProg(); await reYield();
+    const TE=learn(iTr+1,iEnd); R.prog=98; dpProg(); await reYield();
+    const res={}, ii={};
+    const mkRow=(t,c,p,bh)=>{ const A=TR[t], B=TE[t], M=CELL[c], trN=A.n[c], trH=A.h[c], trR=trN?trH/trN:0, trC=trN?A.mu[c]/trN:0, s=trR>=trC?1:-1;
+      const oN=B.n[c], oH=B.h[c], oR=oN?oH/oN:0, oC=oN?B.mu[c]/oN:0, oP=oN?(s>0?tnBinomUpper(oN,oH,oC):tnBinomLower(oN,oH,oC)):1;
+      return {t,c,k:M.k,plain:dpPlain(M.k),parts:M.parts,size:M.size,fam:M.fam,s,tr:{n:trN,h:trH,rate:trR,chance:trC,p,bh},oos:{n:oN,h:oH,rate:oR,chance:oC,p:oP,lift:oC>0?oR/oC:0},blk:{n:0,h:0,rate:0,chance:0,p:1}}; };
+    for(const tg of DP_TGT){ const t=tg.id, A=TR[t], tested=[];
+      for(let c=0;c<CELL.length;c++){ if(A.n[c]<DP_MIN||!(A.va[c]>0)) continue;
+        const z=(Math.abs(A.h[c]-A.mu[c])-0.5)/Math.sqrt(A.va[c]); tested.push({c,p:Math.min(1,2*tnLfNormSf(Math.max(0,z)))}); }
+      tested.sort((x,y)=>x.p-y.p||x.c-y.c); const m=tested.length; let kmax=0;
+      tested.forEach((o,j)=>{ if(o.p<=(j+1)/m*0.05) kmax=j+1; });
+      const qv=new Float64Array(m); for(let j=m-1;j>=0;j--){ const v=Math.min(1,tested[j].p*m/(j+1)); qv[j]=j===m-1?v:Math.min(v,qv[j+1]); }
+      res[t]={tested:m,rows:tested.slice(0,kmax).map((o,j)=>mkRow(t,o.c,o.p,qv[j])),failI:tested.slice(kmax,kmax+8).map((o,j)=>mkRow(t,o.c,o.p,qv[kmax+j])),
+        baseTr:A.base,baseOos:TE[t].base}; }
+    // weekly blocks out of sample (2019+) for every cell that passed (i): the active days of one ISO week = one block, majority outcome
+    const want=new Map(); DP_TGT.forEach(tg=>res[tg.id].rows.forEach(r=>{ (want.get(r.c)||want.set(r.c,[]).get(r.c)).push(r); }));
+    const acc=new Map();
+    for(let i=iTr+1;i<=iEnd;i++){ const d=bD[i]; if(d<0) continue; const ids=dayAll(d), wk=dpWeekOf(bars[i].date);
+      for(let j=0;j<ids.length;j++){ const L=want.get(ids[j]); if(!L) continue;
+        for(const r of L){ const y=Y[r.t][i]; if(y<0) continue; let W=acc.get(r); if(!W) acc.set(r,W=new Map()); let b=W.get(wk); if(!b) W.set(wk,b={m:0,h:0,q:0});
+          b.m++; if(y===1) b.h++; b.q+=TE[r.t].q[i]; } } }
+    const binP=(m,q)=>{ const P=[]; for(let x=0;x<=m;x++){ let c=1; for(let j=0;j<x;j++) c=c*(m-j)/(j+1); P.push(c*Math.pow(q,x)*Math.pow(1-q,m-x)); } return P; };
+    acc.forEach((W,r)=>{ let n=0,h=0,ch=0; W.forEach(b=>{ if(b.h*2===b.m) return; const qb=b.q/b.m, P=binP(b.m,qb); let up=0,tie=0;
+        P.forEach((v,x)=>{ if(x*2>b.m) up+=v; else if(x*2===b.m) tie+=v; }); n++; if(b.h*2>b.m) h++; ch+=up/Math.max(1e-9,1-tie); });
+      const c=n?ch/n:0; r.blk={n,h,rate:n?h/n:0,chance:c,p:n?(r.s>0?tnBinomUpper(n,h,c):tnBinomLower(n,h,c)):1}; });
+    for(const tg of DP_TGT){ const t=tg.id, X=res[t], n1=X.rows.length, alpha=0.05/Math.max(1,n1);
+      X.pass1=n1; X.alpha=alpha; ii[t]=new Map();
+      X.rows.forEach(r=>{ const same=r.s>0?r.oos.rate>r.oos.chance:r.oos.rate<r.oos.chance, big=Math.abs(r.oos.rate-r.oos.chance)>=DP_MIN_PP;
+        const okN=r.oos.n>=DP_MIN, okB=r.blk.n>0&&r.blk.p<0.05;
+        r.ok1=true; r.ok2=okN&&same&&r.oos.p<alpha&&okB; r.ok2b=okN&&same&&r.oos.p<0.05&&okB; r.ok3=same&&big;
+        r.proven=r.ok2&&r.ok3; r.border=!r.proven&&r.ok2b&&r.ok3;
+        if(r.ok2b) ii[t].set(r.k,r.s);
+        r.why=r.proven?'':!okN?`only ${r.oos.n} active days in 2019+ (need ${DP_MIN})`:!same?`2019+ went the other way: ${tnPct(r.oos.rate)} vs ${tnPct(r.oos.chance)}`
+          :r.oos.p>=0.05?`2019+ p ${tnPfmt(r.oos.p)} (need < ${tnPfmt(alpha)})`:!okB?`weekly blocks p ${tnPfmt(r.blk.p)} (${r.blk.h}/${r.blk.n} weeks)`
+          :!big?`2019+ effect under 3 points (${((r.oos.rate-r.oos.chance)*100).toFixed(1)})`:`2019+ p ${tnPfmt(r.oos.p)} misses the guard p < ${tnPfmt(alpha)} (${n1} passed (i))`; });
+      X.failI.forEach(r=>{ r.ok1=false; r.proven=false; r.border=false; r.why=`fails (i): BH q ${tnPfmt(r.tr.bh)} on 2000–2018`; });
+      X.proven=X.rows.filter(r=>r.proven).sort((x,y)=>x.oos.p-y.oos.p);
+      X.borderline=X.proven.length?[]:X.rows.filter(r=>r.border).sort((x,y)=>x.oos.p-y.oos.p);
+      X.luck=n1?n1*alpha:0; X.luckBorder=0.05*n1;
+      X.close=X.proven.length?[]:X.rows.filter(r=>!r.border).sort((x,y)=>x.oos.p-y.oos.p).slice(0,6);
+      if(!X.proven.length&&X.close.length<6) X.failI.slice(0,6-X.close.length).forEach(r=>X.close.push(r)); }
+    const stSet=new Map(), stateSet=d=>{ let s=stSet.get(d); if(!s){ s=new Set(statesOn(d)); stSet.set(d,s); } return s; };
+    Object.assign(R,{status:'ready',phase:'done',prog:100,bars,lastBar:bars[iEnd].date,firstBar:bars[i0].date,oosFrom:bars[iTr+1].date,trainTo:bars[iTr].date,
+      nD:Z.nD,skyA:Z.a,skyEnd:Z.end,dOf,stateSet,res,ii,CNT});
+    try{ console.info(`[daily proven] ${dpInstName(k)}: ${CNT.states} states · ${CNT.singles} singles · ${CNT.pairs} pairs · triples ${CNT.triTested} tested (${CNT.triElig} with ≥${DP_MIN} in-sample days, from ${CNT.triPairsUsed} of ${CNT.triPairsElig} pairs with ≥${DP_TRI_MINPAIR} days; cap ${CNT.cap}) · tested ${DP_TGT.map(tg=>tg.id+' '+res[tg.id].tested+'/'+res[tg.id].pass1+' (i)/'+res[tg.id].proven.length+' proven').join(' · ')}`); }catch(e){}
+  }catch(e){ R.status='error'; R.err=String(e&&e.message||e); }
+  return R;
+}
+function dpActive(R,r,d){ if(d<2||d>=R.nD-2) return false; const s=R.stateSet(d); return r.parts.every(p=>s.has(p)); }
+function dpNext(R,r,from,max){ const out=[]; for(let j=1;j<=DP_LOOK&&out.length<(max||10);j++){ const ds=reShift(from,j); if(!dpWk(ds)) continue; const d=R.dOf(ds); if(d>=R.nD-2) break; if(dpActive(R,r,d)) out.push(ds); } return out; }
+function dpConfirmed(R,t,r){ return DP_INST.filter(x=>x[0]!==R.k).map(x=>{ const P=window.DP.res[dpKey(x[0],R.ay)];
+  return P&&P.status==='ready'&&P.ii[t]&&P.ii[t].get(r.k)===r.s?x[1]:null; }).filter(Boolean); }
+async function dpEnsure(){ try{ if(typeof S==='undefined'||S.tab!=='dayfc') return; const k=dpInst(), ay=dpAy();
+  const had=(window.DP.res[dpKey(k,ay)]||{}).status==='ready'; await dpBuild(k,ay); if(!had) dfPaint();
+  for(const x of DP_INST){ if(S.tab!=='dayfc'||dpAy()!==ay) return; const P=window.DP.res[dpKey(x[0],ay)]; if(P&&P.status!=='loading') continue;
+    await dpBuild(x[0],ay); if(S.tab==='dayfc') dfPaint(); } }catch(e){} }
+function dpRetry(){ const key=dpKey(dpInst()); delete window.DP.res[key]; dfPaint(); }
+window.dpEnsure=dpEnsure; window.dpRetry=dpRetry;
+
+/* ── Day Forecast panel ── */
+const DP_PILL=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700;font-size:9.5px;white-space:normal" title="The daily astro direction call was measured at 49.0% against a 53.9% up-day base rate over 6,618 graded sessions: not proven — past hits ≈ random chance. Only rows marked 'Proven in backtest ✓' below passed the walk-forward test.">Astro direction right 49.0% of days vs 53.9% if you always said 'up'</span>`;
+function dpRateTxt(tg,x){ return `${tnPct(x.rate)} vs ${tnPct(x.chance)}`; }
+function dpRowHTML(R,tg,r,kind,dS,todayOk){
+  const grey=kind==='close', conf=r.ok1?dpConfirmed(R,tg.id,r):[], on=todayOk&&dpActive(R,r,dS), nx=todayOk?dpNext(R,r,S.date,10):[];
+  const badge=kind==='proven'?`<span style="color:var(--bull);font-weight:700;white-space:nowrap">Proven in backtest ✓</span>`
+    :kind==='border'?`<span style="color:var(--neut);font-weight:700">borderline — could be luck</span>`
+    :`<span style="color:var(--tx3)">not proven — past hits ≈ random chance</span>`;
+  const lean=r.s>0?tg.yes:tg.no;
+  return `<tr style="${grey?'opacity:.55;':''}${on?'background:var(--bg3);':''}">
+    <td style="min-width:220px;white-space:normal"><b style="color:var(--tx0)">${taEsc(r.plain)}</b><div style="font-size:10px;color:var(--tx3)">${taEsc(lean)} · ${taEsc(r.fam)} · ${badge}${r.why?' · '+taEsc(r.why):''}</div></td>
+    <td style="white-space:nowrap">${dpRateTxt(tg,r.tr)}<div style="font-size:10px;color:var(--tx3)">BH q ${tnPfmt(r.tr.bh)}</div></td>
+    <td style="white-space:nowrap">${r.oos.n?dpRateTxt(tg,r.oos):'—'}<div style="font-size:10px;color:var(--tx3)">p ${tnPfmt(r.oos.p)}</div></td>
+    <td style="white-space:nowrap">${r.blk.n?dpRateTxt(tg,r.blk)+`<div style="font-size:10px;color:var(--tx3)">${r.blk.h}/${r.blk.n} weeks · p ${tnPfmt(r.blk.p)}</div>`:'—'}</td>
+    <td>×${(r.oos.lift||0).toFixed(2)}</td>
+    <td style="white-space:nowrap">${r.tr.n} / ${r.oos.n}</td>
+    <td>${conf.length?conf.map(c=>`<span style="color:var(--bull);font-weight:700">✓ ${c}</span>`).join(' '):'<span style="color:var(--tx3)">—</span>'}</td>
+    <td style="font-weight:700;color:${on?'var(--acc)':'var(--tx3)'}">${todayOk?(on?'ACTIVE':'no'):'—'}</td>
+    <td style="font-size:10.5px;white-space:normal;min-width:140px">${nx.length?nx.map(d=>d.slice(5)).join(', '):'<span style="color:var(--tx3)">none in 60 days</span>'}</td></tr>`;
+}
+function dpTableHTML(R,tg,dS,todayOk){ const X=R.res[tg.id];
+  const rows=X.proven.map(r=>dpRowHTML(R,tg,r,'proven',dS,todayOk)).join('')
+    +(X.borderline.length?`<tr><td colspan="9" style="font-size:10.5px;color:var(--neut);white-space:normal">BORDERLINE — pass p < 0.05 out of sample but not the ${X.pass1}-pattern guard p < ${tnPfmt(X.alpha)}: could be luck — ${X.luckBorder.toFixed(1)} expected by chance</td></tr>`+X.borderline.map(r=>dpRowHTML(R,tg,r,'border',dS,todayOk)).join(''):'')
+    +(X.close.length?`<tr><td colspan="9" style="font-size:10.5px;color:var(--tx3);white-space:normal">Nothing proven for this study — the closest, greyed:</td></tr>`+X.close.map(r=>dpRowHTML(R,tg,r,'close',dS,todayOk)).join(''):'');
+  return `<div style="margin-top:8px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">${tg.title} <span style="font-weight:400;color:var(--tx3)">— ${tg.what} · ${X.tested.toLocaleString()} tested · ${X.pass1} passed (i) · <b style="color:${X.proven.length?'var(--bull)':'var(--tx2)'}">${X.proven.length} proven</b> · ${X.luck.toFixed(2)} expected by luck · base ${tnPct(X.baseTr)} (2000–2018) / ${tnPct(X.baseOos)} (2019+)</span></div>
+    <div class="ts" style="overflow-x:auto;max-width:100%"><table class="tbl" style="font-size:11px"><thead><tr><th>Pattern</th><th>2000–2018 vs base</th><th>2019+ days vs base</th><th>2019+ weeks vs base</th><th>Lift</th><th>n in / out</th><th>Confirmed</th><th>Today</th><th>Next active (≤60 d)</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="9" style="color:var(--tx3)">No pattern had ${DP_MIN}+ active days.</td></tr>`}</tbody></table></div></div>`; }
+function dpTodayList(R,ds){ const d=R.dOf(ds), out=[]; if(!dpWk(ds)||d<2||d>=R.nD-2) return out;
+  DP_TGT.forEach(tg=>{ const X=R.res[tg.id]; X.proven.concat(X.borderline).forEach(r=>{ if(dpActive(R,r,d)) out.push({tg,r,border:!r.proven}); }); }); return out; }
+function dpPanelHTML(){
+  const k=dpInst(), ay=dpAy(), R=window.DP.res[dpKey(k,ay)], nm=dpInstName(k); let sel=k; try{ sel=dfInst(); }catch(e){}
+  const note=sel!==k?`<div style="font-size:10.5px;color:var(--tx3);margin-bottom:4px">Proven daily patterns are built for Nifty 50, Bank Nifty and Gold only — showing ${nm}.</div>`:'';
+  const head=`<div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px"><span><span class="dot" style="background:var(--acc)"></span>PROVEN DAILY PATTERNS — direction · big-move · gap · ${nm}</span>${DP_PILL}</div>`;
+  if(!R||R.status==='loading'){ if(!R) setTimeout(dpEnsure,0);
+    return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--tx3)">${note}Backtesting every daily planet state, tithi and book band for ${nm} (learned on 2000–2018, walked forward on 2019 → last bar)… <b id="dpProg" style="color:var(--acc)">${R?R.prog||0:0}%</b><br><span style="font-size:10.5px">The first run evaluates the book engine for every session since 2000 and can take a few minutes; the rest of this tab works meanwhile, and the result is cached.</span></div></div>`; }
+  if(R.status==='error') return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--bear)">${note}Could not build the daily patterns: ${taEsc(R.err||'error')} · <a href="#" onclick="dpRetry();return false" style="color:var(--acc)">retry</a></div></div>`;
+  const ds=S.date, dS=R.dOf(ds), todayOk=dS>=2&&dS<R.nD-2;
+  const tot=DP_TGT.reduce((a,tg)=>a+R.res[tg.id].tested,0), M=DP_TGT.reduce((a,tg)=>a+R.res[tg.id].proven.length,0), luck=DP_TGT.reduce((a,tg)=>a+R.res[tg.id].luck,0);
+  const peers=DP_INST.filter(x=>x[0]!==k&&((window.DP.res[dpKey(x[0],ay)]||{}).status!=='ready')).map(x=>x[1]);
+  const line=`<div style="font-size:12px;color:var(--tx1)"><b>${tot.toLocaleString()}</b> tested; <b style="color:${M?'var(--bull)':'var(--tx1)'}">${M}</b> proven; <b>${luck.toFixed(2)}</b> would be expected by luck.${M?'':` <b>No daily pattern is proven on ${nm}</b> — the closest are shown greyed.`}</div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:2px">States at 09:15 IST: latitude phase, sign + motion + combust, nakshatra (Moon too), tithi, book band — singles, pairs and ${R.CNT.triTested.toLocaleString()} triples · 2000–2018 ${R.firstBar} → ${R.trainTo} · walk-forward ${R.oosFrom} → ${R.lastBar} · base = local ±${DP_WIN}-session rate${peers.length?` · CONFIRMED marks wait for ${peers.join(' / ')}`:''}</div>`;
+  const tl=dpTodayList(R,ds);
+  const today=`<div style="margin-top:8px;padding:6px 8px;border:1px solid var(--bd2);border-left:3px solid ${tl.length?'var(--acc)':'var(--bd2)'};background:var(--bg2);font-size:11.5px;color:var(--tx1)"><b>TODAY ${ds}</b> · ${
+    !todayOk?'<span style="color:var(--tx3)">outside the computed range</span>':!dpWk(ds)?'<span style="color:var(--tx3)">weekend — no session</span>'
+    :tl.length?tl.map(o=>`<span style="display:inline-block;margin:2px 8px 2px 0">${o.border?'<span style="color:var(--neut)">(borderline, could be luck)</span> ':''}<b style="color:${o.r.s>0?'var(--acc)':'var(--tx2)'}">${taEsc(dpClaim(o.tg,o.r))}</b> <span style="color:var(--tx3)">— ${taEsc(o.r.plain)}</span></span>`).join('')
+    :'<span style="color:var(--tx3)">No proven pattern active today</span>'}</div>`;
+  const sess=[]; for(let d=ds;sess.length<10&&todayOk;d=reShift(d,1)){ if(dpWk(d)) sess.push(d); if(d>reShift(ds,20)) break; }
+  const look=`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;font-size:10.5px">${sess.map(d=>{ const L=dpTodayList(R,d), pv=L.filter(o=>!o.border);
+    return `<span title="${taEsc(L.map(o=>(o.border?'(borderline) ':'')+dpClaim(o.tg,o.r)+' — '+o.r.plain).join(' | ')||'no proven pattern active')}" style="padding:2px 6px;border-radius:3px;border:1px solid ${pv.length?'var(--acc)':'var(--bd)'};background:${pv.length?'var(--bg3)':'var(--bg2)'};color:${pv.length?'var(--tx0)':'var(--tx3)'};cursor:help">${d.slice(5)} ${pv.length?'★'+pv.length:L.length?'·?':'·'}</span>`; }).join('')}<span style="color:var(--tx3);align-self:center">next 10 sessions · ★ = proven pattern active</span></div>`;
+  return `<div class="pnl">${head}<div class="pb">${note}${line}${today}${look}${DP_TGT.map(tg=>dpTableHTML(R,tg,dS,todayOk)).join('')}
+    <div style="font-size:10px;color:var(--tx3);margin-top:6px;line-height:1.5">Proven = (i) Benjamini–Hochberg q &lt; 0.05 on 2000–2018 only; (ii) 2019 → last bar in the same direction, ≥${DP_MIN} active days, one-sided binomial p &lt; 0.05 ÷ (number that passed i), and p &lt; 0.05 on ISO-week blocks (each week's active days = one block, majority outcome); (iii) ≥3 points out of sample. CONFIRMED = the same pattern also passes (i) and (ii) at p &lt; 0.05 on another of Nifty 50 / Bank Nifty / Gold, learned separately. A study aid — nothing here is a recommendation.</div></div></div>`;
 }
 
 /* ══ DF-END ══ */

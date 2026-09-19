@@ -3,7 +3,8 @@
  *
  * Runs in the Upstox bake job, after the bake. It loads index.html headless,
  * writes the engine's forecasts for the NEXT session (and the astro turn
- * windows for the next 30 sessions) into data/forward/log.json, and grades
+ * windows for the next 30 sessions) into data/forward/log.json, plus the
+ * active PROVEN DAILY patterns (Day Forecast; source "Proven daily") into log.daily, and grades
  * every earlier forecast whose outcome is now in the baked bars. Git history
  * timestamps each forecast before its session, so the log is honest
  * out-of-sample evidence. A forecast is never changed once written.
@@ -212,6 +213,35 @@ async function predictTurns(P, inst, target, horizonEnd, made, asOf) {
   }
   return out;
 }
+/* ── 2b. proven DAILY patterns (Day Forecast): the ones active on the next session, with their claims ── */
+async function predictDaily(P, inst, hist, target, made) {
+  P.ctx.__q = { k: inst.k, target };
+  const R = await P.E(`dpBuild(__q.k,'lahiri')`);
+  if (!R || R.status !== 'ready') throw new Error(String(R && R.err || 'build failed'));
+  const act = P.E(`(()=>{ const R=window.DP.res[dpKey(__q.k,'lahiri')], d=R.dOf(__q.target);
+    return DP_TGT.flatMap(tg=>R.res[tg.id].proven.filter(r=>dpActive(R,r,d)).map(r=>({study:tg.id,k:r.k,plain:r.plain,s:r.s,claim:dpClaim(tg,r),
+      tr:{n:r.tr.n,rate:r.tr.rate,chance:r.tr.chance,bh:r.tr.bh},oos:{n:r.oos.n,rate:r.oos.rate,chance:r.oos.chance,p:r.oos.p},
+      weeks:{n:r.blk.n,rate:r.blk.rate,chance:r.blk.chance,p:r.blk.p},conf:dpConfirmed(R,tg.id,r)}))); })()`);
+  P.ctx.__b = hist;
+  const base = P.E(`dpBaseAsOf(__b)`);   // last 250 gradable sessions before the target + the big-move cut for the target
+  const last = hist[hist.length - 1], rd = v => Math.round(v * 10000) / 10000;
+  return act.map(a => ({ id: [target, inst.k, a.study, a.k].join('|'), source: 'Proven daily', inst: inst.k, target, made,
+    lastClose: last.c, lastDate: last.date, study: a.study, pattern: a.k, plain: a.plain, claim: a.claim, lean: a.s > 0 ? 'more' : 'less',
+    backtest: { in: { n: a.tr.n, rate: rd(a.tr.rate), base: rd(a.tr.chance), bhQ: a.tr.bh }, out: { n: a.oos.n, rate: rd(a.oos.rate), base: rd(a.oos.chance), p: a.oos.p },
+      weeks: { n: a.weeks.n, rate: rd(a.weeks.rate), base: rd(a.weeks.chance), p: a.weeks.p } },
+    base: base[a.study], bigThrPct: base.bigThr, confirmedOn: a.conf, graded: null }));
+}
+function gradeDaily(e, B) {
+  const b = B.find(x => x.date === e.target);
+  if (!b) { if (B.length && B[B.length - 1].date > e.target) return { date: e.target, noSession: true }; return null; }
+  const pc = e.lastClose, ok = b.o > 0 && b.h >= b.l && !(b.o === b.h && b.h === b.l && b.l === b.c);
+  const cc = (b.c / pc - 1) * 100, tr = (Math.max(b.h, pc) - Math.min(b.l, pc)) / pc * 100, gp = Math.abs(b.o - pc) / pc * 100;
+  const out = { date: b.date, o: b.o, h: b.h, l: b.l, c: b.c, ccPct: r2(cc), trPct: r2(tr), gapPct: r2(gp),
+    up: cc > FLAT, big: ok && e.bigThrPct != null ? tr > e.bigThrPct : null, gap: ok ? gp > 0.5 : null };
+  const y = e.study === 'dir' ? out.up : e.study === 'big' ? out.big : out.gap;
+  out.outcome = y; out.result = y == null ? 'ungradable' : ((e.lean === 'more') === !!y ? 'hit' : 'miss');
+  return out;
+}
 function swingsOf(P, B) { P.ctx.__b = B; return P.E(`reDetectSwings(__b, ${SW_MIN}, ${SW_MAJ}, true)`); }
 function chanceFor(B, sw, len) { // P(a random window of `len` sessions holds a >=5% pivot), 2000 -> last pivot
   const piv = new Uint8Array(B.length), ix = new Map(B.map((b, i) => [b.date, i]));
@@ -242,7 +272,7 @@ function summarise(log, B, SW) {
   const days = log.entries.filter(e => e.graded && !e.graded.noSession);
   const S = { version: VERSION, generated: new Date().toISOString(), since: log.since || null,
     lastGraded: days.reduce((m, e) => e.graded.date > m ? e.graded.date : m, '') || null,
-    nDays: new Set(days.map(e => e.target)).size, flatBandPct: FLAT, astroMin: ASTRO_MIN, direction: {}, volatility: {}, turns: {}, chance: {} };
+    nDays: new Set(days.map(e => e.target)).size, flatBandPct: FLAT, astroMin: ASTRO_MIN, direction: {}, volatility: {}, turns: {}, chance: {}, provenDaily: {} };
   const CALLS = ['astroOnly', 'techOnly', 'techWithAstroFilter', 'astroAndTech'];
   for (const inst of INSTS.map(i => i.k)) {
     const D = days.filter(e => e.inst === inst), row = {};
@@ -277,6 +307,24 @@ function summarise(log, B, SW) {
         majorN: md.length, majorOk: mOk };
     }
     S.turns[inst] = T;
+    // proven daily patterns: hit rate vs the chance of the claimed outcome (base rate as of each prediction)
+    const PD = {}, DL = (log.daily || []).filter(f => f.inst === inst);
+    for (const st of ['dir', 'big', 'gap']) {
+      const all = DL.filter(f => f.study === st), g = all.filter(f => f.graded && f.graded.result && f.graded.result !== 'ungradable');
+      const hits = g.filter(f => f.graded.result === 'hit').length, ci = wilson(hits, g.length);
+      const exp = g.length ? g.reduce((a, f) => a + (f.lean === 'more' ? f.base : 1 - f.base), 0) / g.length : null;
+      PD[st] = { made: all.length, graded: g.length, pending: all.filter(f => !f.graded).length, hits, hitPct: pct(hits, g.length),
+        ci95: [r2(ci[0] * 100), r2(ci[1] * 100)], chancePct: exp == null ? null : r2(exp * 100),
+        p: g.length && exp != null ? Math.round(binomUpper(g.length, hits, exp) * 1000) / 1000 : null };
+    }
+    const lastD = DL.slice().sort((a, b) => a.target < b.target ? -1 : 1).pop();
+    if (B[inst]) { const bb = B[inst], N = bb.length, tr = [];
+      let up = 0, n = 0; for (let i = Math.max(1, N - 250); i < N; i++) { n++; if ((bb[i].c / bb[i - 1].c - 1) * 100 > FLAT) up++; }
+      let gp = 0, gn = 0; for (let i = Math.max(1, N - 250); i < N; i++) { const b = bb[i], pc = bb[i - 1].c; if (!(b.o > 0) || (b.o === b.h && b.h === b.l && b.l === b.c)) continue; gn++; if (Math.abs(b.o - pc) / pc * 100 > 0.5) gp++; }
+      PD.baselines = { window: 'last 250 sessions', upPct: pct(up, n), gapPct: pct(gp, gn), bigPct: 30, bigRule: 'true range above the 70th percentile of the previous 250 sessions',
+        lastPrediction: lastD ? { target: lastD.target, base: lastD.base, bigThrPct: lastD.bigThrPct } : null };
+    }
+    S.provenDaily[inst] = PD;
     if (B[inst] && SW[inst]) S.chance[inst] = { window5: r2(chanceFor(B[inst], SW[inst], 5) * 100), window3: r2(chanceFor(B[inst], SW[inst], 3) * 100),
       pivots: SW[inst].length, from: B[inst][0].date, to: B[inst][B[inst].length - 1].date, rule: `>=${SW_MIN}% swing, >=${SW_MAJ}% major` };
   }
@@ -288,8 +336,8 @@ function summarise(log, B, SW) {
   const made = new Date().toISOString();
   const logP = path.join(OUT, 'log.json');
   const log = readJSON(logP, null) || { version: VERSION, since: null, entries: [], reversals: [], runs: [] };
-  log.version = VERSION; log.entries = log.entries || []; log.reversals = log.reversals || []; log.runs = log.runs || [];
-  const run = { at: made, target: null, added: 0, turnsAdded: 0, graded: 0, turnsGraded: 0, errors: [] };
+  log.version = VERSION; log.entries = log.entries || []; log.reversals = log.reversals || []; log.runs = log.runs || []; log.daily = log.daily || [];
+  const run = { at: made, target: null, added: 0, turnsAdded: 0, graded: 0, turnsGraded: 0, dailyAdded: 0, dailyGraded: 0, errors: [] };
   let P = null;
   try { P = loadPage(); if (P.errs.length) run.errors.push('page load: ' + P.errs.slice(0, 3).join(' | ')); }
   catch (e) { run.errors.push('page load failed: ' + e.message); }
@@ -302,6 +350,7 @@ function summarise(log, B, SW) {
     const have = new Set(log.entries.map(e => e.id));
     const turnKey = f => [f.inst, f.source, f.rawFrom || f.from, f.rawTo || f.to, f.type].join('|');
     const haveT = new Set(log.reversals.map(turnKey));
+    const haveD = new Set(log.daily.map(f => f.id));
     for (const inst of INSTS) {
       const bb = B[inst.k]; if (!bb) continue;
       try { SW[inst.k] = swingsOf(P, bb); } catch (e) { run.errors.push(inst.k + ' swings: ' + e.message); }
@@ -317,8 +366,14 @@ function summarise(log, B, SW) {
         for (const f of T) { const k = turnKey(f); if (haveT.has(k)) continue; haveT.add(k);
           f.id = k; f.graded = null; log.reversals.push(f); run.turnsAdded++; }
       } catch (e) { run.errors.push(inst.k + ' turns: ' + e.message); }
+      try {
+        const D = await predictDaily(P, inst, bb.filter(b => b.date < target), target, made);
+        for (const f of D) { if (haveD.has(f.id)) continue; haveD.add(f.id); log.daily.push(f); run.dailyAdded++; }
+      } catch (e) { run.errors.push(inst.k + ' proven daily: ' + e.message); }
     }
   }
+  for (const f of log.daily) { if (f.graded || !B[f.inst]) continue;
+    try { const g = gradeDaily(f, B[f.inst]); if (g) { f.graded = g; run.dailyGraded++; } } catch (x) { run.errors.push(f.id + ' grade: ' + x.message); } }
   // grade whatever the baked bars now settle
   for (const e of log.entries) { if (e.graded || !B[e.inst]) continue;
     try { const g = gradeDay(e, B[e.inst]); if (g) { e.graded = g; run.graded++; } } catch (x) { run.errors.push(e.id + ' grade: ' + x.message); } }
@@ -326,6 +381,7 @@ function summarise(log, B, SW) {
     try { const g = gradeTurn(f, B[f.inst], SW[f.inst]); if (g) { f.graded = g; run.turnsGraded++; } } catch (x) { run.errors.push(f.id + ' grade: ' + x.message); } }
   if (!log.since && log.entries.length) log.since = log.entries.reduce((m, e) => e.made < m ? e.made : m, log.entries[0].made).slice(0, 10);
   log.entries.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : a.inst < b.inst ? -1 : 1);
+  log.daily.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : a.id < b.id ? -1 : 1);
   log.reversals.sort((a, b) => a.from < b.from ? -1 : a.from > b.from ? 1 : a.id < b.id ? -1 : 1);
   log.runs.push(run); log.runs = log.runs.slice(-60);
   const S = summarise(log, B, SW); S.lastRun = run;
@@ -334,11 +390,13 @@ function summarise(log, B, SW) {
   fs.writeFileSync(path.join(OUT, 'summary.json'), JSON.stringify(S, null, 1) + '\n');
 
   // concise console report
-  console.log(`forward test · target ${run.target} · +${run.added} day forecasts · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns`);
+  console.log(`forward test · target ${run.target} · +${run.added} day forecasts · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded}`);
   for (const e of log.entries.filter(e => e.target === run.target))
     console.log(`  ${e.inst.padEnd(9)} astro ${String(e.astro.score).padStart(4)} ${e.astro.band.padEnd(18)} tech ${String(e.tech.net).padStart(5)} → astroOnly ${e.calls.astroOnly} techOnly ${e.calls.techOnly} filter ${e.calls.techWithAstroFilter} both ${e.calls.astroAndTech} vol ${e.vol}`);
   for (const [k, r] of Object.entries(S.direction))
     console.log(`  ${k.padEnd(9)} astroOnly ${r.astroOnly.hits}/${r.astroOnly.n} · techOnly ${r.techOnly.hits}/${r.techOnly.n} · always-bull ${r.alwaysBullish.hits}/${r.alwaysBullish.n} · turns ${Object.entries(S.turns[k]).map(([s, t]) => `${s} ${t.hits}/${t.graded} (${t.pending} pending)`).join(', ')}`);
+  for (const f of log.daily.filter(f => f.target === run.target)) console.log(`  ${f.inst.padEnd(9)} Proven daily ${f.study}: ${f.claim} — ${f.plain}`);
+  for (const [k, r] of Object.entries(S.provenDaily)) console.log(`  ${k.padEnd(9)} proven daily ${['dir', 'big', 'gap'].map(s => `${s} ${r[s].hits}/${r[s].graded} vs ${r[s].chancePct == null ? '—' : r[s].chancePct + '%'} (${r[s].pending} pending)`).join(', ')}`);
   if (run.errors.length) console.log('  errors: ' + run.errors.join(' | '));
   process.exit(0);
 })().catch(e => { console.log('forward_log failed: ' + (e && e.stack || e)); process.exit(0); });
