@@ -86,7 +86,9 @@ Sectors are scored from the book's planet, sign, sector-lord and technology-lord
 
 The NSE F&O list (`F&o.csv`), Indian and global indices, US large caps and commodities.
 
-**Prices.** NSE history is baked from Upstox into `data/nse/` by a GitHub Action after each close, and a second Action publishes the session in progress every 15 minutes. Every chart joins the two: the baked history plus today's bar from the live snapshot (F&O stocks take it from a delayed public quote board), marked *live, provisional* until the evening bake replaces it. Provisional bars are drawn but never graded. US instruments and commodities come from Yahoo Finance through public CORS proxies, which are occasionally slow or rate-limited; a failed fetch is reported, never silently substituted.
+**Prices.** NSE history is baked from Upstox into `data/nse/` by a GitHub Action after each close, and a second Action publishes the session in progress every 15 minutes. Every chart joins the two: the baked history plus today's bar from the live snapshot (F&O stocks take it from a delayed public quote board), marked *live, provisional* until the evening bake replaces it. Provisional bars are drawn but never graded. Gold, Silver, Copper, Crude, Natural Gas and the Dow, Nasdaq and S&P 500 are baked the same way from Yahoo Finance into `data/yahoo/` after each close (a server has no CORS problem, and the free browser relays can no longer carry a 26-year history). US single stocks still come from Yahoo through a public relay, which can be slow or rate-limited; a failed fetch is reported, never silently substituted.
+
+Dates are shown as DD-MMM-YY (or DD-MMM where the year is obvious) everywhere, including chart axes.
 
 ---
 

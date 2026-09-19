@@ -8228,7 +8228,7 @@ function taPeriodOpen(date, tf){
 const TA_UPSTOX_UNIT={intraday:['minutes','5'], daily:['days','1'], weekly:['days','1'], monthly:['days','1']};
 async function taFetch(sym, tf, univKey){
   const yahoo=()=>taFetchYahoo(sym, tf);
-  if(!univKey || !dsIsNSE(univKey) || !TA_UPSTOX_UNIT[tf]) return yahoo();
+  if(!univKey || !TA_UPSTOX_UNIT[tf] || !(tf==='intraday' ? dsIsNSE(univKey) : dsHasBake(univKey))) return yahoo();
   const [unit,intv]=TA_UPSTOX_UNIT[tf];
   const from = tf==='intraday' ? '2022-01-01' : RE_HISTORY_START;
   const to   = reISO(Date.now());
@@ -8362,7 +8362,9 @@ async function taBacktest(instKey, tf, ay, opts){
     // Tally now, while the rules are in hand, so nothing heavy has to be kept.
     if(!forming) taTallyRow(bySec, infoSec, (ev.rules||[]).map(x=>taRuleExcluded(x,cls)?Object.assign({},x,{excluded:true}):x), tech, actual, flatThr);
     rows.push(row);
-    if((++n%120)===0){
+    // Yield on elapsed time, not a bar count: a daily read with its baseline can
+    // cost ~40 ms, so 120 bars froze the page for five seconds at a stretch.
+    ++n; if(performance.now()-(window.__taLastYield||0)>150){ window.__taLastYield=performance.now();
       const el=(performance.now()-_t0)/1000;
       const done=i/Math.max(1,bars.length-1);
       const eta=done>0.01 ? Math.max(0, el/done - el) : null;
@@ -9808,7 +9810,7 @@ async function tnLoad(k){
     try{
       const u=RE_UNIV[k]; if(!u) throw new Error('unknown instrument '+k);
       const thr=reThresholds(u.kind), today=tnToday();
-      const rows=dsIsNSE(k) ? await dsBars(k,'days','1',RE_HISTORY_START,today,()=>reFetchOHLCYahoo(u.sym,'max'))
+      const rows=dsHasBake(k) ? await dsBars(k,'days','1',RE_HISTORY_START,today,()=>reFetchOHLCYahoo(u.sym,'max'))
                             : await reFetchOHLC(u.sym,'max',k);
       const seen=new Set(), bars=[];
       (rows||[]).map(r=>({date:r.date||reISO(r.ts),o:+r.o,h:+r.h,l:+r.l,c:+r.c,live:!!r.live}))
@@ -16564,7 +16566,7 @@ async function dfLoadBars(k){
   D.busy[ck]=1;
   try{
     const yahoo=()=>taFetchYahoo(u.sym,'daily');
-    const rows = dsIsNSE(k) ? await dsBars(k,'days','1',RE_HISTORY_START,reISO(Date.now()),yahoo) : await yahoo();
+    const rows = dsHasBake(k) ? await dsBars(k,'days','1',RE_HISTORY_START,reISO(Date.now()),yahoo) : await yahoo();
     const bars=(rows||[]).filter(r=>r&&isFinite(r.o)&&isFinite(r.c)&&r.date).map(r=>(
       {ts:r.ts!==undefined?r.ts:(Date.parse(String(r.t||r.date))||taMs(r.date)), date:r.date, hour:DF_HOUR, o:r.o,h:r.h,l:r.l,c:r.c, live:!!r.live}));
     if(bars.length<8) throw new Error('only '+bars.length+' daily bars available');
@@ -18201,11 +18203,135 @@ function acTextPrim(t){            // free text anchored to a corner
     ctx.fillText(t.text,x,y); ctx.restore(); } };
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   DATE DISPLAY — DD-MMM-YY everywhere, DD-MMM where the year is implied
+   ---------------------------------------------------------------------------
+   Every engine keeps ISO dates internally (they sort, they key caches, they
+   are what the data files hold). Only what a person reads is reformatted, and
+   it is done in ONE place: a MutationObserver rewrites dates in visible text,
+   SVG labels and tooltips as panels paint, so no render function — and none
+   of the async repaints — needs to know. Input values, <option> values,
+   scripts and styles are never touched. Canvas charts get the same format
+   through the chart library's timeFormatter.
+   ══════════════════════════════════════════════════════════════════════════ */
+const DF_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DF_MON_IX = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const _dfp = n => String(n).padStart(2,'0');
+/* 'YYYY-MM-DD' (or a Date / epoch) -> 'DD-MMM-YY'; withYear=false -> 'DD-MMM' */
+function fmtD(v, withYear){
+  let y,m,d;
+  if(typeof v==='string'){ const r=/^(\d{4})-(\d{2})-(\d{2})/.exec(v); if(!r) return v; y=+r[1]; m=+r[2]-1; d=+r[3]; }
+  else { const t=(v instanceof Date)?v:new Date(v); if(isNaN(t)) return String(v); y=t.getUTCFullYear(); m=t.getUTCMonth(); d=t.getUTCDate(); }
+  if(m<0||m>11||d<1||d>31) return typeof v==='string'?v:String(v);
+  return _dfp(d)+'-'+DF_MON[m]+(withYear===false?'':'-'+String(y).slice(-2));
+}
+window.fmtD=fmtD;
+
+/* Patterns, most specific first. Each is anchored on non-digit boundaries so
+   a price such as 2026.09 or a range 1998-2026 is left alone. */
+const DF_RULES = [
+  // 2026-09-18  /  2026-09-18T09:15  /  2026/09/18
+  [/(^|[^\d\w.-])((?:19|20)\d{2})[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12]\d|3[01])(?![\d])/g,
+    (m,pre,y,mo,d)=>pre+d+'-'+DF_MON[+mo-1]+'-'+y.slice(2)],
+  // 18-09-2026 / 18/09/2026 (day first, as some panels print it)
+  [/(^|[^\d\w.])(0[1-9]|[12]\d|3[01])[-/](0[1-9]|1[0-2])[-/]((?:19|20)\d{2})(?![\d])/g,
+    (m,pre,d,mo,y)=>pre+d+'-'+DF_MON[+mo-1]+'-'+y.slice(2)],
+  // Sep 18 2026 / Sep 18, 2026 / Fri Sep 18 2026
+  [/(^|[^\w])(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* (\d{1,2}),? ((?:19|20)\d{2})(?![\d])/g,
+    (m,pre,mo,d,y)=>pre+_dfp(d)+'-'+DF_MON[DF_MON_IX[mo.toLowerCase()]]+'-'+y.slice(2)],
+  // 18 Sep 2026 / 18 September 2026 / 18-Sep-2026
+  [/(^|[^\w])(\d{1,2})[ -](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?[ -]((?:19|20)\d{2})(?![\d])/g,
+    (m,pre,d,mo,y)=>pre+_dfp(d)+'-'+DF_MON[DF_MON_IX[mo.toLowerCase()]]+'-'+y.slice(2)],
+  // 18 Sep 26  ->  18-Sep-26
+  [/(^|[^\w])(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{2})(?![\d:])/g,
+    (m,pre,d,mo,y)=>pre+_dfp(d)+'-'+mo+'-'+y],
+  // year-less: Sep 18 -> 18-Sep ; 18 Sep -> 18-Sep (not followed by a year)
+  [/(^|[^\w])(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2})(?![\d:,]|\s*(?:19|20)\d{2})/g,
+    (m,pre,mo,d)=>pre+_dfp(d)+'-'+mo],
+  [/(^|[^\w-])(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?![a-z]|[ -]\d)/g,
+    (m,pre,d,mo)=>pre+_dfp(d)+'-'+mo],
+  // year-less ISO fragment MM-DD printed alone in a date column: '09-18' -> 18-Sep
+  // (only when the whole text node is exactly that, to avoid touching ratios)
+  [/^(\s*)(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])(\s*)$/g,
+    (m,a,mo,d,b)=>a+d+'-'+DF_MON[+mo-1]+b],
+];
+function fmtDatesIn(s){
+  if(!s || s.length<5 || !/\d/.test(s)) return s;
+  let out=s;
+  for(const [re,fn] of DF_RULES){ re.lastIndex=0; out=out.replace(re,fn); }
+  return out;
+}
+window.fmtDatesIn=fmtDatesIn;
+
+const DF_SKIP = new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','SELECT','CODE','PRE','NOSCRIPT']);
+function _dfSkip(node){
+  for(let e=node.parentNode; e && e.nodeType===1; e=e.parentNode){
+    if(DF_SKIP.has(e.nodeName.toUpperCase())) return true;
+    if(e.isContentEditable || (e.dataset && e.dataset.rawDate!=null)) return true;
+  }
+  return false;
+}
+let _dfBusy=false;
+function dfRewrite(root){
+  if(!root || _dfBusy) return;
+  _dfBusy=true;
+  try{
+    const walk=(n)=>{
+      if(n.nodeType===3){
+        const v=n.nodeValue, w=fmtDatesIn(v);
+        if(w!==v && !_dfSkip(n)) n.nodeValue=w;
+        return;
+      }
+      if(n.nodeType!==1 && n.nodeType!==11) return;
+      if(n.nodeType===1){
+        if(DF_SKIP.has(n.nodeName.toUpperCase()) || (n.dataset && n.dataset.rawDate!=null)) return;
+        const t=n.getAttribute && n.getAttribute('title');
+        if(t){ const w=fmtDatesIn(t); if(w!==t) n.setAttribute('title',w); }
+      }
+      for(let c=n.firstChild;c;c=c.nextSibling) walk(c);
+    };
+    walk(root);
+  }catch(e){ /* formatting must never break a render */ }
+  finally{ _dfBusy=false; }
+}
+window.dfRewrite=dfRewrite;
+(function dfObserve(){
+  if(typeof MutationObserver==='undefined' || typeof document==='undefined' || !document.body) return;
+  let pending=new Set(), sched=false;
+  const flush=()=>{ sched=false; const list=[...pending]; pending.clear(); list.forEach(n=>{ if(n.isConnected!==false) dfRewrite(n); }); };
+  const mo=new MutationObserver(recs=>{
+    if(_dfBusy) return;
+    for(const r of recs){
+      if(r.type==='characterData') pending.add(r.target.parentNode||r.target);
+      else if(r.type==='attributes') pending.add(r.target);
+      else r.addedNodes.forEach(n=>pending.add(n));
+    }
+    if(!sched){ sched=true; (window.queueMicrotask||setTimeout)(flush); }
+  });
+  try{ mo.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['title']}); }catch(e){}
+  dfRewrite(document.body);
+})();
+
+/* Canvas charts: the library calls timeFormatter(time) for the crosshair tag
+   and timeFormatter(time, tickType) for axis ticks. Times are epoch seconds
+   (milliseconds accepted too) holding the venue's wall clock as UTC. */
+function dfChartTime(t, tick){
+  const ms = t>1e11 ? t : t*1000;
+  const d=new Date(ms); if(isNaN(d)) return String(t);
+  const hm=_dfp(d.getUTCHours())+':'+_dfp(d.getUTCMinutes());
+  const midnight=d.getUTCHours()===0 && d.getUTCMinutes()===0;
+  if(tick==='year') return fmtD(d);
+  if(tick==='month' || tick==='day') return fmtD(d,false);
+  if(tick==='time' || tick==='timeWithSeconds') return hm;
+  return fmtD(d)+(midnight?'':' '+hm);
+}
+window.dfChartTime=dfChartTime;
+
 /* ── the chart ───────────────────────────────────────────────────────────── */
 function astralChart(host, spec){
   if(!host||typeof OAC==='undefined') return null;
   host.innerHTML='';
-  const ch=OAC.createChart(host,{theme:acTheme(), crosshairMode:spec.magnet===false?'normal':'magnet',
+  const ch=OAC.createChart(host,{theme:acTheme(), timeFormatter:dfChartTime, crosshairMode:spec.magnet===false?'normal':'magnet',
                                  legendOffset:{top:spec.legendTop==null?26:spec.legendTop,left:10},
                                  raf:window.CH_RAF||undefined});
   const prims=[];
@@ -20600,7 +20726,30 @@ function rEvents(){
 // free third-party proxies: any one of them can be down, rate-limited or
 // stripping headers at any moment, so the order matters less than the length
 // of the list. A fetch only fails after ALL of them have been tried.
+/* r.jina.ai is, as of Sep 2026, the only free relay that still answers a
+   GitHub Pages origin (allorigins unreachable, corsproxy.io now wants a key,
+   codetabs 522, cors.lol and thingproxy rate-limited). It prefixes the body
+   with a "Title / URL Source / Markdown Content" header, which broke every
+   JSON parse behind it. This wrapper asks for the raw body and, if a header
+   still arrives, cuts the response back to the JSON — so every Yahoo caller
+   in the app works through it unchanged. */
+(function jinaUnwrap(){
+  if(typeof fetch!=='function' || typeof window==='undefined' || window.__jinaWrapped) return;
+  window.__jinaWrapped=true;
+  const _f=fetch.bind(window);
+  window.fetch=async function(input, init){
+    const url=typeof input==='string'?input:(input&&input.url)||'';
+    if(url.indexOf('https://r.jina.ai/')!==0) return _f(input, init);
+    const h=Object.assign({}, (init&&init.headers)||{}, {'X-Return-Format':'text'});
+    const r=await _f(url, Object.assign({}, init||{}, {headers:h}));
+    let t=await r.text();
+    if(t && t[0]!=='{' && t[0]!=='['){ const i=t.search(/[{[]/); if(i>0) t=t.slice(i); }
+    return new Response(t,{status:r.status,statusText:r.statusText,headers:{'Content-Type':'application/json'}});
+  };
+})();
+
 const PROXIES = [
+  u => `https://r.jina.ai/${u}`,          // first: the one relay still up (see jinaUnwrap)
   // allorigins — usually the best of them, but flaky uptime via Cloudflare,
   // so it is tried from both of its endpoints.
   u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
@@ -20611,7 +20760,6 @@ const PROXIES = [
   u => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(u)}`,
   u => `https://api.cors.lol/?url=${encodeURIComponent(u)}`,
   u => `https://thingproxy.freeboard.io/fetch/${u}`,
-  u => `https://r.jina.ai/${u}`,          // returns the body as text; JSON parses fine
 ];
 
 const withTimeout = (p, ms=8000) =>
@@ -20830,21 +20978,24 @@ const PRICE_SOURCES = [
     bn:   await mcFetch('in%3Bnbx')   // Bank Nifty
   })},
   // Fallbacks via CORS proxies (when MC is down — rare)
-  {name:'Yahoo via allorigins/raw', go:async()=>({
+  {name:'Yahoo via r.jina.ai', go:async()=>({
     nifty:await yfFetch('^NSEI',     PROXIES[0]),
     bn:   await yfFetch('^NSEBANK',  PROXIES[0])})},
-  {name:'Yahoo via allorigins/get', go:async()=>({
+  {name:'Yahoo via allorigins/raw', go:async()=>({
     nifty:await yfFetch('^NSEI',     PROXIES[1]),
     bn:   await yfFetch('^NSEBANK',  PROXIES[1])})},
-  {name:'Yahoo via cors.lol', go:async()=>({
-    nifty:await yfFetch('^NSEI',     PROXIES[4]),
-    bn:   await yfFetch('^NSEBANK',  PROXIES[4])})},
-  {name:'Yahoo via corsproxy.io', go:async()=>({
+  {name:'Yahoo via allorigins/get', go:async()=>({
     nifty:await yfFetch('^NSEI',     PROXIES[2]),
     bn:   await yfFetch('^NSEBANK',  PROXIES[2])})},
-  {name:'Yahoo via codetabs', go:async()=>({
+  {name:'Yahoo via cors.lol', go:async()=>({
+    nifty:await yfFetch('^NSEI',     PROXIES[5]),
+    bn:   await yfFetch('^NSEBANK',  PROXIES[5])})},
+  {name:'Yahoo via corsproxy.io', go:async()=>({
     nifty:await yfFetch('^NSEI',     PROXIES[3]),
     bn:   await yfFetch('^NSEBANK',  PROXIES[3])})},
+  {name:'Yahoo via codetabs', go:async()=>({
+    nifty:await yfFetch('^NSEI',     PROXIES[4]),
+    bn:   await yfFetch('^NSEBANK',  PROXIES[4])})},
 ];
 
 // ── US INDEX SOURCES ──────────────────────────────────────────────
@@ -20853,26 +21004,30 @@ const PRICE_SOURCES = [
 // "open" returned is the US session's 09:30 ET open — during IST market
 // hours US markets are closed and the data is from the prior US session.
 const US_SOURCES = [
-  {name:'Yahoo US via allorigins/raw', go:async()=>({
+  {name:'Yahoo US via r.jina.ai', go:async()=>({
     nasdaq:await yfFetch('^IXIC', PROXIES[0]),
     dow:   await yfFetch('^DJI',  PROXIES[0]),
     spx:   await yfFetch('^GSPC', PROXIES[0])})},
-  {name:'Yahoo US via allorigins/get', go:async()=>({
+  {name:'Yahoo US via allorigins/raw', go:async()=>({
     nasdaq:await yfFetch('^IXIC', PROXIES[1]),
     dow:   await yfFetch('^DJI',  PROXIES[1]),
     spx:   await yfFetch('^GSPC', PROXIES[1])})},
-  {name:'Yahoo US via cors.lol', go:async()=>({
-    nasdaq:await yfFetch('^IXIC', PROXIES[4]),
-    dow:   await yfFetch('^DJI',  PROXIES[4]),
-    spx:   await yfFetch('^GSPC', PROXIES[4])})},
-  {name:'Yahoo US via corsproxy.io', go:async()=>({
+  {name:'Yahoo US via allorigins/get', go:async()=>({
     nasdaq:await yfFetch('^IXIC', PROXIES[2]),
     dow:   await yfFetch('^DJI',  PROXIES[2]),
     spx:   await yfFetch('^GSPC', PROXIES[2])})},
-  {name:'Yahoo US via codetabs', go:async()=>({
+  {name:'Yahoo US via cors.lol', go:async()=>({
+    nasdaq:await yfFetch('^IXIC', PROXIES[5]),
+    dow:   await yfFetch('^DJI',  PROXIES[5]),
+    spx:   await yfFetch('^GSPC', PROXIES[5])})},
+  {name:'Yahoo US via corsproxy.io', go:async()=>({
     nasdaq:await yfFetch('^IXIC', PROXIES[3]),
     dow:   await yfFetch('^DJI',  PROXIES[3]),
     spx:   await yfFetch('^GSPC', PROXIES[3])})},
+  {name:'Yahoo US via codetabs', go:async()=>({
+    nasdaq:await yfFetch('^IXIC', PROXIES[4]),
+    dow:   await yfFetch('^DJI',  PROXIES[4]),
+    spx:   await yfFetch('^GSPC', PROXIES[4])})},
 ];
 
 function fmtPrice(p){
@@ -21413,6 +21568,9 @@ function dsUpstoxSym(univKey){
    Worker, so gating the router on dsCanUpstox silently sent every NSE request
    to Yahoo whenever no proxy was configured, which is the default. */
 function dsIsNSE(univKey){ return !!dsUpstoxSym(univKey); }
+/* Has a baked DAILY file: NSE (Upstox) or the Yahoo-only set (data/yahoo). */
+function dsHasBake(univKey){ return dsIsNSE(univKey) || DS_YAHOO_ONLY.has(univKey); }
+window.dsHasBake=dsHasBake;
 function dsCanUpstox(univKey){
   return !!(window.DS.proxy && window.DS.mode!=='yahoo' && dsUpstoxSym(univKey));
 }
@@ -21456,7 +21614,10 @@ window.dsHealth=dsHealth;
    public repo, the baking job stays where the token already is and this app
    simply reads what scanX publishes. No token, no proxy, no CORS problem. */
 const DS_BAKED_SOURCES = [
-  {name:'local',  url:k=>'data/nse/'+encodeURIComponent(k)+'.json'},
+  // Yahoo-only instruments (Gold, Silver, US indices, commodities) are baked by
+  // scripts/fetch_yahoo.py into data/yahoo/ — the CORS relays can no longer
+  // carry a 26-year history, so the page reads them same-origin like NSE.
+  {name:'local',  url:k=>(DS_YAHOO_ONLY.has(k)?'data/yahoo/':'data/nse/')+encodeURIComponent(k)+'.json'},
   {name:'scanX',  url:k=>'https://anki1007.github.io/scanX/data/nse/'+encodeURIComponent(k)+'.json'}
 ];
 const DS_BAKED = {};                 // univKey -> bars | null (null = known absent everywhere)
@@ -21675,7 +21836,7 @@ function dsTailNote(symOrKey){
   if(t.date>t.baked && t.src!=='Yahoo fill') return t.src+' · live, provisional '+t.date+' · baked through '+t.baked;
   if(t.date>t.baked) return 'Yahoo fill to '+t.date+' · baked through '+t.baked;
   const miss=dsMissingSessions(t.baked);
-  return 'Upstox baked through '+t.baked+(miss>0?' · '+miss+' session'+(miss>1?'s':'')+' behind':'');
+  return (DS_YAHOO_ONLY.has(k)?'Yahoo':'Upstox')+' baked through '+t.baked+(miss>0?' · '+miss+' session'+(miss>1?'s':'')+' behind':'');
 }
 function dsTailPill(symOrKey){
   const n=dsTailNote(symOrKey); if(!n) return '';
@@ -22030,7 +22191,7 @@ window.dsKeyForYahooSym=dsKeyForYahooSym;
    or nothing is baked for it. Callers map the rows into their own shape. */
 async function dsNseDaily(yahooSym, fromDate, toDate){
   const k=dsKeyForYahooSym(yahooSym);
-  if(!k || !dsIsNSE(k) || window.DS.mode==='yahoo') return null;
+  if(!k || !dsHasBake(k) || window.DS.mode==='yahoo') return null;
   try{
     const rows=await dsBars(k,'days','1',fromDate||RE_HISTORY_START,toDate||reISO(Date.now()),null);
     return (rows && rows.length) ? rows : null;
@@ -22093,7 +22254,7 @@ async function reFetchOHLC(sym, years, univKey, keepLive){
     }
     return out;
   };
-  if(!univKey || !dsIsNSE(univKey)) return yahoo();
+  if(!univKey || !dsHasBake(univKey)) return yahoo();
   const from=(years==='max'||!years) ? RE_HISTORY_START
             : reISO(Date.now()-Math.round(years*365.25*86400000));
   const to=reISO(Date.now());

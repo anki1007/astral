@@ -70,6 +70,12 @@ jobs:
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
         run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks || 'all' }}" --intraday "${{ inputs.intraday || 'NIFTY,BANKNIFTY' }}"
 
+      - name: Bake Yahoo dailies (Gold, Silver, commodities, US indices)
+        # Public endpoint, no credential. Never fatal: the NSE bake above is
+        # what this job is for, and the page falls back to a relay if absent.
+        continue-on-error: true
+        run: python scripts/fetch_yahoo.py
+
       - name: Summarise
         run: |
           echo "### Upstox bake" >> "$GITHUB_STEP_SUMMARY"
@@ -89,7 +95,7 @@ jobs:
         run: |
           git config user.name  "astral-bot"
           git config user.email "astral@users.noreply.github.com"
-          git add data/nse
+          git add data/nse data/yahoo
           if git diff --cached --quiet; then
             echo "no changes"; exit 0
           fi
