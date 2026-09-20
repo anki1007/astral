@@ -2,7 +2,7 @@
 /* Forward test ("paper-trading log") for the astro engine.
  *
  * Runs in the Upstox bake job, after the bake. It loads index.html headless,
- * writes the engine's forecasts for the NEXT session (and the astro turn
+ * writes the engine's forecasts for the NEXT 5 SESSIONS (and the astro turn
  * windows for the next 30 sessions) into data/forward/log.json, plus the
  * active PROVEN DAILY patterns (Day Forecast; source "Proven daily") into log.daily, and grades
  * every earlier forecast whose outcome is now in the baked bars. Ten instruments (INSTS: India
@@ -12,6 +12,20 @@
  * data/forward/cache_bands_<class>_<ay>.json (see bandLoad / bandSave). Git history
  * timestamps each forecast before its session, so the log is honest
  * out-of-sample evidence. A forecast is never changed once written.
+ *
+ * FIVE SESSIONS AHEAD (entry.seq = 1..5). Each entry is still one (target, inst)
+ * pair and is written once: whichever run first reaches that session freezes it,
+ * and later runs leave it alone. Each entry also carries the proven daily patterns
+ * active on that session (entry.daily) and the turn windows covering it (entry.turns),
+ * so the page's Upcoming view needs nothing but this file. The extra four sessions
+ * cost four more book-engine reads per instrument (taRead + taTech), which is
+ * negligible beside the cached per-weekday band file the first read builds.
+ *
+ * Grading is unchanged and still measures a ONE-SESSION call: an entry is graded
+ * against the close of the last baked bar strictly before its session (prevCloseOf),
+ * which for a next-session entry is exactly the lastClose frozen with the forecast,
+ * and for an entry logged four sessions early is the close that actually preceded it.
+ * So the scoreboards in summary.json keep measuring what they always measured.
  *
  * usage: node scripts/forward_log.js [--root DIR] [--html FILE]
  * Node 20, no dependencies. Always exits 0; failures are recorded in the log.
@@ -23,7 +37,7 @@ const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? proces
 const ROOT = path.resolve(arg('--root', process.cwd()));
 const HTML = path.resolve(arg('--html', path.join(ROOT, 'index.html')));
 const OUT = path.join(ROOT, 'data', 'forward');
-const VERSION = 2, HORIZON = 30, FLAT = 0.1, ASTRO_MIN = 7, SW_MIN = 5, SW_MAJ = 10, CONFIRM_LAG = 20;
+const VERSION = 2, HORIZON = 30, SESSIONS = 5, FLAT = 0.1, ASTRO_MIN = 7, SW_MIN = 5, SW_MAJ = 10, CONFIRM_LAG = 20;
 // Every instrument with baked daily data. `plan` is its Planet Lat/Lon key (index.html PLAN_INST).
 // Each one is predicted and graded on its own bars, book class (taInstClass) and baselines.
 const INSTS = [
@@ -150,6 +164,14 @@ function binomUpper(n, k, p) { // P(X >= k), X ~ Bin(n, p)
   return Math.min(1, a / t);
 }
 const pct = (k, n) => n ? r2(k / n * 100) : null;
+// The close a session is measured against: the last baked bar strictly before it.
+// For a next-session entry that IS the lastClose frozen with the forecast; for one
+// written several sessions early it is the close that actually preceded its session,
+// so every entry grades as the one-session call it was.
+function prevCloseOf(B, target, fallback) {
+  for (let i = B.length - 1; i >= 0; i--) if (B[i].date < target) return B[i].c;
+  return fallback;
+}
 
 /* ── 1. direction forecast for the next session ── */
 function predictDay(P, inst, B, target, made) {
@@ -186,12 +208,13 @@ function gradeDay(e, B) {
     if (B.length && B[B.length - 1].date > e.target) return { date: e.target, noSession: true };
     return null;
   }
-  const cc = (b.c / e.lastClose - 1) * 100, oc = (b.c / b.o - 1) * 100;
+  const pc = prevCloseOf(B, e.target, e.lastClose);
+  const cc = (b.c / pc - 1) * 100, oc = (b.c / b.o - 1) * 100;
   const dir = cc > FLAT ? 1 : cc < -FLAT ? -1 : 0, res = {};
   for (const [k, v] of Object.entries(e.calls)) res[k] = v === 0 ? 'aside' : v === dir ? 'hit' : 'miss';
   res.alwaysBullish = dir === 1 ? 'hit' : 'miss';
   res.alwaysNeutral = dir === 0 ? 'hit' : 'miss';
-  return { date: b.date, o: b.o, c: b.c, ccPct: r2(cc), ocPct: r2(oc), dir, rangePct: r2((b.h - b.l) / e.lastClose * 100), results: res };
+  return { date: b.date, o: b.o, c: b.c, prevClose: r2(pc), ccPct: r2(cc), ocPct: r2(oc), dir, rangePct: r2((b.h - b.l) / pc * 100), results: res };
 }
 
 /* ── 2. reversal (turn-date) forecasts for the next 30 sessions ── */
@@ -290,9 +313,9 @@ async function predictDaily(P, inst, hist, target, made) {
 function gradeDaily(e, B) {
   const b = B.find(x => x.date === e.target);
   if (!b) { if (B.length && B[B.length - 1].date > e.target) return { date: e.target, noSession: true }; return null; }
-  const pc = e.lastClose, ok = b.o > 0 && b.h >= b.l && !(b.o === b.h && b.h === b.l && b.l === b.c);
+  const pc = prevCloseOf(B, e.target, e.lastClose), ok = b.o > 0 && b.h >= b.l && !(b.o === b.h && b.h === b.l && b.l === b.c);
   const cc = (b.c / pc - 1) * 100, tr = (Math.max(b.h, pc) - Math.min(b.l, pc)) / pc * 100, gp = Math.abs(b.o - pc) / pc * 100;
-  const out = { date: b.date, o: b.o, h: b.h, l: b.l, c: b.c, ccPct: r2(cc), trPct: r2(tr), gapPct: r2(gp),
+  const out = { date: b.date, o: b.o, h: b.h, l: b.l, c: b.c, prevClose: r2(pc), ccPct: r2(cc), trPct: r2(tr), gapPct: r2(gp),
     up: cc > FLAT, big: ok && e.bigThrPct != null ? tr > e.bigThrPct : null, gap: ok ? gp > 0.5 : null };
   const y = e.study === 'dir' ? out.up : e.study === 'big' ? out.big : out.gap;
   out.outcome = y; out.result = y == null ? 'ungradable' : ((e.lean === 'more') === !!y ? 'hit' : 'miss');
@@ -439,26 +462,45 @@ function summarise(log, B, SW) {
       console.log(`  built ${inst.k.padEnd(9)} astral ${(ms.astral / 1000).toFixed(1)}s · lat/lon ${(ms.latlon / 1000).toFixed(1)}s · daily ${(ms.daily / 1000).toFixed(1)}s · total ${((Date.now() - T0) / 1000).toFixed(0)}s`);
     }
     // (2) predict: each instrument's next session is the weekday after ITS OWN last bar
+    run.ahead = SESSIONS; run.aheadTargets = {};
     for (const inst of INSTS) {
       const bb = B[inst.k]; if (!bb || !built.has(inst.k)) continue;
-      const target = nextSess(bb[bb.length - 1].date), horizonEnd = sessAdd(target, HORIZON - 1);
+      const asOf = bb[bb.length - 1].date;
+      // the next SESSIONS weekdays after this instrument's own last bar
+      const targets = []; { let t = nextSess(asOf); for (let j = 0; j < SESSIONS; j++) { targets.push(t); t = nextSess(t); } }
+      const target = targets[0], horizonEnd = sessAdd(target, HORIZON - 1);
       run.targets[inst.k] = target; if (inst.k === 'NIFTY') run.target = target;
-      // never overwrite: a prediction is frozen once written
-      if (!have.has(target + '|' + inst.k)) {
-        try {
-          const hist = bb.filter(b => b.date < target);
-          log.entries.push(predictDay(P, inst, hist, target, made)); run.added++;
-        } catch (e) { run.errors.push(inst.k + ' predict: ' + e.message); }
-      }
+      run.aheadTargets[inst.k] = targets;
+      // (a) turn windows first, so every window covering one of the five sessions can be stamped onto its entry
+      let T = [];
       try {
-        const T = await predictTurns(P, inst, target, horizonEnd, made, bb[bb.length - 1].date);
+        T = await predictTurns(P, inst, target, horizonEnd, made, asOf);
         for (const f of T) { const k = turnKey(f); if (haveT.has(k)) continue; haveT.add(k);
           f.id = k; f.graded = null; log.reversals.push(f); run.turnsAdded++; }
       } catch (e) { run.errors.push(inst.k + ' turns: ' + e.message); }
-      try {
-        const D = await predictDaily(P, inst, bb.filter(b => b.date < target), target, made);
-        for (const f of D) { if (haveD.has(f.id)) continue; haveD.add(f.id); log.daily.push(f); run.dailyAdded++; }
-      } catch (e) { run.errors.push(inst.k + ' proven daily: ' + e.message); }
+      const winsOn = ds => T.filter(f => f.from <= ds && ds <= f.to).map(f => ({ id: f.id || turnKey(f),
+        source: f.source, type: f.type, from: f.from, to: f.to, at: f.at, proven: !!f.edge }));
+      // (b) one direction call per session, five sessions out
+      for (let j = 0; j < targets.length; j++) {
+        const tg = targets[j], hist = bb.filter(b => b.date < tg);
+        let D = [];
+        try {
+          D = await predictDaily(P, inst, hist, tg, made);
+          for (const f of D) { f.seq = j + 1; if (haveD.has(f.id)) continue; haveD.add(f.id); log.daily.push(f); run.dailyAdded++; }
+        } catch (e) { run.errors.push(inst.k + ' proven daily ' + tg + ': ' + e.message); }
+        // never overwrite: a prediction is frozen once written, whichever run first reached that session
+        if (have.has(tg + '|' + inst.k)) continue;
+        have.add(tg + '|' + inst.k);
+        try {
+          const en = predictDay(P, inst, hist, tg, made);
+          en.seq = j + 1;                       // 1 = the next session ... 5 = four sessions later
+          en.turns = winsOn(tg);                // turn windows covering this session
+          en.daily = D.map(f => ({ id: f.id, study: f.study, pattern: f.pattern, plain: f.plain, claim: f.claim, lean: f.lean,
+            bias: f.bias ? { lean: f.bias.lean, claim: f.bias.claim } : null,
+            in: f.backtest ? f.backtest.in : null, out: f.backtest ? f.backtest.out : null }));
+          log.entries.push(en); run.added++;
+        } catch (e) { run.errors.push(inst.k + ' predict ' + tg + ': ' + e.message); }
+      }
     }
     if (!run.target) run.target = Object.values(run.targets).sort().pop() || null;
   }
@@ -481,9 +523,10 @@ function summarise(log, B, SW) {
   put(path.join(OUT, 'summary.json'), S);
 
   // concise console report
-  console.log(`forward test · ${((Date.now() - T0) / 1000).toFixed(0)}s · targets ${Object.entries(run.targets || {}).map(([k, t]) => k + ' ' + t).join(', ')} · +${run.added} day forecasts · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded}`);
-  for (const e of log.entries.filter(e => (run.targets || {})[e.inst] === e.target))
-    console.log(`  ${e.inst.padEnd(9)} astro ${String(e.astro.score).padStart(4)} ${e.astro.band.padEnd(18)} tech ${String(e.tech.net).padStart(5)} → astroOnly ${e.calls.astroOnly} techOnly ${e.calls.techOnly} filter ${e.calls.techWithAstroFilter} both ${e.calls.astroAndTech} vol ${e.vol}`);
+  console.log(`forward test · ${((Date.now() - T0) / 1000).toFixed(0)}s · targets ${Object.entries(run.targets || {}).map(([k, t]) => k + ' ' + t).join(', ')} · +${run.added} day forecasts (${SESSIONS} sessions ahead) · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded}`);
+  const ahead = new Set(Object.values(run.aheadTargets || {}).flat());
+  for (const e of log.entries.filter(e => ahead.has(e.target) && !e.graded))
+    console.log(`  ${e.inst.padEnd(9)} ${e.target} s${e.seq || 1} astro ${String(e.astro.score).padStart(4)} ${e.astro.band.padEnd(18)} tech ${String(e.tech.net).padStart(5)} → astroOnly ${e.calls.astroOnly} techOnly ${e.calls.techOnly} filter ${e.calls.techWithAstroFilter} both ${e.calls.astroAndTech} vol ${e.vol} - turns ${(e.turns || []).length} - proven daily ${(e.daily || []).length}`);
   for (const [k, r] of Object.entries(S.direction))
     console.log(`  ${k.padEnd(9)} astroOnly ${r.astroOnly.hits}/${r.astroOnly.n} · techOnly ${r.techOnly.hits}/${r.techOnly.n} · always-bull ${r.alwaysBullish.hits}/${r.alwaysBullish.n} · turns ${Object.entries(S.turns[k]).map(([s, t]) => `${s} ${t.hits}/${t.graded} (${t.pending} pending)`).join(', ')}`);
   for (const f of log.daily.filter(f => (run.targets || {})[f.inst] === f.target)) console.log(`  ${f.inst.padEnd(9)} Proven daily ${f.study}: ${f.claim} — ${f.plain}`);

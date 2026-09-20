@@ -330,7 +330,15 @@ html,body{width:100%;min-height:100vh;background:var(--bg0);color:var(--tx0);fon
 *{scrollbar-width:auto;scrollbar-color:var(--bd3) var(--bg2)}
 .terminal{width:100%;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 .body-row{display:flex;flex:1;min-height:0}
-.hdr{background:var(--bg1);border-bottom:2px solid var(--bd2);padding:8px 16px;z-index:100;display:flex;flex-direction:column;gap:6px}
+.hdr{background:var(--bg1);border-bottom:2px solid var(--bd2);padding:8px 16px;padding-right:208px;z-index:100;display:flex;flex-direction:column;gap:6px;position:relative}
+/* top-right corner of the header: 📅 UPCOMING + the one-tap India ⇄ US switch.
+   Absolute so the corner is the corner on desktop AND inside the collapsed
+   one-line phone header; .hdr reserves the width with padding-right. */
+.hdr-corner{position:absolute;top:7px;right:14px;z-index:6;display:flex;gap:6px;align-items:center}
+.hdr-cbtn{background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:4px;font-family:inherit;font-size:11px;font-weight:700;letter-spacing:.03em;line-height:1;padding:6px 9px;cursor:pointer;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.hdr-cbtn:hover{border-color:var(--acc)}
+.hdr-cbtn:active{transform:scale(.94)}
+.hdr-cbtn.on{background:var(--acc);color:var(--bg0);border-color:var(--acc)}
 .hdr-r1{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px}
 .brand{font-size:20px;font-weight:700;color:var(--acc);letter-spacing:.12em}
 .brand-sub{font-size:11px;color:#f2ff3a;letter-spacing:.07em;margin-top:3px;font-weight:600;text-shadow:0 0 4px rgba(225,255,45,.75),0 0 9px rgba(225,255,45,.4)}
@@ -401,7 +409,7 @@ a.nb{display:block;text-decoration:none;box-sizing:border-box}
   body.nav-open .nav{transform:translateX(0)}
   .nav-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:290;opacity:0;pointer-events:none;transition:opacity .2s}
   body.nav-open .nav-backdrop{opacity:1;pointer-events:auto}
-  .hdr{padding:6px 10px}
+  .hdr{padding:6px 10px;padding-right:196px}
   .hdr-r1{gap:6px}
   .navtoggle{margin-top:36px}
   .brand{font-size:16px;letter-spacing:.06em}
@@ -460,7 +468,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* ── phone: the header collapses to one line; ⚙ opens the full controls ── */
 .hdr-mini,.hdr-more{display:none}
 @media(max-width:820px){
-  .hdr{gap:4px}
+  .hdr{gap:4px;padding-right:150px}
+  .hdr-corner{top:6px;right:8px;gap:4px}
+  .hdr-cbtn{font-size:10px;padding:5px 7px;gap:3px}
   .hdr-r1{flex-wrap:nowrap;align-items:center}
   .hdr-r1>div:first-child{min-width:0;flex:1 1 auto;align-items:center!important}
   .hdr-r1>div:first-child>div{min-width:0}
@@ -474,6 +484,23 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body.hdr-open .hdr .ctrl-row{display:flex;width:100%}
   body.hdr-open .hdr-mini{display:none}
 }
+@media(max-width:480px){          /* no room for the words — the icons still say it */
+  .hdr{padding-right:88px}
+  .hdr-cbtn-t{display:none}
+  .hdr-cbtn{padding:5px 6px}
+}
+/* ── UPCOMING tab: the 5-session grid ──────────────────────────────── */
+.upc-scroll{overflow:auto;-webkit-overflow-scrolling:touch}
+.upc-tbl{min-width:620px}
+.upc-i{position:sticky;left:0;z-index:2;background:var(--bg1);white-space:nowrap;font-weight:700}
+.upc-g{background:var(--bg3);color:var(--acc);font-weight:700;font-size:10.5px;letter-spacing:.04em}
+.upc-c{padding:4px 5px;vertical-align:top;text-align:center;border-left:1px solid var(--bd);min-width:104px}
+.upc-c.star{background:var(--bg3);box-shadow:inset 0 0 0 1px var(--acc)}
+.upc-b{display:inline-block;font-weight:800;font-size:12.5px;color:var(--tx3);white-space:nowrap}
+.upc-c.star .upc-b{color:var(--acc)}
+.upc-tags{display:flex;flex-direction:column;gap:2px;align-items:center;margin-top:3px}
+.upc-tag{font-size:9px;font-weight:600;color:var(--tx3);background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:1px 6px;line-height:1.45;max-width:150px;white-space:normal}
+.upc-tag.on{color:var(--acc);border-color:var(--acc)}
 </style>
 <script>
 /* app-like home-screen support: runtime manifest + icon (http/https only; no-ops on file://) */
@@ -4573,8 +4600,18 @@ function rHdr(){
   const _SR=sessionRange();
   const times=(()=>{ const out=[]; for(let m=_SR.startMin;m<=_SR.endMin;m+=5){ out.push([String(Math.round(m/60*1e6)/1e6), mtt(m)]); } return out; })();
   const ayLabel = ayanamsaLabel(S.ayMode);
+  // top-right corner: the Upcoming link and the one-tap India <-> US switch,
+  // both on desktop and inside the collapsed one-line phone header.
+  const _side=(typeof mktSideNow==='function')?mktSideNow():'in';
+  const _to=_side==='us'?'INDIA':'US';
+  const _swTip=`Switch the whole terminal to ${_side==='us'?'India (Mumbai, NSE/BSE hours)':'the US (New York, NYSE/Nasdaq hours)'} — location, timezone, the time picker's range and each tab's instrument, all together. Your pick on each side is remembered. A manual switch also turns OFF follow-the-open-market, so it is not undone a minute later.`;
+  const _corner=`<div class="hdr-corner">
+    <button class="hdr-cbtn" onclick="mktSwitchSide()" title="${_swTip.replace(/"/g,'&quot;')}" aria-label="Switch market to ${_to}">⇄ <span class="hdr-cbtn-t">${_to}</span></button>
+    <a class="hdr-cbtn${S.tab==='upcoming'?' on':''}" href="#tab=upcoming" onclick="return navGo(event,'upcoming')" title="The next 5 sessions across all 10 markets, the upcoming turn dates, and what the evidence actually supports" aria-label="Upcoming">📅<span class="hdr-cbtn-t">UPCOMING</span></a>
+  </div>`;
   document.getElementById('HDR').innerHTML=`
 <header class="hdr">
+  ${_corner}
   <div class="hdr-r1">
     <div style="display:flex;align-items:center;gap:10px">
       <button class="navtoggle" onclick="toggleNav()" title="Show / hide sidebar (Ctrl+B)" aria-label="Toggle sidebar">☰</button>
@@ -4715,13 +4752,14 @@ function fwdHTML(){
     <div class="ts"><table class="tbl"><thead><tr><th>Inst</th><th>Call</th><th style="text-align:right">n</th><th style="text-align:right">Hit%</th><th style="text-align:right">95% CI</th><th style="text-align:right">vs always-bullish</th><th style="text-align:right">p</th><th style="text-align:right">Stood aside</th></tr></thead><tbody>${dRows||'<tr><td colspan="8" style="color:var(--tx3)">nothing graded for this market yet</td></tr>'}</tbody></table></div>
     <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Direction = close vs the previous close beyond ±0.1% (else flat). "vs always-bullish" compares with calling UP on the same days the call was made; p is one-sided binomial against that rate. Coloured only when n ≥ 30 and p &lt; 0.05.</div></div></div>`;
   // ── 4. next session ──
-  const nx=E.filter(e=>!e.graded&&inGrp(e.inst)).sort((a,b)=>insts.indexOf(a.inst)-insts.indexOf(b.inst)||(a.target<b.target?-1:1));
+  // the log now holds five sessions per instrument; this table is the next one
+  const nx=E.filter(e=>!e.graded&&inGrp(e.inst)&&(e.seq==null||e.seq===1)).sort((a,b)=>insts.indexOf(a.inst)-insts.indexOf(b.inst)||(a.target<b.target?-1:1));
   const nxRows=nx.map(e=>`<tr><td style="white-space:nowrap">${fwdEsc(e.target)}</td><td>${fwdEsc(e.inst)}</td>
       <td>${fwdCall(e.calls.astroOnly)} <span style="font-size:10.5px;color:var(--tx2)">score ${e.astro.score>0?'+':''}${e.astro.score} · ${fwdEsc(e.astro.band)} · vol ${fwdEsc(e.vol||'—')}</span>
         <details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">top astro rules</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px;color:var(--tx2)">${(e.astro.top||[]).map(r=>`<li><b style="color:${r.dir>0?'var(--bull)':'var(--bear)'}">${r.dir>0?'▲':'▼'}</b> ${fwdEsc(r.name)} <span style="color:var(--tx3)">§${fwdEsc(r.sec)}</span></li>`).join('')||'<li>none</li>'}</ul></details></td>
       <td style="color:var(--tx3);font-size:10.5px">${e.calls.techOnly>0?'▲':e.calls.techOnly<0?'▼':'–'} net ${fwdNum(e.tech.net,2)}${(e.tech.fired||[]).length?': '+e.tech.fired.map(r=>(r.dir>0?'▲ ':'▼ ')+fwdEsc(r.name)).join('; '):''}</td>
       <td style="text-align:right;color:var(--tx2)">${fwdNum(e.lastClose,2)} <span style="color:var(--tx3);font-size:10px">${fwdEsc(e.lastDate)}</span></td></tr>`).join('');
-  const next=`<div class="pnl"><div class="ph"><span class="dot"></span>NEXT SESSION — logged direction calls</div><div class="pb">
+  const next=`<div class="pnl"><div class="ph"><span class="dot"></span>NEXT SESSION — logged direction calls <a href="#tab=upcoming" onclick="return navGo(event,'upcoming')" style="color:var(--acc);font-size:10.5px;font-weight:600;text-decoration:none;margin-left:6px">📅 all 5 sessions →</a></div><div class="pb">
     <div class="ts"><table class="tbl"><thead><tr><th>Session</th><th>Inst</th><th>Astro call</th><th>Price-action baseline</th><th style="text-align:right">Last close</th></tr></thead><tbody>${nxRows||'<tr><td colspan="5" style="color:var(--tx3)">none pending — the next run logs them after the close</td></tr>'}</tbody></table></div></div></div>`;
   // ── 5. history ──
   const g=E.filter(e=>e.graded&&inGrp(e.inst)).sort((a,b)=>a.target<b.target?1:a.target>b.target?-1:a.inst<b.inst?-1:1);
@@ -4744,10 +4782,238 @@ function fwdHTML(){
 window.fwdLoad=fwdLoad;
 
 // ═══════════════════════════════════════════════════════════════════
+// UPCOMING — one cross-market page for the next 5 sessions
+// -------------------------------------------------------------------
+// Reads the SAME two files as the Forward Test tab (data/forward/log.json
+// and summary.json, written by scripts/forward_log.js after each close) and
+// shows nothing that was not logged in advance: the direction call each of
+// the 10 instruments carries for each of the next five sessions, the turn
+// windows those sessions fall inside, and the turn windows for the next 30.
+//
+// The honest framing comes first and is repeated in every cell's tooltip:
+// NO daily direction pattern is proven on any of the 10 markets. The ▲/▼/→
+// column is the book engine's own score, which graded 49.0% against a 53.9%
+// always-up base. A ★ (and the only colour on the grid) marks a session
+// where a pattern that DID pass both tests — BH correction on 2000–2018 and
+// again on 2019 → the last bar, days and blocks — is active. Those are
+// almost all "big-move day" patterns: they say a move is more or less
+// likely, not which way, and their up/down split is usually a coin-flip.
+// ═══════════════════════════════════════════════════════════════════
+window.UPC = window.UPC || {st:'idle', sum:null, log:null, err:'', at:0};
+const UPC_SESS = 5, UPC_HORIZON = 30;
+const UPC_DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const UPC_STUDY = {dir:'direction', big:'big move', gap:'opening gap'};
+function upcIsWk(ds){ const w=new Date(ds+'T00:00:00Z').getUTCDay(); return w>0&&w<6; }
+function upcShift(ds,n){ const d=new Date(ds+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+/* weekday sessions in [a,b] inclusive (calendar weekdays — holidays are not known here) */
+function upcSessBetween(a,b){ if(!a||!b||b<a) return 0; let n=0,d=a,g=0; while(d<=b&&g<500){ if(upcIsWk(d)) n++; d=upcShift(d,1); g++; } return n; }
+function upcAhead(ds,n){ let d=ds,k=0,g=0; while(k<n&&g<500){ d=upcShift(d,1); if(upcIsWk(d)) k++; g++; } return d; }
+async function upcLoad(){
+  const U=window.UPC; U.st='loading'; U.err='';
+  try{
+    const get=u=>fetch(u,{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
+    const [s,l]=await Promise.all([get('data/forward/summary.json'),get('data/forward/log.json')]);
+    U.sum=s; U.log=l; U.st='ready'; U.at=Date.now();
+    if(!l&&!s) U.err='neither data/forward/log.json nor data/forward/summary.json could be read';
+    else if(!l) U.err='data/forward/log.json could not be read';
+    else if(!s) U.err='data/forward/summary.json could not be read';
+  }catch(e){ U.st='ready'; U.err=String(e&&e.message||e); }
+  upcRepaint();
+}
+function upcRepaint(){ const h=document.getElementById('upcHost'); if(h) h.innerHTML=upcHTML(); }
+window.upcLoad=upcLoad;
+function tUpcoming(){
+  const U=window.UPC;
+  if(U.st==='idle'||(U.st==='ready'&&Date.now()-U.at>300000)) setTimeout(upcLoad,0);
+  return `<div id="upcHost" style="display:flex;flex-direction:column;gap:10px">${upcHTML()}</div>`;
+}
+/* a big-move claim already carries its direction verdict; only add the bias
+   line when it says something the claim does not already say */
+function upcBias(f){ const b=f&&f.bias&&f.bias.claim; if(!b) return '';
+  return (f.claim&&String(f.claim).indexOf(b)>=0)?'':' · '+b; }
+function upcRate(o){ return (o&&o.rate!=null&&isFinite(o.rate))?fwdPct(o.rate*100):'—'; }
+function upcBase(o){ return (o&&o.base!=null&&isFinite(o.base))?fwdPct(o.base*100):'—'; }
+function upcRec(f){   // "2000–2018 16.5% vs 41.0% (n 91) · 2019→ 26.3% vs 62.3% (n 38)"
+  const I=f&&f.in, O=f&&f.out;
+  const a=I?`2000–2018 ${upcRate(I)} vs ${upcBase(I)} (n ${I.n})`:'';
+  const b=O?`2019→ ${upcRate(O)} vs ${upcBase(O)} (n ${O.n})`:'';
+  return [a,b].filter(Boolean).join(' · ');
+}
+function upcFwdLink(lab){ return `<a class="hdr-cbtn" href="#tab=fwd" onclick="return navGo(event,'fwd')" style="font-size:11px">${lab||'✓ Forward Test — the graded record'}</a>`; }
+function upcHTML(){
+  const U=window.UPC, S=U.sum||{}, L=U.log||{}, E=(L.entries||[]), R=(L.reversals||[]), DL=(L.daily||[]);
+  const today=fwdToday();
+  const pill=`<span class="pill" style="background:var(--bg3);color:var(--tx3);border:1px solid var(--bd2);font-weight:700" title="Measured over 6,618 graded sessions: the daily astro direction call was right 49.0% of the time against a 53.9% up-day base rate — not proven, past hits ≈ random chance. Proven = beat random chance on 2000–2018 AND again on 2019 → the last bar, on days and on blocks.">Astro direction right 49.0% of days vs 53.9% if you always said &#39;up&#39;</span>`;
+  const lastBar=Object.values(S.chance||{}).map(c=>c&&c.to).filter(Boolean).sort().pop()
+    || E.map(e=>e.lastDate).filter(Boolean).sort().pop() || 'the last bar';
+  // how fresh is the file
+  const gen=S.generated||(L.runs&&L.runs.length?L.runs[L.runs.length-1].at:null);
+  const genDay=gen?String(gen).slice(0,10):null;
+  const age=genDay?upcSessBetween(upcShift(genDay,1),today):null;
+  const fresh=genDay
+    ? (age>=2
+      ? `<span style="color:var(--bear);font-weight:700">⚠ STALE — written ${fwdEsc(gen.slice(0,16).replace('T',' '))}, ${age} sessions ago.</span> The nightly job has not run since; treat every date below as out of date.`
+      : `<span style="color:var(--tx3)">Written ${fwdEsc(gen.slice(0,16).replace('T',' '))}${age?` · ${age} session old`:' · current'}.</span>`)
+    : `<span style="color:var(--bear)">The file carries no generated timestamp.</span>`;
+  const head=`<div class="pnl"><div class="ph" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dot"></span>📅 UPCOMING — the next ${UPC_SESS} sessions across 10 markets ${pill}</div>
+    <div class="pb" style="font-size:11.5px;color:var(--tx1);line-height:1.6">
+      <b>Evidence: learned on 2000–2018, checked on 2019→${fwdEsc(lastBar)}. No daily direction pattern is proven on any market — the direction column is the book engine's own score, which grades 49.0% vs 53.9% always-up.</b><br>
+      What did pass both tests is almost entirely "big-move day" patterns, and their up/down split is usually a coin-flip: a ★ says a move is more or less likely on that session, never which way.<br>
+      Everything here was written by the GitHub Action after a close and committed before the session it talks about; the page only reads it. ${fresh}
+    </div></div>`;
+  if(U.st!=='ready') return head+`<div class="pnl"><div class="pb" style="font-size:11.5px;color:var(--tx2)"><span class="spin-anim">⟳</span> loading the forward log …</div></div>`;
+  if(!E.length&&!R.length){
+    return head+`<div class="pnl"><div class="pb" style="font-size:12px;color:var(--tx2);line-height:1.7">
+      <b style="color:var(--bear)">Nothing to show — no forecasts have been logged yet.</b><br>
+      This view reads <code>data/forward/log.json</code> and <code>data/forward/summary.json</code>, which the nightly Action writes after each close.
+      ${U.err?`<br><span style="color:var(--bear)">${fwdEsc(U.err)}</span>`:''}
+      ${genDay?`<br><span style="color:var(--tx3)">Last written ${fwdEsc(gen)}${age?` — ${age} sessions ago`:''}.</span>`:'<br><span style="color:var(--tx3)">No generated timestamp was found either, so the files are probably missing.</span>'}
+      <br>${upcFwdLink()}</div></div>`;
+  }
+  // ── a. the five session columns: the logged, ungraded targets, earliest first
+  const byKey=new Map(); E.forEach(e=>byKey.set(e.target+'|'+e.inst,e));
+  let cols=[...new Set(E.filter(e=>!e.graded&&e.target>=today).map(e=>e.target))].sort().slice(0,UPC_SESS);
+  if(!cols.length) cols=[...new Set(E.filter(e=>!e.graded).map(e=>e.target))].sort().slice(0,UPC_SESS);
+  const seqNote=E.some(e=>e.seq>1)?'':' <span style="color:var(--bear)">The log still holds only one session per instrument — re-run scripts/forward_log.js to fill the other four.</span>';
+  const cell=(k,ds)=>{
+    const e=byKey.get(ds+'|'+k);
+    if(!e) return `<td class="upc-c"><span style="color:var(--tx3)">—</span></td>`;
+    const sc=e.astro.score, arw=sc>0?'▲':sc<0?'▼':'→';
+    const prov=(e.daily||[]).filter(Boolean), turns=(e.turns||[]), pturn=turns.filter(t=>t.proven);
+    const star=prov.length||pturn.length;
+    const tips=prov.map(f=>`★ ${f.plain||f.pattern} — ${f.claim}${upcBias(f)}${upcRec(f)?' · '+upcRec(f):''}`)
+      .concat(pturn.map(t=>`★ ${t.type} turn window ${t.from} → ${t.to} (${FWD_SRC[t.source]||t.source}) — Proven in backtest ✓`));
+    const why=star
+      ? 'Proven in backtest ✓ — '+tips.join('  |  ')+'. A proven pattern here is about SIZE, not direction.'
+      : 'No proven pattern on this session. The arrow is the book engine\'s own direction score, which grades 49.0% vs 53.9% always-up — not proven, past hits ≈ random chance.';
+    const tip=fwdEsc(why+` · astro score ${sc>0?'+':''}${sc} (${e.astro.band}) · vol ${e.vol||'—'}`
+      +(e.seq?` · logged ${e.seq} session${e.seq===1?'':'s'} ahead, on ${String(e.made||'').slice(0,10)}`:''));
+    const tags=[];
+    if(turns.length){ const t0=turns[0];
+      tags.push(`<span class="upc-tag${pturn.length?' on':''}" title="${fwdEsc(turns.map(t=>t.type+' '+t.from+' → '+t.to+' ('+(FWD_SRC[t.source]||t.source)+(t.proven?', proven ✓':', not proven — past hits ≈ random chance')+')').join(' | '))}">turn ±2d${turns.length>1?' ×'+turns.length:''}</span>`); }
+    prov.forEach(f=>{ tags.push(`<span class="upc-tag on" title="${fwdEsc((f.plain||f.pattern)+' — '+upcRec(f))}">${fwdEsc(f.claim)}${fwdEsc(upcBias(f))}</span>`); });
+    return `<td class="upc-c${star?' star':''}" title="${tip}">
+      <span class="upc-b">${star?'★ ':''}${arw} ${sc>0?'+':''}${sc}</span>
+      ${tags.length?`<div class="upc-tags">${tags.join('')}</div>`:''}</td>`;
+  };
+  const gRows=FWD_GRP.map(g=>{
+    const body=g[2].map(k=>`<tr><td class="upc-i">${fwdEsc(k)}</td>${cols.map(ds=>cell(k,ds)).join('')}</tr>`).join('');
+    return `<tr><td class="upc-g" colspan="${cols.length+1}">${fwdEsc(g[1].toUpperCase())}</td></tr>`+body;
+  }).join('');
+  const grid=`<div class="pnl"><div class="ph"><span class="dot"></span>NEXT ${cols.length} SESSION${cols.length===1?'':'S'} — direction bias per market</div><div class="pb">
+    <div class="upc-scroll"><table class="tbl upc-tbl"><thead><tr><th class="upc-i" style="text-align:left">Market</th>
+      ${cols.map(ds=>`<th style="text-align:center;white-space:nowrap">${fwdEsc(fmtD(ds,false))}<div style="font-size:9px;color:var(--tx3);font-weight:600">${UPC_DOW[new Date(ds+'T00:00:00Z').getUTCDay()]}</div></th>`).join('')}</tr></thead>
+      <tbody>${gRows}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px;line-height:1.6">
+      ▲ / ▼ / → with its score is the book engine's own direction call for that session, logged in advance. It is <b>grey on purpose</b>: it is not proven — 49.0% right vs 53.9% for always saying "up".
+      ★ and the only colour mark a session where a pattern that <b>did</b> pass both tests is active; hover the cell for the pattern and its record. Those patterns are about the SIZE of the move, not its direction.
+      "turn ±2d" means a logged turn window covers that session. Scroll sideways on a phone; the market column stays put.<br>
+      A column usually reads the same score across all ten markets: the book engine reads one sky — 09:15 IST of that session — for every instrument, so the astro score is the same everywhere and only the turn windows, the proven patterns and the price-action side differ. Ten agreeing arrows are one reading, not ten.${seqNote}
+    </div></div></div>`;
+  // ── b. upcoming turn dates, next 30 sessions, instruments merged when identical
+  const horizonEnd=upcAhead(today,UPC_HORIZON), CH=S.chance||{};
+  const upR=R.filter(f=>!f.graded&&f.to>=today&&f.from<=horizonEnd);
+  const mg=new Map();
+  upR.forEach(f=>{ const key=[f.from,f.to,f.source,f.type,(f.reasons||[]).join('~')].join('|');
+    const m=mg.get(key); if(m) m.insts.push(f.inst);
+    else mg.set(key,{from:f.from,to:f.to,source:f.source,type:f.type,edge:!!f.edge,made:f.made,reasons:f.reasons||[],insts:[f.inst]}); });
+  const tRows=[...mg.values()].sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:a.insts[0]<b.insts[0]?-1:1).map(r=>{
+    const col=/TOP/.test(r.type)?'var(--bear)':/BOTTOM/.test(r.type)?'var(--bull)':r.edge?'var(--neut)':'var(--tx3)';
+    const len=upcSessBetween(r.from,r.to)||5, bl=len<=3?3:5;
+    const vals=r.insts.map(k=>{ const c=CH[k]; return c?(bl===3?c.window3:c.window5):null; }).filter(v=>v!=null);
+    const lo=vals.length?Math.min.apply(null,vals):null, hi=vals.length?Math.max.apply(null,vals):null;
+    // only 3- and 5-session baselines were measured; say so rather than implying
+    // that a long window is as hard to hit as a short one
+    const wide=len>bl+1;
+    const ch=vals.length?`${len} session${len===1?'':'s'}<div style="font-size:10px;color:${wide?'var(--bear)':'var(--tx3)'}">${lo===hi?fwdPct(lo):fwdPct(lo)+'–'+fwdPct(hi)} for a ${bl}-session window${wide?' — this one is far wider, so it is much easier to hit':''}</div>`:'—';
+    return `<tr><td style="white-space:nowrap">${fwdEsc(r.from)} → ${fwdEsc(r.to)}</td>
+      <td style="max-width:150px">${r.insts.slice().sort().map(fwdEsc).join(', ')}${r.insts.length>1?` <span style="color:var(--tx3);font-size:10px">(${r.insts.length} markets, identical window)</span>`:''}</td>
+      <td style="color:var(--tx2)">${FWD_SRC[r.source]||fwdEsc(r.source)}</td>
+      <td style="color:${col};font-weight:700">${fwdEsc(r.type)}</td>
+      <td>${r.edge?'<span style="color:var(--bull);font-weight:700">Proven in backtest ✓</span>':'<span style="color:var(--tx3)">not proven — past hits ≈ random chance</span>'}</td>
+      <td style="text-align:right;color:var(--tx3);white-space:nowrap">${ch}</td>
+      <td><details><summary style="cursor:pointer;color:var(--acc);font-size:10.5px">${r.reasons.length} reason${r.reasons.length===1?'':'s'}</summary><ul style="margin:3px 0 3px 14px;padding:0;font-size:10.5px;color:var(--tx2)">${r.reasons.map(x=>`<li>${fwdEsc(x)}</li>`).join('')||'<li>none recorded</li>'}</ul></details></td></tr>`; }).join('');
+  const turns=`<div class="pnl"><div class="ph"><span class="dot"></span>UPCOMING TURN DATES — every logged window over the next ${UPC_HORIZON} sessions (${mg.size})</div><div class="pb">
+    <div class="upc-scroll" style="max-height:420px"><table class="tbl"><thead><tr><th>Window (±2 sessions)</th><th>Markets</th><th>Source</th><th>Type</th><th>Proven?</th><th style="text-align:right">By chance</th><th>Why</th></tr></thead>
+      <tbody>${tRows||'<tr><td colspan="7" style="color:var(--tx3)">no window logged inside the next 30 sessions</td></tr>'}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">"By chance" is how often a random window held a ≥5% swing pivot on that market's own full history. Only two baselines were measured — 3-session and 5-session — so that is what is quoted, and the length quoted is named in every row: a window much wider than its baseline is <b>much easier</b> to hit than the figure shown, and is flagged. A window only means something if it beats the baseline for its own length. Rows are merged when several markets carry the identical window, source, type and reasons.</div></div></div>`;
+  // ── c. what is proven so far
+  const pv=new Map(); DL.forEach(f=>{ const k=f.inst+'|'+f.study+'|'+f.pattern; if(!pv.has(k)) pv.set(k,f); });
+  const pvAll=[...pv.values()];
+  const pvRows=FWD_GRP.map(g=>{ const body=g[2].map(k=>pvAll.filter(f=>f.inst===k).map(f=>{
+      const B=f.backtest||{}, I=B.in, O=B.out, W=B.weeks;
+      return `<tr><td>${fwdEsc(f.inst)}</td><td style="white-space:nowrap">${fwdEsc(UPC_STUDY[f.study]||f.study)}</td>
+        <td>${fwdEsc(f.plain||f.pattern)}<div style="font-size:10px;color:var(--tx2)">${fwdEsc(f.claim)}${fwdEsc(upcBias(f))}</div></td>
+        <td style="text-align:right;white-space:nowrap">${I?`${upcRate(I)} vs ${upcBase(I)}<div style="color:var(--tx3);font-size:10px">n ${I.n} · BH q ${fwdP(I.bhQ)}</div>`:'—'}</td>
+        <td style="text-align:right;white-space:nowrap">${O?`${upcRate(O)} vs ${upcBase(O)}<div style="color:var(--tx3);font-size:10px">n ${O.n} · p ${fwdP(O.p)}</div>`:'—'}</td>
+        <td style="text-align:right;white-space:nowrap">${W?`${upcRate(W)} vs ${upcBase(W)}<div style="color:var(--tx3);font-size:10px">n ${W.n} · p ${fwdP(W.p)}</div>`:'—'}</td></tr>`; }).join('')).join('');
+    return body?`<tr><td class="upc-g" colspan="6">${fwdEsc(g[1].toUpperCase())}</td></tr>`+body:''; }).join('');
+  const nDir=pvAll.filter(f=>f.study==='dir').length;
+  const pvTurn=R.filter(f=>f.edge).length;
+  const proven=`<div class="pnl"><div class="ph"><span class="dot"></span>WHAT IS PROVEN SO FAR — the evidence behind every ★</div><div class="pb">
+    <div style="font-size:11.5px;color:var(--tx1);line-height:1.6;margin-bottom:6px">
+      ${nDir?`<span style="color:var(--neut)">${nDir} direction pattern${nDir===1?'':'s'} currently active</span>`:'<b>No daily DIRECTION pattern is proven on any of the 10 markets.</b>'}
+      ${pvAll.length?` ${pvAll.length} proven daily pattern${pvAll.length===1?' is':'s are'} active over these sessions, almost all of them "big-move day" ones whose up/down split is a coin-flip.`:' No proven daily pattern is active over these sessions.'}
+      ${pvTurn?` ${pvTurn} logged turn window${pvTurn===1?'':'s'} rest${pvTurn===1?'s':''} on a proven pattern.`:''}
+    </div>
+    <div class="upc-scroll" style="max-height:420px"><table class="tbl"><thead><tr><th>Market</th><th>Study</th><th>Pattern &amp; claim</th><th style="text-align:right">In sample 2000–2018</th><th style="text-align:right">Out of sample 2019→</th><th style="text-align:right">Blocks / weeks</th></tr></thead>
+      <tbody>${pvRows||'<tr><td colspan="6" style="color:var(--tx3)">no proven daily pattern is active on any of these sessions</td></tr>'}</tbody></table></div>
+    <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Proven = passed the Benjamini–Hochberg correction on 2000–2018 AND beat chance again on 2019 → the last bar, on days and on blocks/episodes. Everything else is labelled "not proven — past hits ≈ random chance" and is shown grey.</div></div></div>`;
+  const foot=`<div class="pnl"><div class="pb" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--tx3)">
+    ${upcFwdLink()}<span>— how these same forecasts have actually graded so far. Research log, not a recommendation.</span></div></div>`;
+  return head+grid+turns+proven+foot;
+}
+window.tUpcoming=tUpcoming;
+
+/* ── ONE-TAP MARKET SWITCH ───────────────────────────────────────────
+   India ⇄ US from the header: location, session, time picker range and the
+   instrument of whichever tab has one, all moved together. Venue keys go
+   through the same LOCATIONS / locTzFor path the instrument pickers use, so
+   the header's timezone label, sessionRange() and every intraday engine
+   follow automatically. Each side's instrument choice is remembered in
+   S.mktPick, so switching back restores what was showing there.
+   A manual switch also stops the follow-the-open-market timer for the rest
+   of the session (S.mktAuto=false), or it would be undone within a minute. */
+const MKT_SIDE_DEF = {
+  in: {ovInst:'NIFTY 50', planInst:'NIFTY 50', taInst:'NIFTY', dfInst:'NIFTY'},
+  us: {ovInst:'DOW',      planInst:'DOW',      taInst:'SPX',   dfInst:'SPX'}
+};
+const MKT_SIDE_VENUE = {in:'Mumbai', us:'New York'};
+function mktSideNow(){ return (S.loc==='New York'||S.loc==='Chicago')?'us':'in'; }
+window.mktSideNow=mktSideNow;
+function mktSideOk(k,v){
+  try{
+    if(k==='ovInst'||k==='planInst') return typeof PLAN_INST!=='undefined' && PLAN_INST[v]!=null;
+    return typeof RE_UNIV!=='undefined' && RE_UNIV[v]!=null;
+  }catch(e){ return false; }
+}
+function mktSwitchSide(){
+  const from=mktSideNow(), to=from==='us'?'in':'us';
+  const keep=S.mktPick||(S.mktPick={}); keep[from]=keep[from]||{}; keep[to]=keep[to]||{};
+  for(const k of ['ovInst','planInst','taInst','dfInst']) if(S[k]!=null) keep[from][k]=S[k];
+  const venue=MKT_SIDE_VENUE[to], L=LOCATIONS[venue]||LOCATIONS['Mumbai'], oldL=LOCATIONS[S.loc]||LOCATIONS['Mumbai'];
+  LAT=L.lat; LON=L.lon; IST=locTzFor(venue,S.date);
+  const upd={loc:venue, session:(S.session==='24h'?'24h':'mkt')};
+  // TIME: hold the same distance into the session where it still fits, else the new venue's open
+  if(upd.session==='24h') upd.time=S.time;
+  else { const off=parseFloat(S.time)-oldL.open;
+    const t=(isFinite(off)&&off>=0&&(L.open+off)<=L.close)?(L.open+off):L.open;
+    upd.time=String(Math.round(t*12)/12); }
+  const D=MKT_SIDE_DEF[to];
+  for(const k of Object.keys(D)){ const v=keep[to][k]||D[k]; if(mktSideOk(k,v)) upd[k]=v; }
+  if(upd.ovInst) upd[to==='us'?'mktUsPref':'mktInPref']=upd.ovInst;
+  // do not let the follow-the-open-market timer undo an explicit choice
+  upd.mktAuto=false; upd.mktLastBlock=null;
+  try{ upd.mktPinBlock=mktBlockNow().block; }catch(e){}
+  gs(upd);
+}
+window.mktSwitchSide=mktSwitchSide;
+
+// ═══════════════════════════════════════════════════════════════════
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['fwd','✓ Forward Test'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['fwd','✓ Forward Test'],['upcoming','📅 Upcoming'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
@@ -4767,7 +5033,7 @@ window.navGo=navGo;
 addEventListener('hashchange',()=>{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m && m[1]!==S.tab) gs({tab:m[1]}); });
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();
