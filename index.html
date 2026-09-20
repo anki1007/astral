@@ -27118,22 +27118,178 @@ function reBacktestBodyHTML(){
 
 const BM_START='2000-01-01', BM_TRAIN_END='2018-12-31';
 const BM_MOVE=1.0;             // |close vs previous close| > 1%
+const BM_REV=1.0;              // move AWAY from the day's extreme, in % — ≥, not >
 const BM_MIN_OOS=30;           // out-of-sample firings a row must have to be provable
 const BM_MIN_EP=8;             // …spread over ≥8 SEPARATE episodes, in and out of sample
 const BM_Q=0.05;               // Benjamini–Hochberg false-discovery rate
 const BM_MIN_N=40;             // a feature must be present on ≥40 sessions to be ranked
+const BM_MIN_SESS=300;         // below this a category is reported as too thin to test
 const BM_BODIES=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'];
-const BM_INST=(typeof DP_INST!=='undefined')?DP_INST:[['NIFTY','Nifty 50']];
+const BM_INST=(typeof DP_INST!=='undefined')?DP_INST:[['NIFTY','Nifty 50']];   // seed, until discovery lands
 const BM_INDIA=new Set(['NIFTY','BANKNIFTY','SENSEX','FINNIFTY','MIDCPNIFTY','NIFTYNXT50']);
 const BM_DEG='° ';             // degree-token prefix
+const BM_MIN_BARS=600;         // a baked file shorter than this is skipped, and said to be skipped
+
+/* ── which instruments this panel offers ────────────────────────────────────
+   Discovered from the bakes themselves — data/nse/_index.json and
+   data/yahoo/_index.json, which every fetch script already writes — so a newly
+   baked index appears here with no edit to this file. Anything whose file is
+   absent, or whose bar count is below BM_MIN_BARS, is skipped and SAID to be
+   skipped rather than quietly dropped. */
+const BM_GROUPS=[['india','India indices'],['sector','NSE sectoral indices'],
+                 ['comm','Commodities'],['us','US indices']];
+const BM_G_INDIA=new Set(['NIFTY','BANKNIFTY','FINNIFTY','MIDCPNIFTY','NIFTYNXT50','SENSEX']);
+const BM_G_COMM=new Set(['GOLD','SILVER','COPPER','CRUDE','NATGAS']);
+const BM_G_US=new Set(['DOW','SPX','NASDAQ']);
+/* the 16 NSE sectoral keys, with the names to show for them — they are not in
+   RE_UNIV, so their labels live here and their bars are read straight from the
+   baked file by dsBaked() */
+const BM_SECT={NIFTYIT:'Nifty IT', NIFTYPHARMA:'Nifty Pharma', NIFTYAUTO:'Nifty Auto',
+  NIFTYFMCG:'Nifty FMCG', NIFTYMETAL:'Nifty Metal', NIFTYREALTY:'Nifty Realty',
+  NIFTYENERGY:'Nifty Energy', NIFTYPSUBANK:'Nifty PSU Bank', NIFTYPVTBANK:'Nifty Private Bank',
+  NIFTYMEDIA:'Nifty Media', NIFTYINFRA:'Nifty Infrastructure', NIFTYCOMMOD:'Nifty Commodities',
+  NIFTYCONSUM:'Nifty Consumption', NIFTYHEALTH:'Nifty Healthcare', NIFTYOILGAS:'Nifty Oil & Gas',
+  NIFTYSERV:'Nifty Services Sector'};
+function bmGroupOf(k){ return BM_G_INDIA.has(k)?'india':BM_SECT[k]?'sector':BM_G_COMM.has(k)?'comm':BM_G_US.has(k)?'us':null; }
+function bmLabel(k){
+  if(BM_SECT[k]) return BM_SECT[k];
+  try{ if(RE_UNIV[k]&&RE_UNIV[k].label) return RE_UNIV[k].label; }catch(e){}
+  const d=BM_INST.find(x=>x[0]===k); return d?d[1]:k;
+}
+/* [key,label,group], in group order; the seed list until discovery resolves */
+function bmInsts(){
+  const L=window.BM&&window.BM.inst;
+  if(L&&L.length) return L;
+  return BM_INST.map(x=>[x[0],x[1],bmGroupOf(x[0])||'india']);
+}
+async function bmDiscover(){
+  if(window.BM.instProm) return window.BM.instProm;
+  return window.BM.instProm=(async()=>{
+    const found=new Map(), skip=[];
+    for(const dir of ['data/nse/','data/yahoo/']){
+      let j=null;
+      try{ const r=await fetch(dir+'_index.json',{cache:'no-cache'}); if(r.ok) j=await r.json(); }catch(e){}
+      const ins=(j&&j.instruments)||null;
+      if(!ins) continue;
+      for(const k of Object.keys(ins)){
+        const g=bmGroupOf(k); if(!g) continue;               // stocks and everything else stay out
+        const n=ins[k]&&ins[k].count;
+        if(n!=null&&isFinite(n)&&n<BM_MIN_BARS){ skip.push([k,n+' baked bars, under '+BM_MIN_BARS]); continue; }
+        found.set(k,[k,bmLabel(k),g,(n!=null&&isFinite(n))?n:null]);
+      }
+    }
+    /* whatever the index files did not list — typically a sectoral bake that
+       has not finished yet — is reported, not silently missing */
+    for(const k of Object.keys(BM_SECT)) if(!found.has(k)&&!skip.some(s=>s[0]===k)) skip.push([k,'not baked yet']);
+    for(const k of [...BM_G_INDIA,...BM_G_COMM,...BM_G_US]) if(!found.has(k)&&!skip.some(s=>s[0]===k)) skip.push([k,'no baked file']);
+    let list=[...found.values()];
+    if(!list.length) list=BM_INST.map(x=>[x[0],x[1],bmGroupOf(x[0])||'india',null]);  // offline: fall back to the seed
+    const ord=BM_GROUPS.map(g=>g[0]);
+    list.sort((a,b)=>ord.indexOf(a[2])-ord.indexOf(b[2])||(a[1]<b[1]?-1:a[1]>b[1]?1:0));
+    window.BM.inst=list; window.BM.instSkip=skip;
+    return list;
+  })();
+}
+
+/* ── the session categories ─────────────────────────────────────────────────
+   Each one is a plainly-defined subset of the sessions, each one is split in
+   two, and each one is measured with exactly the same machinery against ITS
+   OWN baseline. Nothing is shared between them except the sky, which is read
+   once per session and reused.
+
+     move  : |close − prev close| > 1%                       (daily OHLC)
+     revhi : (high − close)/high  ≥ 1%                       (daily OHLC)
+     revlo : (close − low)/low    ≥ 1%                       (daily OHLC)
+     ivhi  : (day's high − the lowest low AFTER it)/high ≥ 1%   (intraday bars)
+     ivlo  : (the highest high AFTER the day's low − low)/low ≥ 1% (intraday bars)
+
+   The two reversal-from-extreme categories are HEADLINE definitions: there is
+   no condition on the previous close and no condition on the day's direction.
+   A day that is up 3% and closes 1.5% below its high is a reversal from the
+   high. The familiar "…and it also closed below the previous close" reading is
+   kept, but only as a SECONDARY SPLIT reported beside the headline count.
+
+   The two ivXX categories are the true intraday reversal, which extreme-to-
+   close understates. They come from the baked intraday bars (NSE 5-minute
+   shards from 2022 for the Indian instruments, the Yahoo 60-minute file for
+   the rest), so they have a much shorter history, their own baseline and their
+   own train/test split, and they are NEVER merged with the daily categories.
+   Where the intraday history is too thin the category says so instead of
+   showing a thin number.
+
+   `pos` and `neg` always partition `hit`, so the same counts, the same episode
+   null and the same Benjamini–Hochberg family work unchanged for all five. */
+const BM_CATS=['move','revhi','revlo','ivhi','ivlo'];
+const BM_IV=new Set(['ivhi','ivlo']);
+function bmSpec(c){
+  const revhi={
+    id:'revhi', pick:'reversal from high (daily)', src:'daily',
+    head:'sessions that closed at least '+BM_REV+'% below the day’s high',
+    defn:'(high − close) / high ≥ '+BM_REV+'% — how far price came back from the high into the close. No condition on the previous close and no condition on whether the day was up or down overall: a day that is up 3% and still closes 1.5% below its high counts.',
+    ok:s=>s.gbHi!=null, hit:s=>s.gbHi>=BM_REV,
+    pos:s=>s.gbHi>=BM_REV&&s.mv<0, neg:s=>s.gbHi>=BM_REV&&!(s.mv<0),
+    gb:s=>s.gbHi, gbLab:'give-back from the high',
+    catLab:'reversal from the day’s high', catShort:'rev-from-high',
+    posLab:'ALSO closed below the previous close (a true failed rally)',
+    negLab:'still closed at or above the previous close (gave back an intraday gain only)',
+    posShort:'+ closed down', negShort:'+ closed ≥ prev',
+    degLab:'closed below prev', degBase:'failed-rally share',
+    up:'var(--bear)', dn:'var(--bull)' };
+  const revlo={
+    id:'revlo', pick:'reversal from low (daily)', src:'daily',
+    head:'sessions that closed at least '+BM_REV+'% above the day’s low',
+    defn:'(close − low) / low ≥ '+BM_REV+'% — how far price recovered off the low into the close. No condition on the previous close and no condition on whether the day was up or down overall: a day that is down 3% and still closes 1.5% above its low counts.',
+    ok:s=>s.gbLo!=null, hit:s=>s.gbLo>=BM_REV,
+    pos:s=>s.gbLo>=BM_REV&&s.mv>0, neg:s=>s.gbLo>=BM_REV&&!(s.mv>0),
+    gb:s=>s.gbLo, gbLab:'recovery off the low',
+    catLab:'reversal from the day’s low', catShort:'rev-from-low',
+    posLab:'ALSO closed above the previous close (a true recovery)',
+    negLab:'still closed at or below the previous close (recovered an intraday loss only)',
+    posShort:'+ closed up', negShort:'+ closed ≤ prev',
+    degLab:'closed above prev', degBase:'true-recovery share',
+    up:'var(--bull)', dn:'var(--bear)' };
+  if(c==='revhi') return revhi;
+  if(c==='revlo') return revlo;
+  if(c==='ivhi') return Object.assign({}, revhi, {
+    id:'ivhi', pick:'intraday reversal from high', src:'intraday',
+    head:'sessions that fell at least '+BM_REV+'% from the day’s high to a LATER intraday low',
+    defn:'(day’s high − the lowest low recorded AFTER the high was made) / high ≥ '+BM_REV+'%, measured on the baked intraday bars. This is the true reversal; the daily high-to-close version above understates it whenever price bounced back before the bell.',
+    ok:s=>s.ivHi!=null, hit:s=>s.ivHi>=BM_REV,
+    pos:s=>s.ivHi>=BM_REV&&s.mv<0, neg:s=>s.ivHi>=BM_REV&&!(s.mv<0),
+    gb:s=>s.ivHi, gbLab:'fall from the high to the later low',
+    catLab:'intraday reversal from the high', catShort:'iv-rev-high' });
+  if(c==='ivlo') return Object.assign({}, revlo, {
+    id:'ivlo', pick:'intraday reversal from low', src:'intraday',
+    head:'sessions that rose at least '+BM_REV+'% from the day’s low to a LATER intraday high',
+    defn:'(the highest high recorded AFTER the low was made − day’s low) / low ≥ '+BM_REV+'%, measured on the baked intraday bars. This is the true reversal; the daily low-to-close version above understates it whenever price slipped back before the bell.',
+    ok:s=>s.ivLo!=null, hit:s=>s.ivLo>=BM_REV,
+    pos:s=>s.ivLo>=BM_REV&&s.mv>0, neg:s=>s.ivLo>=BM_REV&&!(s.mv>0),
+    gb:s=>s.ivLo, gbLab:'rise from the low to the later high',
+    catLab:'intraday reversal from the low', catShort:'iv-rev-low' });
+  return {
+    id:'move', pick:'>1% move', src:'daily',
+    head:'sessions that moved more than '+BM_MOVE+'%',
+    defn:'|close − previous close| &gt; '+BM_MOVE+'%.',
+    ok:s=>true, hit:s=>Math.abs(s.mv)>BM_MOVE,
+    pos:s=>s.mv>BM_MOVE, neg:s=>s.mv<-BM_MOVE,
+    gb:s=>Math.abs(s.mv), gbLab:'move size',
+    catLab:'big move', catShort:'big-move',
+    posLab:'closed up (more than +'+BM_MOVE+'%)', negLab:'closed down (more than −'+BM_MOVE+'%)',
+    posShort:'up', negShort:'down',
+    degLab:'closed up', degBase:'big-move up-share',
+    up:'var(--bull)', dn:'var(--bear)' };
+}
 
 window.BM = window.BM || {res:{}, busy:0};
 
 function bmAy(){ try{ return taAy(); }catch(e){ return 'lahiri'; } }
-function bmInst(){ const k=S.bmInst; return BM_INST.some(x=>x[0]===k)?k:BM_INST[0][0]; }
-function bmInstName(k){ const r=BM_INST.find(x=>x[0]===k); return r?r[1]:k; }
+function bmInst(){ const L=bmInsts(), k=S.bmInst; return L.some(x=>x[0]===k)?k:L[0][0]; }
+function bmInstName(k){ const r=bmInsts().find(x=>x[0]===k); return r?r[1]:bmLabel(k); }
+function bmCat(){ const c=S.bmCat; return BM_CATS.indexOf(c)>=0?c:'move'; }
 function bmKey(k,ay){ return k+'|'+(ay||bmAy()); }
 function bmGrp(k){ return BM_INDIA.has(k)?'india':'us'; }
+/* the selected category's slice of a built result */
+function bmSel(R,c){ const s=R&&R.cat&&R.cat[c||bmCat()]; return s||R; }
 /* the venue's own open, expressed as an IST hour — the same convention as
    istHourFor()/VENUE in scripts/forward_log.js */
 function bmTod(ds,k){
@@ -27149,6 +27305,9 @@ function bmProg(){ const R=window.BM.res[bmKey(bmInst())]; if(!R) return;
 function bmPct(v){ return v==null||!isFinite(v)?'—':(v*100).toFixed(2)+'%'; }
 function bmPP(v){ return v==null||!isFinite(v)?'—':(v>=0?'+':'−')+Math.abs(v*100).toFixed(2)+' pp'; }
 function bmPf(p){ return p==null?'—':(p<1e-6?'<1e-6':p<0.001?p.toExponential(1):p.toFixed(3)); }
+function bmNum(v,d){ return v==null||!isFinite(v)?'—':v.toFixed(d==null?2:d)+'%'; }
+function bmMed(a){ if(!a||!a.length) return null; const b=a.slice().sort((x,y)=>x-y), m=b.length>>1;
+  return b.length%2?b[m]:(b[m-1]+b[m])/2; }
 /* two-sided binomial p — the deviation may be in either direction, and both
    directions are ranked here, so a one-sided p would understate the family */
 function bmP2(k,n,p0){
@@ -27158,35 +27317,121 @@ function bmP2(k,n,p0){
 }
 
 /* ── build ──────────────────────────────────────────────────────────────── */
-function bmEnsure(){ const k=bmInst(), ay=bmAy(), key=bmKey(k,ay), C=window.BM.res;
+function bmEnsureK(k){ const ay=bmAy(), key=bmKey(k,ay), C=window.BM.res;
   if(C[key]) return C[key].prom||Promise.resolve(C[key]);
   const R=C[key]={status:'loading',prog:0,k,ay,key,msg:'loading price history…'};
   R.prom=bmBuild0(R,k,ay); return R.prom; }
+function bmEnsure(){ bmDiscover().then(()=>bmPaint(),()=>{}); return bmEnsureK(bmInst()); }
 function bmRetry(){ delete window.BM.res[bmKey(bmInst())]; bmPaint(); bmEnsure().then(bmPaint,bmPaint); }
 function bmPick(v){ S.bmInst=v; bmPaint(); bmEnsure().then(bmPaint,bmPaint); }
+function bmPickCat(v){ S.bmCat=v; bmPaint(); }
 function bmToggleDeg(){ S.bmAllDeg=(S.bmAllDeg==='1')?'':'1'; bmPaint(); }
-window.bmPick=bmPick; window.bmRetry=bmRetry; window.bmToggleDeg=bmToggleDeg; window.bmEnsure=bmEnsure;
+
+/* ── the cross-market sweep ─────────────────────────────────────────────────
+   The summary table wants one row per instrument, which means one full build
+   per instrument. That is far too much to do when the panel opens, so it is
+   done strictly one at a time, in the background, AFTER the instrument the
+   reader actually selected is ready; every result is the same cached object
+   the rest of the panel uses, so nothing is computed twice and switching
+   category re-reads the same builds instead of rebuilding. The sky itself
+   (reFeat / reBook) is cached by date, so the second and later instruments of
+   a venue cost only their tally. */
+function bmSweepOn(){ return S.bmSweep!=='0'; }
+function bmToggleSweep(){ S.bmSweep=bmSweepOn()?'0':'1'; bmPaint(); if(bmSweepOn()) bmSweep(); }
+async function bmSweep(){
+  if(window.BM.sweeping||!bmSweepOn()) return;
+  window.BM.sweeping=true;
+  try{
+    await bmDiscover();
+    const ay=bmAy();
+    /* the selected instrument first, then the rest in picker order */
+    const sel=bmInst(), L=bmInsts().map(x=>x[0]);
+    const order=[sel].concat(L.filter(k=>k!==sel));
+    for(const k of order){
+      if(!bmSweepOn()) break;
+      const R=window.BM.res[bmKey(k,ay)];
+      if(R&&(R.status==='ready'||R.status==='error')) continue;
+      window.BM.sweepK=k; bmPaint();
+      try{ await bmEnsureK(k); }catch(e){}
+      bmPaint(); await reYield();
+    }
+  } finally { window.BM.sweeping=false; window.BM.sweepK=null; bmPaint(); }
+}
+window.bmPick=bmPick; window.bmPickCat=bmPickCat; window.bmRetry=bmRetry;
+window.bmToggleDeg=bmToggleDeg; window.bmEnsure=bmEnsure; window.bmEnsureK=bmEnsureK;
+window.bmSweep=bmSweep; window.bmToggleSweep=bmToggleSweep; window.bmDiscover=bmDiscover;
 
 function bmPaint(){ try{ const e=document.getElementById('bm-body');
   if(e) e.innerHTML=bmPanelHTML(); setTimeout(collapsibleInit,10); }catch(err){} }
 window.bmPaint=bmPaint;
 
+/* The true intraday reversal, per date, from the app's own baked intraday
+   store — NSE 5-minute shards for the Indian instruments, the Yahoo 60-minute
+   file for the Yahoo-only ones (dsBakedIntraday refuses 60-minute for NSE keys,
+   which is why the step depends on the venue). For each date:
+     ivHi = (day's high − the LOWEST low in the bars AFTER the high bar)/high
+     ivLo = (the HIGHEST high in the bars AFTER the low bar − day's low)/low
+   If the extreme is set in the last bar of the session there is no later bar
+   and the value is 0 — not a reversal, and not a missing value either. */
+async function bmIntraday(k){
+  try{
+    const step = DS_YAHOO_ONLY.has(k) ? '60' : '5';
+    const bars = await dsBakedIntraday(k, 2022, step);
+    if(!bars || !bars.length) return {map:null, step, why:'no baked intraday file for '+bmInstName(k)};
+    const by=new Map();
+    for(const b of bars){ const d=b.date; if(!d) continue;
+      if(!(isFinite(b.h)&&isFinite(b.l)&&b.h>0&&b.l>0)) continue;
+      let a=by.get(d); if(!a) by.set(d,a=[]); a.push(b); }
+    const map=new Map();
+    for(const [d,a] of by){
+      if(a.length<4) continue;                       // a stub session proves nothing
+      a.sort((x,y)=>String(x.t)<String(y.t)?-1:String(x.t)>String(y.t)?1:0);
+      let hi=-Infinity, lo=Infinity, hIx=0, lIx=0;
+      for(let i=0;i<a.length;i++){ if(a[i].h>hi){ hi=a[i].h; hIx=i; }
+                                   if(a[i].l<lo){ lo=a[i].l; lIx=i; } }
+      let after=Infinity; for(let i=hIx+1;i<a.length;i++) if(a[i].l<after) after=a[i].l;
+      let above=-Infinity; for(let i=lIx+1;i<a.length;i++) if(a[i].h>above) above=a[i].h;
+      map.set(d,{ivHi: (hi>0&&isFinite(after)) ? (hi-after)/hi*100 : 0,
+                 ivLo: (lo>0&&isFinite(above)) ? (above-lo)/lo*100 : 0,
+                 nb:a.length});
+    }
+    return {map, step, why:null};
+  }catch(e){ return {map:null, step:null, why:(e&&e.message)||'intraday load failed'}; }
+}
+
 async function bmBuild0(R,k,ay){
   try{
-    const u=RE_UNIV[k]; if(!u) throw new Error('unknown instrument '+k);
-    const rows = dsHasBake(k) ? await dsBars(k,'days','1',BM_START,tnToday(),()=>reFetchOHLCYahoo(u.sym,'max'))
-                              : await reFetchOHLC(u.sym,'max',k);
+    /* The sectoral indices are baked but are not in RE_UNIV and have no Yahoo
+       symbol, so the ordinary router cannot see them; their bars come straight
+       out of the baked file by the same reader every other bake uses. */
+    const u=RE_UNIV[k];
+    const rows = (u&&dsHasBake(k)) ? await dsBars(k,'days','1',BM_START,tnToday(),()=>reFetchOHLCYahoo(u.sym,'max'))
+               : u                 ? await reFetchOHLC(u.sym,'max',k)
+                                   : await dsBaked(k);
+    if(!rows||!rows.length) throw new Error('no baked daily file for '+bmInstName(k)+' yet');
     const seen=new Set(), bars=[];
-    (rows||[]).map(r=>({date:r.date||reISO(r.ts), c:+r.c}))
+    (rows||[]).map(r=>({date:r.date||reISO(r.ts), c:+r.c, h:+r.h, l:+r.l}))
       .filter(b=>b.date&&isFinite(b.c)&&b.c>0)
       .sort((x,y)=>x.date<y.date?-1:1)
       .forEach(b=>{ if(!seen.has(b.date)){ seen.add(b.date); bars.push(b); } });
     if(bars.length<600) throw new Error('only '+bars.length+' daily bars for '+bmInstName(k));
 
+    /* one session record carries everything every category needs: the
+       close-to-close move, the give-back from the high, the recovery off the
+       low and — where there are intraday bars — the true intraday excursions.
+       A bar without a usable high/low simply does not take part in the
+       reversal categories; it is not silently counted as a non-event. */
+    R.msg='reading the baked intraday bars…';
+    const IV=await bmIntraday(k);
     const SS=[];
     for(let i=1;i<bars.length;i++){ const b=bars[i], p=bars[i-1].c;
       if(b.date<BM_START || !(p>0)) continue;
-      SS.push({date:b.date, mv:(b.c-p)/p*100}); }
+      const okH=isFinite(b.h)&&b.h>0&&b.h>=b.c, okL=isFinite(b.l)&&b.l>0&&b.l<=b.c;
+      const iv=IV.map?IV.map.get(b.date):null;
+      SS.push({date:b.date, c:b.c, pc:p, mv:(b.c-p)/p*100,
+        gbHi: okH ? (b.h-b.c)/b.h*100 : null,
+        gbLo: okL ? (b.c-b.l)/b.l*100 : null,
+        ivHi: iv?iv.ivHi:null, ivLo: iv?iv.ivLo:null}); }
     if(!SS.length) throw new Error('no sessions since '+BM_START+' for '+bmInstName(k));
 
     /* pass 1 — the sky at each session's own reading instant */
@@ -27220,9 +27465,21 @@ async function bmBuild0(R,k,ay){
     }
 
     R.phase='count'; R.msg='counting…'; R.prog=96; bmProg(); await reYield();
-    Object.assign(R, bmTally(SS,k,ay), {status:'ready',prog:100,msg:'',
+    /* the sky is read once; every category is then tallied over it, each with
+       its own baseline, its own train/test split and its own Benjamini–
+       Hochberg family */
+    const cat={};
+    for(const c of BM_CATS){
+      cat[c]=bmTally(SS,k,ay,bmSpec(c));
+      if(BM_IV.has(c)&&cat[c].unavail&&IV.why) cat[c].unavail=IV.why;
+      cat[c].k=k; cat[c].ay=ay; cat[c].catId=c;
+      await reYield();
+    }
+    Object.assign(R, cat.move, {cat, status:'ready',prog:100,msg:'',
       lastBar:bars[bars.length-1].date, firstBar:SS[0].date, nBars:bars.length,
+      ivStep:IV.step, ivWhy:IV.why, ivDays:IV.map?IV.map.size:0,
       book:window.BM.bookOff!==true});
+    for(const c of BM_CATS){ cat[c].lastBar=R.lastBar; cat[c].firstBar=R.firstBar; }
   }catch(e){
     R.status='error'; R.err=(e&&e.message)||String(e); R.prog=100;
   }
@@ -27232,33 +27489,85 @@ async function bmBuild0(R,k,ay){
 }
 
 /* ── tally ──────────────────────────────────────────────────────────────── */
-function bmTally(SS,k,ay){
-  const use=SS.filter(s=>s.toks);
+/* sp is a category spec from bmSpec(). Everything below is written against
+   sp.hit / sp.pos / sp.neg, so the big-move study and the four reversal studies
+   are literally the same code and the same null — only the definition of the
+   session changes. Field names are kept (nBig / nUp / nDn / upShare) so that
+   the reader of one table is reading the identical quantity in the next. */
+function bmTally(SS,k,ay,sp){
+  sp=sp||bmSpec('move');
+  const use=SS.filter(s=>s.toks&&sp.ok(s));
   const nAll=use.length;
-  const isBig=s=>Math.abs(s.mv)>BM_MOVE, isUp=s=>s.mv>BM_MOVE, isDn=s=>s.mv<-BM_MOVE;
-  const per=s=>s.date<=BM_TRAIN_END?0:1;
+
+  /* the out-of-sample split. The daily categories run 2000 → 2018 against
+     2019 → last bar, as the standard requires. The intraday categories cannot:
+     their history starts in 2022, so they are split at the midpoint of the
+     history they actually have, and the panel says so in those words rather
+     than pretending to a 2018 boundary that does not exist. */
+  const isIv=BM_IV.has(sp.id);
+  const split = isIv ? (nAll?use[Math.floor(nAll/2)].date:BM_TRAIN_END) : BM_TRAIN_END;
+  const trLab = isIv ? ((nAll?use[0].date:'—')+' → '+split) : '2000–2018';
+  const ooLab = isIv ? ('after '+split) : '2019+';
+  const per=s=>s.date<=split?0:1;
+
+  const bases0={BIG:[0,0,0],UP:[0,0,0],DOWN:[0,0,0]};
+  if(nAll<BM_MIN_SESS)
+    return {cnt:{nAll,nBig:0,nUp:0,nDn:0,share:0,upShare:0,allUpRate:0,gbAvg:null,gbMed:null,
+                 gbMax:null,gbAvgPos:null,gbMedPos:null,alsoBig:null,alsoBigN:0,alsoOther:null,
+                 runMax:0,runAvg:null,nRuns:0,tr:{nAll:0,nBig:0,nUp:0,share:0,upShare:0},
+                 oo:{nAll:0,nBig:0,nUp:0,share:0,upShare:0}},
+            deg:[], degT:[], feat:{BIG:[],UP:[],DOWN:[]}, provenList:[],
+            tests:0, luck:0, raw:0, rawDay:0, bhPass:0, nProven:0, bases:bases0,
+            degBins:BM_BODIES.length*30, sp:sp.id, split, trLab, ooLab,
+            catFirst:nAll?use[0].date:null, catLast:nAll?use[nAll-1].date:null,
+            unavail:'only '+nAll+' session'+(nAll===1?'':'s')+' of usable history for this category — fewer than the '+BM_MIN_SESS+' this study will test on'};
+
+  const isBig=sp.hit, isUp=sp.pos, isDn=sp.neg;
   const big=use.filter(isBig), up=use.filter(isUp), dn=use.filter(isDn);
 
+  /* how big the give-back / recovery / move actually was, so the panel can
+     report an average and a median instead of only a count */
+  const gbs=big.map(sp.gb).filter(v=>v!=null&&isFinite(v));
+  const gbsPos=up.map(sp.gb).filter(v=>v!=null&&isFinite(v));
+  const alsoBigN=big.filter(s=>Math.abs(s.mv)>BM_MOVE).length;
   const cnt={nAll, nBig:big.length, nUp:up.length, nDn:dn.length,
     share:nAll?big.length/nAll:0,
     upShare:big.length?up.length/big.length:0,
     allUpRate:nAll?use.filter(s=>s.mv>0).length/nAll:0,
-    tr:{}, oo:{}};
+    gbAvg:gbs.length?gbs.reduce((a,b)=>a+b,0)/gbs.length:null,
+    gbMed:bmMed(gbs),
+    gbMax:gbs.length?Math.max.apply(null,gbs):null,
+    gbAvgPos:gbsPos.length?gbsPos.reduce((a,b)=>a+b,0)/gbsPos.length:null,
+    gbMedPos:bmMed(gbsPos),
+    /* how these days cluster against the other categories */
+    alsoBigN, alsoBig:big.length?alsoBigN/big.length:null,
+    alsoOther:big.length?big.filter(s=>{
+      const o=sp.id==='revhi'?s.gbLo:sp.id==='revlo'?s.gbHi:sp.id==='ivhi'?s.ivLo:sp.id==='ivlo'?s.ivHi:null;
+      return o!=null&&o>=BM_REV; }).length/big.length:null,
+    runMax:0, runAvg:null, nRuns:0, tr:{}, oo:{}};
+  {
+    const RR=[]; let r=0;
+    for(const s of use){ if(isBig(s)) r++; else { if(r) RR.push(r); r=0; } }
+    if(r) RR.push(r);
+    cnt.runMax=RR.length?Math.max.apply(null,RR):0;
+    cnt.runAvg=RR.length?RR.reduce((a,b)=>a+b,0)/RR.length:null;
+    cnt.nRuns=RR.length;
+  }
   [0,1].forEach(p=>{ const a=use.filter(s=>per(s)===p), b=a.filter(isBig);
     const o=(p?cnt.oo:cnt.tr);
-    o.nAll=a.length; o.nBig=b.length; o.nUp=b.filter(s=>s.mv>0).length;
+    o.nAll=a.length; o.nBig=b.length; o.nUp=b.filter(isUp).length;
     o.share=a.length?b.length/a.length:0; o.upShare=b.length?o.nUp/b.length:0;
     o.nUpAll=a.filter(isUp).length; o.nDnAll=a.filter(isDn).length; });
 
-  /* One row per token. Days are NOT independent: big moves cluster, and a slow
-     planet sits in one degree, one sign or one aspect for a single unbroken
-     stretch of calendar time — so "Jupiter ☌ Saturn" covering the 2020 crash is
-     ONE observation, not 300. Every token is therefore also cut into EPISODES
-     (contiguous runs of sessions on which it is present, exactly the RE_MIN_EP
-     idea the research engine already uses), and the p-value that reaches
-     Benjamini–Hochberg is the episode-level one. The day-level rate is still
-     shown, because it is what the reader is looking at — but it never decides
-     whether something is proven. */
+  /* One row per token. Days are NOT independent: these sessions cluster, and a
+     slow planet sits in one degree, one sign or one aspect for a single
+     unbroken stretch of calendar time — so "Jupiter ☌ Saturn" covering the 2020
+     crash is ONE observation, not 300. Every token is therefore also cut into
+     EPISODES (contiguous runs of sessions on which it is present, exactly the
+     RE_MIN_EP idea the research engine already uses), and the p-value that
+     reaches Benjamini–Hochberg is the episode-level one. The day-level rate is
+     still shown, because it is what the reader is looking at — but it never
+     decides whether something is proven. */
   const T=new Map();
   const get=t=>{ let o=T.get(t); if(!o) T.set(t,o={t, ix:[]}); return o; };
   for(let i=0;i<use.length;i++){ const s=use[i], seen=new Set();
@@ -27276,22 +27585,21 @@ function bmTally(SS,k,ay){
 
   /* THE NULL — the part that decides whether anything here is real.
      A binomial over DAYS is the wrong null and it manufactures discoveries:
-     big moves arrive in clusters, so a feature whose days happen to fall inside
-     one volatile stretch scores an astronomically small p while its lift is
-     0.99×. reEpNull is wrong here too — it assumes independent days inside an
-     episode, which for a target that occurs on a third of all sessions makes
-     "this episode contained a big move" a near-certainty and any shortfall
-     look overwhelming.
+     these sessions arrive in clusters, so a feature whose days happen to fall
+     inside one volatile stretch scores an astronomically small p while its lift
+     is 0.99×. reEpNull is wrong here too — it assumes independent days inside
+     an episode, which for a target that occurs on a third of all sessions makes
+     "this episode contained one" a near-certainty and any shortfall look
+     overwhelming.
      What is used instead: windows of the SAME lengths as this row's own
      episodes, dropped at random positions in THIS instrument's own outcome
      series. That null carries the real clustering with it, and for a window
      length L its probabilities are computed EXACTLY by sliding the window once
      over the whole series — no sampling, and cheap enough to do for every row:
-       qB / qU / qD(L) = P(a random window of L sessions contains a big /
-                          big-up / big-down day)
-       qLean(L)        = P(it contains a big move AND those big moves lean up)
-     Episodes are independent placements, so means and variances add and the
-     observed count becomes a z against that null. */
+       qB / qU / qD(L) = P(a random window of L sessions contains a category /
+                          positive-split / negative-split day)
+       qLean(L)        = P(it contains a category day AND those days lean to the
+                          positive split) */
   const NU=use.length;
   const aB=new Uint8Array(NU), aU=new Uint8Array(NU), aD=new Uint8Array(NU);
   for(let i=0;i<NU;i++){ const s=use[i]; if(isBig(s)) aB[i]=1; if(isUp(s)) aU[i]=1; if(isDn(s)) aD[i]=1; }
@@ -27322,21 +27630,22 @@ function bmTally(SS,k,ay){
     for(const i of ix){ const s=use[i], p=per(s); nAllP[p]++;
       if(isBig(s)) nBigP[p]++; if(isUp(s)) nUpP[p]++; if(isDn(s)) nDnP[p]++; }
 
-    /* (a) DEGREE rows — direction ON big-move sessions, against this
-           instrument's own big-move up-share (NOT its all-session up-rate).
-           Episodes: one vote per contiguous run that contains a big move, the
-           vote being the majority direction of that run's big-move days. The
-           vote count is then compared with what randomly-placed windows of the
-           very same lengths produce on this same series. */
+    /* (a) DEGREE rows — the secondary split ON category sessions, against this
+           instrument's own within-category split share (NOT its all-session
+           up-rate). Episodes: one vote per contiguous run that contains a
+           category day, the vote being the majority split of that run's
+           category days. The vote count is then compared with what
+           randomly-placed windows of the very same lengths produce on this
+           same series. */
     if(bmIsDeg(o.t)){
       const n=nBigP[0]+nBigP[1], kk=nUpP[0]+nUpP[1];
       if(n){
         let nEp=0,kEp=0,trEp=0,ooEp=0,mu=0,va=0;
-        for(const R of runs){ const w=WIN(R.length); mu+=w.qLean; va+=w.qLean*(1-w.qLean);
+        for(const RR of runs){ const w=WIN(RR.length); mu+=w.qLean; va+=w.qLean*(1-w.qLean);
           let b=0,u=0;
-          for(const i of R){ const s=use[i]; if(isBig(s)){ b++; if(s.mv>0) u++; } }
+          for(const i of RR){ const s=use[i]; if(isBig(s)){ b++; if(isUp(s)) u++; } }
           if(!b) continue; nEp++; if(u*2>b) kEp++;
-          if(per(use[R[0]])===0) trEp++; else ooEp++; }
+          if(per(use[RR[0]])===0) trEp++; else ooEp++; }
         const share=kk/n, pEp=bmZ(kEp,mu,va);
         const r={t:o.t, n, k:kk, share, edge:share-cnt.upShare, ci:reWilson(kk,n),
           pDay:bmP2(kk,n,cnt.upShare), p:pEp, nEp, kEp, trEp, ooEp,
@@ -27348,16 +27657,17 @@ function bmTally(SS,k,ay){
       }
     }
 
-    /* (b) FEATURE rows — how often the feature is present on big-move days vs
-           on ordinary days (lift), for three targets. The p asks: do THIS
-           feature's episodes contain the target more (or less) often than
-           randomly-placed windows of the very same lengths do on this same
-           series? The lift stays the descriptive number the reader wants; it is
-           the z that decides whether anything is claimed. */
+    /* (b) FEATURE rows — how often the feature is present on category days vs
+           on ordinary days (lift), for the category and each half of its
+           secondary split. The p asks: do THIS feature's episodes contain the
+           target more (or less) often than randomly-placed windows of the very
+           same lengths do on this same series? The lift stays the descriptive
+           number the reader wants; it is the z that decides whether anything is
+           claimed. */
     const n=nAllP[0]+nAllP[1];
     if(n>=BM_MIN_N){
       const nEp=runs.length, EL=n/Math.max(1,nEp);
-      const wn=runs.map(R=>WIN(R.length));
+      const wn=runs.map(RR=>WIN(RR.length));
       for(const tgt of ['BIG','UP','DOWN']){
         const hit=tgt==='BIG'?isBig:tgt==='UP'?isUp:isDn;
         const cP=tgt==='BIG'?nBigP:tgt==='UP'?nUpP:nDnP;
@@ -27365,9 +27675,9 @@ function bmTally(SS,k,ay){
         const base=bs[tgt][0], bTr=bs[tgt][1], bOo=bs[tgt][2];
         const kk=cP[0]+cP[1], rate=kk/n, lift=base>0?rate/base:0;
         let kEp=0,trEp=0,ooEp=0,kEpOo=0,mu=0,va=0;
-        for(let ri=0;ri<runs.length;ri++){ const R=runs[ri], q=wn[ri][qk];
+        for(let ri=0;ri<runs.length;ri++){ const RR=runs[ri], q=wn[ri][qk];
           mu+=q; va+=q*(1-q);
-          const h=R.some(i=>hit(use[i])), oos=per(use[R[0]])===1;
+          const h=RR.some(i=>hit(use[i])), oos=per(use[RR[0]])===1;
           if(h) kEp++; if(oos){ ooEp++; if(h) kEpOo++; } else trEp++; }
         const trR=nAllP[0]?cP[0]/nAllP[0]:null, ooR=nAllP[1]?cP[1]/nAllP[1]:null;
         const r={t:o.t, tgt, n, k:kk, rate, base, lift, ci:reWilson(kk,n),
@@ -27379,7 +27689,8 @@ function bmTally(SS,k,ay){
     }
   }
 
-  /* one Benjamini–Hochberg family over EVERYTHING tested for this instrument */
+  /* one Benjamini–Hochberg family over EVERYTHING tested for this instrument
+     in THIS category */
   reBH(tests, tests.length);
   const luck=tests.length*0.05;
   const raw=tests.filter(r=>r.p<0.05).length;
@@ -27388,7 +27699,7 @@ function bmTally(SS,k,ay){
 
   /* the full standard: survives BH on the EPISODE test, ≥30 out-of-sample
      firings spread over ≥8 out-of-sample episodes, and the same direction in
-     BOTH 2000–2018 and 2019 → last bar */
+     BOTH halves of this category's own train / test split */
   const provenDeg=r=>r.q!=null&&r.q<=BM_Q&&r.ooN>=BM_MIN_OOS&&r.ooEp>=BM_MIN_EP&&r.trEp>=BM_MIN_EP&&
                      r.trEdge!=null&&r.ooEdge!=null&&r.edge!==0&&
                      Math.sign(r.trEdge)===Math.sign(r.edge)&&Math.sign(r.ooEdge)===Math.sign(r.edge);
@@ -27405,20 +27716,22 @@ function bmTally(SS,k,ay){
   ['BIG','UP','DOWN'].forEach(t=>feat[t].sort((a,b)=>b.lift-a.lift));
 
   /* the tropical read of the same degree table, reported alongside */
-  const degT=bmDegTrop(use,cnt);
+  const degT=bmDegTrop(use,cnt,sp);
 
   return {cnt, deg, degT, feat, provenList, tests:tests.length, luck, raw, rawDay, bhPass, nProven,
-          bases:bs, degBins:BM_BODIES.length*30};
+          bases:bs, degBins:BM_BODIES.length*30, sp:sp.id, split, trLab, ooLab,
+          catFirst:use[0].date, catLast:use[use.length-1].date};
 }
 
 /* same degree table, tropical — a second read of the same sessions so the
    answer never rests on one ayanamsa */
-function bmDegTrop(use,cnt){
+function bmDegTrop(use,cnt,sp){
+  sp=sp||bmSpec('move');
   const M=new Map();
-  for(const s of use){ if(!s.dgT) continue; if(!(Math.abs(s.mv)>BM_MOVE)) continue;
+  for(const s of use){ if(!s.dgT) continue; if(!sp.hit(s)) continue;
     for(const b of BM_BODIES){ const d=s.dgT[b]; if(d==null) continue;
       const t=bmDegTok(b,d); let o=M.get(t); if(!o) M.set(t,o={t,n:0,k:0});
-      o.n++; if(s.mv>0) o.k++; } }
+      o.n++; if(sp.pos(s)) o.k++; } }
   const out=[];
   for(const o of M.values()){ if(!o.n) continue;
     out.push({t:o.t, n:o.n, k:o.k, share:o.k/o.n, edge:o.k/o.n-cnt.upShare, p:bmP2(o.k,o.n,cnt.upShare)}); }
@@ -27428,11 +27741,15 @@ function bmDegTrop(use,cnt){
 }
 
 /* ── panel ──────────────────────────────────────────────────────────────── */
-function bmSummaryLine(R){
-  const nm=bmInstName(R.k);
-  if(R.nProven>0) return `<b style="color:var(--bull)">${R.nProven}</b> of the ${R.tests.toLocaleString()} things tested on ${reEsc(nm)} passed the full standard — beat the big-move baseline in 2000–2018 <i>and</i> again on 2019 → ${R.lastBar}, on at least ${BM_MIN_OOS} out-of-sample days over at least ${BM_MIN_EP} separate episodes, and survived Benjamini–Hochberg: <b>Proven in backtest ✓</b>. They are flagged in the tables below.`;
+function bmEdgeClr(sp,e){ return e>0?sp.up:e<0?sp.dn:'var(--tx2)'; }
+function bmCap(s){ return String(s).charAt(0).toUpperCase()+String(s).slice(1); }
+function bmSummaryLine(R,sp){
+  sp=sp||bmSpec(R.catId||'move');
+  const nm=bmInstName(R.k||bmInst()), what=sp.catLab;
+  if(R.unavail) return `<b>Not tested.</b> ${reEsc(nm)} has ${reEsc(R.unavail)}, so this category is reported as unavailable rather than measured on a handful of sessions. Nothing here is proven, nothing is scored, and no number from it reaches a forecast.`;
+  if(R.nProven>0) return `<b style="color:var(--bull)">${R.nProven}</b> of the ${R.tests.toLocaleString()} things tested on ${reEsc(nm)}'s ${reEsc(what)} sessions passed the full standard — beat that category's own baseline on ${reEsc(R.trLab)} <i>and</i> again on ${reEsc(R.ooLab)}, on at least ${BM_MIN_OOS} out-of-sample days over at least ${BM_MIN_EP} separate episodes, and survived Benjamini–Hochberg: <b>Proven in backtest ✓</b>. They are flagged in the tables below.`;
   const fewer=R.raw<=R.luck;
-  return `<b>Nothing passed.</b> ${R.tests.toLocaleString()} degree bins and sky features were tested on ${reEsc(nm)}'s big-move sessions; about <b>${R.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck alone and <b>${R.raw}</b> actually did${fewer?' — <b>fewer than luck alone would hand you</b>':''}. After Benjamini–Hochberg <b>${R.bhPass}</b> survived, and of those <b>none</b> also held the same direction in both 2000–2018 and 2019 → ${R.lastBar} with at least ${BM_MIN_OOS} out-of-sample firings over at least ${BM_MIN_EP} separate episodes. So on this evidence neither the planetary degree a big move lands on nor anything else in the sky that day is <b>proven — past hits ≈ random chance</b>. Nothing here is wired into a forecast, nothing is graded forward on it, and no number on this panel reaches a score.`;
+  return `<b>Nothing passed.</b> ${R.tests.toLocaleString()} degree bins and sky features were tested on ${reEsc(nm)}'s ${reEsc(what)} sessions; about <b>${R.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck alone and <b>${R.raw}</b> actually did${fewer?' — <b>fewer than luck alone would hand you</b>':''}. After Benjamini–Hochberg <b>${R.bhPass}</b> survived, and of those <b>none</b> also held the same direction on both ${reEsc(R.trLab)} and ${reEsc(R.ooLab)} with at least ${BM_MIN_OOS} out-of-sample firings over at least ${BM_MIN_EP} separate episodes. So on this evidence neither the planetary degree such a session lands on nor anything else in the sky that day is <b>proven — past hits ≈ random chance</b>. Nothing here is wired into a forecast, nothing is graded forward on it, and no number on this panel reaches a score.`;
 }
 function bmFlag(r){
   if(r.proven) return rePill('Proven in backtest ✓','var(--bull)','var(--bull3)');
@@ -27442,11 +27759,12 @@ function bmFlag(r){
   if(r.q!=null&&r.q<=BM_Q) return rePill('survived BH, direction flips','var(--neut)','var(--neut3)');
   return rePill('not proven — past hits ≈ random chance','var(--tx3)','var(--bg3)');
 }
-function bmDegRow(r){
+function bmDegRow(r,sp){
+  const c=bmEdgeClr(sp,r.edge);
   return `<tr><td style="white-space:nowrap">${reEsc(r.t)}</td>
     <td style="text-align:right">${r.n}</td>
-    <td style="text-align:right;font-weight:700;color:${r.edge>0?'var(--bull)':r.edge<0?'var(--bear)':'var(--tx2)'}">${bmPct(r.share)}</td>
-    <td style="text-align:right;color:${r.edge>0?'var(--bull)':'var(--bear)'}">${bmPP(r.edge)}</td>
+    <td style="text-align:right;font-weight:700;color:${c}">${bmPct(r.share)}</td>
+    <td style="text-align:right;color:${c}">${bmPP(r.edge)}</td>
     <td style="text-align:right;font-size:10px;color:var(--tx3)">[${bmPct(r.ci[0])}, ${bmPct(r.ci[1])}]</td>
     <td style="text-align:right" title="episodes = contiguous runs of sessions in which this bin is occupied; a slow planet sits in one degree for a single unbroken stretch, so its days are one observation, not many">${r.kEp}/${r.nEp}</td>
     <td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)} · day-p ${bmPf(r.pDay)}</div></td>
@@ -27468,20 +27786,22 @@ function bmFeatRow(r){
     <td style="text-align:right;font-size:10.5px">${r.ooLift==null?'—':r.ooLift.toFixed(2)+'×'} <span style="color:var(--tx3)">(${r.ooK}/${r.ooN}d, ${r.ooEp}ep)</span></td>
     <td>${bmFlag(r)}</td></tr>`;
 }
-function bmDegTable(R){
+function bmDegTable(R,sp){
   const all=S.bmAllDeg==='1', L=R.deg;
-  const head=`<thead><tr><th>Degree bin</th><th>n big-move</th><th>closed up</th><th>edge vs ${bmPct(R.cnt.upShare)}</th><th>95% Wilson CI</th><th title="episodes with a big move / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>2000–2018</th><th>2019+</th><th>Verdict</th></tr></thead>`;
+  if(!L.length) return `<div style="font-size:11px;color:var(--tx3)">No degree bin was occupied on a ${reEsc(sp.catLab)} session.</div>`;
+  const head=`<thead><tr><th>Degree bin</th><th>n ${sp.catShort}</th><th>${sp.degLab}</th><th>edge vs ${bmPct(R.cnt.upShare)}</th><th>95% Wilson CI</th><th title="episodes with a ${reEsc(sp.catLab)} / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>${reEsc(R.trLab)}</th><th>${reEsc(R.ooLab)}</th><th>Verdict</th></tr></thead>`;
   const body = all
-    ? L.map(bmDegRow).join('')
-    : L.slice(0,15).map(bmDegRow).join('')
-      +`<tr><td colspan="10" style="font-size:10.5px;color:var(--tx3);white-space:normal">… ${Math.max(0,L.length-30)} bins in the middle hidden — the most bearish 15 follow …</td></tr>`
-      +L.slice(-15).map(bmDegRow).join('');
+    ? L.map(r=>bmDegRow(r,sp)).join('')
+    : L.slice(0,15).map(r=>bmDegRow(r,sp)).join('')
+      +`<tr><td colspan="10" style="font-size:10.5px;color:var(--tx3);white-space:normal">… ${Math.max(0,L.length-30)} bins in the middle hidden — the most negative 15 follow …</td></tr>`
+      +L.slice(-15).map(r=>bmDegRow(r,sp)).join('');
   return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">${head}<tbody>${body}</tbody></table></div>
-    <div style="margin-top:5px"><a style="cursor:pointer;color:var(--acc);font-size:11px" onclick="bmToggleDeg()">${all?'▴ show only the most bullish / most bearish 15':'▾ show all '+L.length+' degree bins'}</a></div>`;
+    <div style="margin-top:5px"><a style="cursor:pointer;color:var(--acc);font-size:11px" onclick="bmToggleDeg()">${all?'▴ show only the most positive / most negative 15':'▾ show all '+L.length+' degree bins'}</a></div>`;
 }
-function bmFeatTable(R,tgt,n){
+function bmFeatTable(R,tgt,n,sp){
   const L=R.feat[tgt]; if(!L.length) return `<div style="font-size:11px;color:var(--tx3)">No feature was present on at least ${BM_MIN_N} sessions.</div>`;
-  const head=`<thead><tr><th>Feature</th><th>days present</th><th>of which ${tgt==='BIG'?'big-move':tgt==='UP'?'&gt; +1%':'&lt; −1%'}</th><th>lift</th><th>95% Wilson CI</th><th title="episodes containing the target / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>2000–2018</th><th>2019+</th><th>Verdict</th></tr></thead>`;
+  const of=tgt==='BIG'?sp.catShort:tgt==='UP'?sp.posShort:sp.negShort;
+  const head=`<thead><tr><th>Feature</th><th>days present</th><th>of which ${of}</th><th>lift</th><th>95% Wilson CI</th><th title="episodes containing the target / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>${reEsc(R.trLab)}</th><th>${reEsc(R.ooLab)}</th><th>Verdict</th></tr></thead>`;
   const top=L.slice(0,n), bot=L.slice(-n);
   return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">${head}<tbody>
     <tr><td colspan="10" style="font-size:10.5px;color:var(--tx2);font-weight:700">MOST OVER-REPRESENTED (top ${top.length} by lift)</td></tr>
@@ -27489,54 +27809,144 @@ function bmFeatTable(R,tgt,n){
     <tr><td colspan="10" style="font-size:10.5px;color:var(--tx2);font-weight:700">MOST UNDER-REPRESENTED (bottom ${bot.length} by lift)</td></tr>
     ${bot.map(bmFeatRow).join('')}</tbody></table></div>`;
 }
-function bmCountsHTML(R){
+function bmCountsHTML(R,sp){
   const C=R.cnt;
+  const gb=sp.id==='move'
+    ? `<div>Average / median ${sp.gbLab}: <b style="color:var(--tx1)">${bmNum(C.gbAvg)}</b> / <b style="color:var(--tx1)">${bmNum(C.gbMed)}</b> <span style="color:var(--tx3)">(largest ${bmNum(C.gbMax)})</span></div>`
+    : `<div title="how far price actually travelled away from the day's extreme">Average / median ${sp.gbLab}: <b style="color:var(--acc)">${bmNum(C.gbAvg)}</b> / <b style="color:var(--acc)">${bmNum(C.gbMed)}</b> <span style="color:var(--tx3)">(largest ${bmNum(C.gbMax)}; on the secondary split ${bmNum(C.gbAvgPos)} / ${bmNum(C.gbMedPos)})</span></div>`;
+  const clus=sp.id==='move' ? ''
+    : `<div title="how much these sessions overlap the >1% close-to-close category, and how much they clump together in time">Also a &gt;${BM_MOVE}% close-to-close move: <b style="color:var(--tx1)">${bmPct(C.alsoBig)}</b> <span style="color:var(--tx3)">(${C.alsoBigN}) · also a reversal of the other kind ${bmPct(C.alsoOther)} · ${C.nRuns} unbroken runs, longest ${C.runMax} sessions, average ${C.runAvg==null?'—':C.runAvg.toFixed(2)}</span></div>`;
   return `<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--tx2);margin:6px 0">
-    <div>Sessions since 2000: <b style="color:var(--tx1)">${C.nAll.toLocaleString()}</b> (${R.firstBar} → ${R.lastBar})</div>
-    <div>Moved more than ${BM_MOVE}%: <b style="color:var(--acc)">${C.nBig.toLocaleString()}</b> — ${bmPct(C.share)} of all sessions</div>
-    <div>Of those: <b style="color:var(--bull)">${C.nUp.toLocaleString()} up</b> / <b style="color:var(--bear)">${C.nDn.toLocaleString()} down</b></div>
-    <div title="This is the honest baseline for every direction row below — NOT the all-session up-rate.">Big-move up-share: <b style="color:var(--tx1)">${bmPct(C.upShare)}</b> <span style="color:var(--tx3)">(all-session up-rate ${bmPct(C.allUpRate)})</span></div>
-    <div>2000–2018: ${C.tr.nBig} big of ${C.tr.nAll} · ▲ ${bmPct(C.tr.upShare)}</div>
-    <div>2019+: ${C.oo.nBig} big of ${C.oo.nAll} · ▲ ${bmPct(C.oo.upShare)}</div></div>`;
+    <div>Sessions usable for this category: <b style="color:var(--tx1)">${C.nAll.toLocaleString()}</b> (${R.catFirst||R.firstBar} → ${R.catLast||R.lastBar}${sp.src==='intraday'?' — only the sessions the intraday bake covers':''})</div>
+    <div>${reEsc(bmCap(sp.head))}: <b style="color:var(--acc)">${C.nBig.toLocaleString()}</b> — ${bmPct(C.share)} of them <span style="color:var(--tx3)">← the headline count</span></div>
+    <div title="a secondary split of the headline category, not the category itself">Secondary split — of those: <b style="color:${sp.up}">${C.nUp.toLocaleString()}</b> ${sp.posLab} / <b style="color:${sp.dn}">${C.nDn.toLocaleString()}</b> ${sp.negLab}</div>
+    <div title="This is the honest baseline for every split row below — NOT the all-session up-rate.">${reEsc(bmCap(sp.degBase))}: <b style="color:var(--tx1)">${bmPct(C.upShare)}</b> <span style="color:var(--tx3)">(all-session up-rate ${bmPct(C.allUpRate)} — deliberately not used as a baseline anywhere)</span></div>
+    ${gb}${clus}
+    <div>${reEsc(R.trLab)}: ${C.tr.nBig} of ${C.tr.nAll} · split ${bmPct(C.tr.upShare)}</div>
+    <div>${reEsc(R.ooLab)}: ${C.oo.nBig} of ${C.oo.nAll} · split ${bmPct(C.oo.upShare)}</div></div>`;
 }
-function bmTropHTML(R){
+function bmTropHTML(R,sp){
   const L=R.degT; if(!L||!L.length) return '';
-  const row=r=>`<tr><td style="white-space:nowrap">${reEsc(r.t)}</td><td style="text-align:right">${r.n}</td><td style="text-align:right;color:${r.edge>0?'var(--bull)':'var(--bear)'}">${bmPct(r.share)}</td><td style="text-align:right;color:${r.edge>0?'var(--bull)':'var(--bear)'}">${bmPP(r.edge)}</td><td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)}</div></td></tr>`;
+  const row=r=>`<tr><td style="white-space:nowrap">${reEsc(r.t)}</td><td style="text-align:right">${r.n}</td><td style="text-align:right;color:${bmEdgeClr(sp,r.edge)}">${bmPct(r.share)}</td><td style="text-align:right;color:${bmEdgeClr(sp,r.edge)}">${bmPP(r.edge)}</td><td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)}</div></td></tr>`;
   const pass=L.filter(r=>r.q!=null&&r.q<=BM_Q).length;
-  return `<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">THE SAME TABLE, TROPICAL ZODIAC <span style="font-weight:400;color:var(--tx3)">— the table above is sidereal (${reEsc(R.ay)}); this is the identical measurement on the tropical degree, so the answer does not rest on one ayanamsa. ${pass} of ${L.length} bins survive Benjamini–Hochberg here.</span></div>
-    <div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px"><thead><tr><th>Degree bin</th><th>n big-move</th><th>closed up</th><th>edge</th><th>p (2-sided)</th></tr></thead><tbody>
-    ${L.slice(0,10).map(row).join('')}<tr><td colspan="5" style="font-size:10.5px;color:var(--tx3)">… most bearish 10 …</td></tr>${L.slice(-10).map(row).join('')}</tbody></table></div></div>`;
+  return `<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">THE SAME TABLE, TROPICAL ZODIAC <span style="font-weight:400;color:var(--tx3)">— the table above is sidereal (${reEsc(R.ay||bmAy())}); this is the identical measurement on the tropical degree, so the answer does not rest on one ayanamsa. ${pass} of ${L.length} bins survive Benjamini–Hochberg here.</span></div>
+    <div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px"><thead><tr><th>Degree bin</th><th>n ${sp.catShort}</th><th>${sp.degLab}</th><th>edge</th><th>p (2-sided)</th></tr></thead><tbody>
+    ${L.slice(0,10).map(row).join('')}<tr><td colspan="5" style="font-size:10.5px;color:var(--tx3)">… most negative 10 …</td></tr>${L.slice(-10).map(row).join('')}</tbody></table></div></div>`;
 }
+/* ── cross-market summary ───────────────────────────────────────────────────
+   One row per instrument, for the selected category: how many such sessions
+   it had, what share of its sessions that is, and the single most positive and
+   single most negative degree bin with its episode count and its verdict.
+   These are the EXTREMES of 270 bins, so with ~270 bins per instrument a
+   handful of extreme-looking rows is exactly what chance produces — which is
+   what the line underneath says, in those words, whenever nothing is proven. */
+function bmXCell(r,sp){
+  if(!r) return `<td colspan="2" style="color:var(--tx3)">—</td>`;
+  const c=bmEdgeClr(sp,r.edge);
+  return `<td style="white-space:nowrap">${reEsc(r.t)}<div style="font-size:9.5px;color:var(--tx3)">${r.n}d / ${r.nEp}ep · q ${bmPf(r.q)}</div></td>
+    <td style="text-align:right;color:${c};font-weight:700">${bmPct(r.share)}<div style="font-size:9.5px;font-weight:400">${bmPP(r.edge)}</div></td>`;
+}
+function bmXTable(c,sp){
+  const ay=bmAy(), L=bmInsts(), rows=[];
+  let done=0, err=0, nProv=0;
+  let html='';
+  for(const [gid,gname] of BM_GROUPS){
+    const inG=L.filter(x=>x[2]===gid); if(!inG.length) continue;
+    html+=`<tr><td colspan="8" style="font-size:10.5px;color:var(--tx2);font-weight:700;background:var(--bg2)">${reEsc(gname)}</td></tr>`;
+    for(const [key,label] of inG){
+      const R=window.BM.res[bmKey(key,ay)];
+      if(!R||R.status==='loading'){
+        html+=`<tr><td>${reEsc(label)}</td><td colspan="7" style="font-size:10.5px;color:var(--tx3)">${R?('building… '+(R.prog||0)+'%'):'not built yet'}</td></tr>`;
+        continue; }
+      if(R.status==='error'){ err++;
+        html+=`<tr><td>${reEsc(label)}</td><td colspan="7" style="font-size:10.5px;color:var(--tx3)">not available — ${reEsc(R.err||'error')}</td></tr>`;
+        continue; }
+      const Rc=bmSel(R,c); done++;
+      if(Rc.unavail){
+        html+=`<tr><td>${reEsc(label)}</td><td colspan="7" style="font-size:10.5px;color:var(--tx3)">not tested — ${reEsc(Rc.unavail)}</td></tr>`;
+        continue; }
+      const bull=Rc.deg.length?Rc.deg[0]:null, bear=Rc.deg.length?Rc.deg[Rc.deg.length-1]:null;
+      if(bull&&bull.proven) nProv++; if(bear&&bear.proven) nProv++;
+      const vd=r=>r?(r.proven?'<span style="color:var(--bull)">Proven in backtest ✓</span>':'<span style="color:var(--tx3)">not proven — past hits ≈ random chance</span>'):'—';
+      rows.push({key,label,Rc,bull,bear});
+      html+=`<tr><td style="white-space:nowrap">${reEsc(label)}</td>
+        <td style="text-align:right">${Rc.cnt.nBig.toLocaleString()}</td>
+        <td style="text-align:right">${bmPct(Rc.cnt.share)}<div style="font-size:9.5px;color:var(--tx3)">of ${Rc.cnt.nAll.toLocaleString()}</div></td>
+        ${bmXCell(bull,sp)}${bmXCell(bear,sp)}
+        <td style="font-size:9.5px;white-space:normal">${vd(bull)}<div>${vd(bear)}</div></td></tr>`;
+    }
+  }
+  const total=L.length, pend=total-done-err;
+  const sw=window.BM.sweeping;
+  const prog=`<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">${done} of ${total} instruments built${err?', '+err+' unavailable':''}${pend>0?', '+pend+' still to go':''}${sw&&pend>0&&window.BM.sweepK?' — building '+reEsc(bmInstName(window.BM.sweepK))+' now':''} · <a style="cursor:pointer;color:var(--acc)" onclick="bmToggleSweep()">${bmSweepOn()?'pause the background fill':'resume the background fill'}</a></div>`;
+  const skip=(window.BM.instSkip||[]);
+  const skipTxt=skip.length?`<div style="font-size:10px;color:var(--tx3);margin-top:3px">Not offered: ${skip.map(s=>reEsc(s[0])+' ('+reEsc(s[1])+')').join(', ')}.</div>`:'';
+  const line = nProv>0
+    ? `<b style="color:var(--bull)">${nProv}</b> of the ${done*2} extreme bins listed above passed the full standard and read "Proven in backtest ✓".`
+    : `<b>None of these rows is proven.</b> Every one of them is the most extreme of ${BM_BODIES.length*30} degree bins for its instrument, and with ~${BM_BODIES.length*30} bins per instrument a handful of extreme-looking rows is expected by chance alone — that is what this table shows, and it is why each row carries its Benjamini–Hochberg q and its verdict rather than a number anyone could trade.`;
+  return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">
+    <thead><tr><th>Instrument</th><th>n ${sp.catShort}</th><th>share of sessions</th>
+      <th colspan="2">most ${sp.id==='move'?'bullish':'positive'} degree bin (${sp.degLab})</th>
+      <th colspan="2">most ${sp.id==='move'?'bearish':'negative'} degree bin</th><th>Verdict</th></tr></thead>
+    <tbody>${html}</tbody></table></div>${prog}${skipTxt}
+    <div style="font-size:11px;color:var(--tx2);margin-top:5px;line-height:1.55">${line}</div>`;
+}
+
 function bmPanelHTML(){
-  const k=bmInst(), ay=bmAy(), R=window.BM.res[bmKey(k,ay)];
+  const k=bmInst(), ay=bmAy(), R=window.BM.res[bmKey(k,ay)], c=bmCat(), sp=bmSpec(c);
+  const L=bmInsts();
   const sel=`<select onchange="bmPick(this.value)" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">
-    ${BM_INST.map(x=>`<option value="${reEsc(x[0])}"${x[0]===k?' selected':''}>${reEsc(x[1])}</option>`).join('')}</select>`;
+    ${BM_GROUPS.map(([gid,gname])=>{ const inG=L.filter(x=>x[2]===gid); return inG.length?
+      `<optgroup label="${reEsc(gname)}">${inG.map(x=>`<option value="${reEsc(x[0])}"${x[0]===k?' selected':''}>${reEsc(x[1])}</option>`).join('')}</optgroup>`:''; }).join('')}</select>`;
+  const csel=`<select onchange="bmPickCat(this.value)" title="the same two tables run on a different definition of the session — each against its own baseline, each its own Benjamini–Hochberg family" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">
+    ${BM_CATS.map(x=>`<option value="${reEsc(x)}"${x===c?' selected':''}>${reEsc(bmSpec(x).pick)}</option>`).join('')}</select>`;
   const head=`<div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px">
-    <span><span class="dot" style="background:var(--acc)"></span>BIG-MOVE ANATOMY — sessions that moved more than ${BM_MOVE}%</span>
-    <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${sel}${reNoEdgePill()}</span></div>`;
+    <span><span class="dot" style="background:var(--acc)"></span>BIG-MOVE ANATOMY — ${sp.head}</span>
+    <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${csel}${sel}${reNoEdgePill()}</span></div>`;
   if(!R||R.status==='loading'){ if(!R) setTimeout(()=>{ try{ bmEnsure().then(bmPaint,bmPaint); }catch(e){} },0);
     return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--tx3)">
-      Measuring every session of ${reEsc(bmInstName(k))} since 2000 that closed more than ${BM_MOVE}% from the previous close, and the sky at each one read at that venue's own open …
+      Measuring every session of ${reEsc(bmInstName(k))} since 2000 — the ones that closed more than ${BM_MOVE}% from the previous close, the ones that closed at least ${BM_REV}% below the day's high, the ones that closed at least ${BM_REV}% above the day's low, and (on the baked intraday bars) the ones that travelled at least ${BM_REV}% away from an intraday extreme — and the sky at each one read at that venue's own open …
       <b id="bm-prog" style="color:var(--acc)">${R?R.prog||0:0}%</b>
       <div id="bm-phase" style="font-size:10.5px;margin-top:3px">${reEsc((R&&R.msg)||'')}</div>
-      <div style="font-size:10.5px;margin-top:3px">The first run also evaluates the book engine for every session, which takes a few minutes; the rest of this tab keeps working meanwhile and the result is cached per instrument and ayanamsa.</div></div></div>`; }
+      <div style="font-size:10.5px;margin-top:3px">The first run also evaluates the book engine for every session, which takes a few minutes; the rest of this tab keeps working meanwhile and the result is cached per instrument and ayanamsa — all ${BM_CATS.length} categories are built from that single reading of the sky.</div></div></div>`; }
   if(R.status==='error') return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--bear)">Could not build the big-move study: ${reEsc(R.err||'error')} · <a style="cursor:pointer;color:var(--acc)" onclick="bmRetry()">retry</a></div></div>`;
 
+  const Rc=bmSel(R,c);
+  const other=BM_CATS.filter(x=>x!==c).map(x=>{ const o=R.cat&&R.cat[x]; const s2=bmSpec(x);
+    return o?`${reEsc(s2.pick)}: ${o.unavail?'not tested':(o.nProven?('<b style="color:var(--bull)">'+o.nProven+' passed</b>'):'nothing passed')}`:'';
+  }).filter(Boolean).join(' · ');
+  const ivNote = sp.src!=='intraday' ? '' :
+    `<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">Measured on the baked ${R.ivStep==='60'?'60-minute':'5-minute'} bars (${R.ivDays||0} covered sessions), so this category has a much shorter history than the daily ones, its own baseline and its own train / test split — ${reEsc(Rc.trLab)} against ${reEsc(Rc.ooLab)}, because there is no pre-2022 intraday data to split at 2018. It is never merged with the daily-OHLC categories.${DS_YAHOO_ONLY.has(k)?' Read this one with care: the Yahoo 60-minute file for a round-the-clock future covers far more than a cash session, so a calendar day here spans the overnight too and the category fires much more often than the daily high-to-close version does. That is a property of the data, not a discovery.':''}</div>`;
+
+  const head1=`<div style="padding:6px 9px;border:1px solid var(--bd2);border-left:3px solid ${(!Rc.unavail&&Rc.nProven)?'var(--bull)':'var(--bd2)'};background:var(--bg2);font-size:12px;color:var(--tx1);line-height:1.6">${bmSummaryLine(Rc,sp)}
+      <div style="font-size:10.5px;color:var(--tx3);margin-top:4px">Definition: ${sp.defn}${sp.src==='daily'&&sp.id!=='move'?' The "…and it also closed below/above the previous close" reading is kept below as a SECONDARY SPLIT, not as the category.':''} The other categories on this instrument — ${other}.</div>${ivNote}</div>`;
+
+  if(Rc.unavail) return `<div class="pnl">${head}<div class="pb">${head1}
+    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">⓪ EVERY MARKET AT ONCE — ${reEsc(sp.pick)}
+      <span style="font-weight:400;color:var(--tx3)">— one row per baked instrument: how many such sessions it had, and the single most positive and single most negative of its ${BM_BODIES.length*30} degree bins, each with its episode count, its Benjamini–Hochberg q and its verdict. Built one instrument at a time in the background and cached, so the panel opens immediately.</span></div>
+      ${bmXTable(c,sp)}</div>
+    <div style="margin-top:10px;font-size:11.5px;color:var(--tx3)">No degree table and no feature table are shown for this category, and no test was run, because a number built on ${Rc.cnt.nAll} sessions would not mean anything. ${sp.src==='intraday'?'Bake more intraday history (scripts/fetch_yahoo.py for the Yahoo instruments, the NSE 5-minute shards for the Indian ones) and this category fills in by itself.':''}</div>
+    </div></div>`;
+
+  setTimeout(()=>{ try{ bmSweep(); }catch(e){} },0);
   return `<div class="pnl">${head}<div class="pb">
-    <div style="padding:6px 9px;border:1px solid var(--bd2);border-left:3px solid ${R.nProven?'var(--bull)':'var(--bd2)'};background:var(--bg2);font-size:12px;color:var(--tx1);line-height:1.6">${bmSummaryLine(R)}</div>
-    ${bmCountsHTML(R)}
-    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">① DEGREE TABLE — every planet × whole degree-in-sign, on big-move sessions only
-      <span style="font-weight:400;color:var(--tx3)">— ${BM_BODIES.length} bodies × 30 degrees = ${R.degBins} bins, sidereal (${reEsc(R.ay)}), read at ${bmGrp(k)==='india'?'09:15 IST':'09:30 New York'}. "Edge" is against this instrument's own big-move up-share (${bmPct(R.cnt.upShare)}), never against its all-session up-rate. At 5%, roughly <b>${(R.degBins*0.05).toFixed(0)}</b> of the ${R.degBins} bins on ONE instrument — about <b>${(R.degBins*BM_INST.length*0.05).toFixed(0)}</b> across all ${BM_INST.length} — would look significant by luck alone, which is why every row carries a Benjamini–Hochberg q.</span></div>
-      ${bmDegTable(R)}
-      ${bmTropHTML(R)}</div>
-    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">② WHAT ELSE WAS PRESENT — every other sky feature the app already computes, on big-move days vs ordinary days
-      <span style="font-weight:400;color:var(--tx3)">— planet sign, nakshatra and pada, retrograde / stationary / combust, the full aspect matrix, declination, tithi / yoga / karana (all from the research engine's own reFeat) and the book engine's own daily band (reBook, 09:15 IST). Lift = how much more often the feature is present on a big-move day than on an ordinary one. Minimum ${BM_MIN_N} days present.</span></div>
-      ${bmFeatTable(R,'BIG',25)}</div>
-    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">③ UP-MOVES ONLY (&gt; +${BM_MOVE}%) <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(R.bases.UP[0])} of all sessions. "What moves the market" and "which way" are different questions, so they get different tables.</span></div>
-      ${bmFeatTable(R,'UP',15)}</div>
-    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">④ DOWN-MOVES ONLY (&lt; −${BM_MOVE}%) <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(R.bases.DOWN[0])} of all sessions</span></div>
-      ${bmFeatTable(R,'DOWN',15)}</div>
-    <div style="font-size:10px;color:var(--tx3);margin-top:10px;line-height:1.55">${R.tests.toLocaleString()} tests were run for ${reEsc(bmInstName(k))} (${R.deg.length} degree bins + ${R.feat.BIG.length+R.feat.UP.length+R.feat.DOWN.length} feature × target rows). About <b>${R.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck; <b>${R.raw}</b> did on the episode test (<b>${R.rawDay}</b> would have on the naïve day-level test, which is why the day test is not the one used); <b>${R.bhPass}</b> survived Benjamini–Hochberg at q = ${BM_Q}. Every p here is computed on EPISODES — contiguous runs of sessions on which the feature is present — because big moves cluster and a slow planet holds one degree or one aspect for a single unbroken stretch, so its days are one observation and not hundreds. "Proven in backtest ✓" additionally requires the same direction on 2000–2018 <i>and</i> on 2019 → ${R.lastBar}, with at least ${BM_MIN_OOS} out-of-sample firings spread over at least ${BM_MIN_EP} separate episodes in each period; everything else reads "not proven — past hits ≈ random chance". ${R.book?'':'The book band was omitted in this run. '}A study aid — nothing here is a recommendation, and no number on this panel reaches a score.</div>
+    ${head1}
+    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">⓪ EVERY MARKET AT ONCE — ${reEsc(sp.pick)}
+      <span style="font-weight:400;color:var(--tx3)">— one row per baked instrument: how many such sessions it had, and the single most positive and single most negative of its ${BM_BODIES.length*30} degree bins, each with its episode count, its Benjamini–Hochberg q and its verdict. Built one instrument at a time in the background and cached, so the panel opens immediately.</span></div>
+      ${bmXTable(c,sp)}</div>
+    ${bmCountsHTML(Rc,sp)}
+    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">① DEGREE TABLE — every planet × whole degree-in-sign, on ${reEsc(sp.catLab)} sessions only
+      <span style="font-weight:400;color:var(--tx3)">— ${BM_BODIES.length} bodies × 30 degrees = ${Rc.degBins} bins, sidereal (${reEsc(R.ay)}), read at ${bmGrp(k)==='india'?'09:15 IST':'09:30 New York'}. "Edge" is against this instrument's own ${reEsc(sp.degBase)} within this category (${bmPct(Rc.cnt.upShare)}), never against its all-session up-rate. At 5%, roughly <b>${(Rc.degBins*0.05).toFixed(0)}</b> of the ${Rc.degBins} bins on ONE instrument — about <b>${(Rc.degBins*L.length*BM_CATS.length*0.05).toFixed(0)}</b> across all ${L.length} instruments and all ${BM_CATS.length} categories — would look significant by luck alone, which is why every row carries a Benjamini–Hochberg q.</span></div>
+      ${bmDegTable(Rc,sp)}
+      ${bmTropHTML(Rc,sp)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">② WHAT ELSE WAS PRESENT — every other sky feature the app already computes, on ${reEsc(sp.catLab)} days vs ordinary days
+      <span style="font-weight:400;color:var(--tx3)">— planet sign, nakshatra and pada, retrograde / stationary / combust, the full aspect matrix, declination, tithi / yoga / karana (all from the research engine's own reFeat) and the book engine's own daily band (reBook, 09:15 IST). Lift = how much more often the feature is present on a ${reEsc(sp.catLab)} day than on an ordinary one, against the base ${bmPct(Rc.bases.BIG[0])} — this category's own rate across all its usable sessions. Minimum ${BM_MIN_N} days present.</span></div>
+      ${bmFeatTable(Rc,'BIG',25,sp)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">③ ${sp.id==='move'?'UP-MOVES ONLY':'SECONDARY SPLIT'} — ${sp.posLab} <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(Rc.bases.UP[0])} of all usable sessions. ${sp.id==='move'?'"What moves the market" and "which way" are different questions, so they get different tables.':'A sub-question, not the category: the headline count above does not depend on the previous close at all.'}</span></div>
+      ${bmFeatTable(Rc,'UP',15,sp)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">④ ${sp.id==='move'?'DOWN-MOVES ONLY':'THE REST OF THE SPLIT'} — ${sp.negLab} <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(Rc.bases.DOWN[0])} of all usable sessions</span></div>
+      ${bmFeatTable(Rc,'DOWN',15,sp)}</div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:10px;line-height:1.55">${Rc.tests.toLocaleString()} tests were run for ${reEsc(bmInstName(k))} in this category (${Rc.deg.length} degree bins + ${Rc.feat.BIG.length+Rc.feat.UP.length+Rc.feat.DOWN.length} feature × target rows); each category is its own Benjamini–Hochberg family, and all ${BM_CATS.length} are built from the same single reading of the sky. About <b>${Rc.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck; <b>${Rc.raw}</b> did on the episode test (<b>${Rc.rawDay}</b> would have on the naïve day-level test, which is why the day test is not the one used); <b>${Rc.bhPass}</b> survived Benjamini–Hochberg at q = ${BM_Q}. Every p here is computed on EPISODES — contiguous runs of sessions on which the feature is present — because these sessions cluster and a slow planet holds one degree or one aspect for a single unbroken stretch, so its days are one observation and not hundreds. "Proven in backtest ✓" additionally requires the same direction on ${reEsc(Rc.trLab)} <i>and</i> on ${reEsc(Rc.ooLab)}, with at least ${BM_MIN_OOS} out-of-sample firings spread over at least ${BM_MIN_EP} separate episodes in each period; everything else reads "not proven — past hits ≈ random chance". ${R.book?'':'The book band was omitted in this run. '}A study aid — nothing here is a recommendation, and no number on this panel reaches a score.</div>
   </div></div>`;
 }
 
