@@ -4607,6 +4607,8 @@ function rHdr(){
   const _swTip=`Switch the whole terminal to ${_side==='us'?'India (Mumbai, NSE/BSE hours)':'the US (New York, NYSE/Nasdaq hours)'} — location, timezone, the time picker's range and each tab's instrument, all together. Your pick on each side is remembered. A manual switch also turns OFF follow-the-open-market, so it is not undone a minute later.`;
   const _corner=`<div class="hdr-corner">
     <button class="hdr-cbtn" onclick="mktSwitchSide()" title="${_swTip.replace(/"/g,'&quot;')}" aria-label="Switch market to ${_to}">⇄ <span class="hdr-cbtn-t">${_to}</span></button>
+    <a class="hdr-cbtn${S.tab==='forecast'?' on':''}" href="#tab=forecast" onclick="return navGo(event,'forecast')" title="Future reversal calendar — the fitted model replayed forward">◎ <span class="hdr-cbtn-t">FORECASTING</span></a>
+    <a class="hdr-cbtn${S.tab==='backtest'?' on':''}" href="#tab=backtest" onclick="return navGo(event,'backtest')" title="Swing-reversal research — which astro signatures actually preceded reversals">⟲ <span class="hdr-cbtn-t">BACKTESTING</span></a>
     <a class="hdr-cbtn${S.tab==='upcoming'?' on':''}" href="#tab=upcoming" onclick="return navGo(event,'upcoming')" title="The next 5 sessions across all 10 markets, the upcoming turn dates, and what the evidence actually supports" aria-label="Upcoming">📅<span class="hdr-cbtn-t">UPCOMING</span></a>
     <a class="hdr-cbtn${S.tab==='fwd'?' on':''}" href="#tab=fwd" onclick="return navGo(event,'fwd')" title="The graded record: every logged call, scored against the trivial callers once its session closed">✓ <span class="hdr-cbtn-t">FORWARD TEST</span></a>
   </div>`;
@@ -4841,6 +4843,62 @@ function upcRec(f){   // "2000–2018 16.5% vs 41.0% (n 91) · 2019→ 26.3% vs 
   return [a,b].filter(Boolean).join(' · ');
 }
 function upcFwdLink(lab){ return `<a class="hdr-cbtn" href="#tab=fwd" onclick="return navGo(event,'fwd')" style="font-size:11px">${lab||'✓ Forward Test — the graded record'}</a>`; }
+/* The page opens in plain English: what is worth knowing this week, in
+   sentences. The tables that prove it are one click away, because a reader
+   who wants the evidence is not the same reader who wants the answer. */
+function upcSimpleHTML(E, R, DL, cols, today){
+  const one=k=>`<span style="font-weight:700">${fwdEsc(k)}</span>`;
+  const proven=[], turnsP=[], turnsU=new Map();
+  E.filter(e=>cols.includes(e.target)).forEach(e=>{
+    (e.daily||[]).forEach(f=>{ if(f) proven.push({inst:e.inst, ds:e.target, f}); });
+  });
+  R.filter(f=>!f.graded&&f.to>=today).forEach(f=>{
+    if(f.edge) turnsP.push(f);
+    else { const k=f.from+'|'+f.to; const m=turnsU.get(k)||{from:f.from,to:f.to,n:0}; m.n++; turnsU.set(k,m); }
+  });
+  const days=cols.map(ds=>{
+    const es=E.filter(e=>e.target===ds);
+    const up=es.filter(e=>e.astro.score>0).length, dn=es.filter(e=>e.astro.score<0).length;
+    const sc=es.length?Math.round(es.reduce((a,e)=>a+e.astro.score,0)/es.length):0;
+    return {ds, up, dn, sc, n:es.length};
+  });
+  const lean=d=>d.sc>0?`<span style="color:var(--bull)">leans up</span>`:d.sc<0?`<span style="color:var(--bear)">leans down</span>`:'flat';
+  const row=d=>`<tr><td style="white-space:nowrap;font-weight:700">${fwdEsc(fmtD(d.ds,false))}</td>
+      <td>${lean(d)} <span style="color:var(--tx3)">(book score ${d.sc>0?'+':''}${d.sc})</span></td>
+      <td style="color:var(--tx3)">${d.n?`same call on all ${d.n} markets`:'—'}</td></tr>`;
+  const pv=proven.length
+    ? proven.slice(0,8).map(x=>`<li>${one(x.inst)} on <b>${fwdEsc(fmtD(x.ds,false))}</b> — ${fwdEsc(x.f.claim||'')}${fwdEsc(upcBias(x.f))}
+        <div style="color:var(--tx3);font-size:10.5px">${fwdEsc(x.f.plain||x.f.pattern||'')}</div></li>`).join('')
+    : '<li style="color:var(--tx3)">Nothing proven is active in these sessions.</li>';
+  const tp = turnsP.length
+    ? turnsP.slice(0,8).map(t=>`<li>${one(t.inst)} <b>${fwdEsc(fmtD(t.from,false))} → ${fwdEsc(fmtD(t.to,false))}</b> — ${fwdEsc(t.type)}
+        <span style="color:var(--tx3)">(the pattern behind it passed both tests)</span></li>`).join('')
+    : '<li style="color:var(--tx3)">None — every upcoming turn window rests on a pattern that has not beaten chance.</li>';
+  const nU=[...turnsU.values()].length;
+  return `<div class="pnl"><div class="ph" style="justify-content:space-between">
+      <span><span class="dot"></span>📅 IN PLAIN ENGLISH — the next ${cols.length} session${cols.length===1?'':'s'}</span>
+      <button onclick="gs({upcFull:S.upcFull?'':'1'})" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:11px;cursor:pointer">${S.upcFull?'▴ hide the numbers':'▾ show the numbers'}</button></div>
+    <div class="pb" style="font-size:12px;line-height:1.75">
+      <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:8px 10px;margin-bottom:9px">
+        <b>What this page can and cannot tell you.</b> Nothing here predicts whether a market goes up or down: every
+        direction pattern tested since 2000 failed on later data, and the book's own daily call grades 49.0% against
+        53.9% for simply saying "up" every day. What did survive testing are <b>size</b> patterns — days that tend to
+        move more, or less, than usual — and <b>turn windows</b>, dates near which a ≥5% swing has formed more often
+        than chance. Those are marked ✓ below; everything else is shown because you asked to see it, not because it works.
+      </div>
+      <div class="g2" style="gap:10px">
+        <div><div style="font-size:10.5px;color:var(--tx3);letter-spacing:.06em;margin-bottom:3px">DAY BY DAY — the book's own lean</div>
+          <table class="tbl"><tbody>${days.map(row).join('')}</tbody></table>
+          <div style="font-size:10.5px;color:var(--tx3);margin-top:4px">Unproven: the same sky is read for every market, so the markets cannot disagree.</div></div>
+        <div><div style="font-size:10.5px;color:var(--tx3);letter-spacing:.06em;margin-bottom:3px">WORTH A LOOK — proven patterns active</div>
+          <ul style="margin:0 0 8px 16px;padding:0">${pv}</ul>
+          <div style="font-size:10.5px;color:var(--tx3);letter-spacing:.06em;margin-bottom:3px">TURN WINDOWS THAT PASSED THE TESTS</div>
+          <ul style="margin:0 0 4px 16px;padding:0">${tp}</ul>
+          ${nU?`<div style="font-size:10.5px;color:var(--tx3)">${nU} other turn window${nU===1?'':'s'} are logged but unproven — in the numbers below.</div>`:''}
+        </div>
+      </div>
+    </div></div>`;
+}
 function upcHTML(){
   const U=window.UPC, S=U.sum||{}, L=U.log||{}, E=(L.entries||[]), R=(L.reversals||[]), DL=(L.daily||[]);
   const today=fwdToday();
@@ -4962,7 +5020,8 @@ function upcHTML(){
     <div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Proven = passed the Benjamini–Hochberg correction on 2000–2018 AND beat chance again on 2019 → the last bar, on days and on blocks/episodes. Everything else is labelled "not proven — past hits ≈ random chance" and is shown grey.</div></div></div>`;
   const foot=`<div class="pnl"><div class="pb" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--tx3)">
     ${upcFwdLink()}<span>— how these same forecasts have actually graded so far. Research log, not a recommendation.</span></div></div>`;
-  return head+grid+turns+proven+foot;
+  const simple=upcSimpleHTML(E,R,DL,cols,today);
+  return S.upcFull ? simple+head+grid+turns+proven+foot : simple+foot;
 }
 window.tUpcoming=tUpcoming;
 
@@ -4995,8 +5054,18 @@ function mktSwitchSide(){
   const venue=MKT_SIDE_VENUE[to], L=LOCATIONS[venue]||LOCATIONS['Mumbai'], oldL=LOCATIONS[S.loc]||LOCATIONS['Mumbai'];
   LAT=L.lat; LON=L.lon; IST=locTzFor(venue,S.date);
   const upd={loc:venue, session:(S.session==='24h'?'24h':'mkt')};
-  // TIME: hold the same distance into the session where it still fits, else the new venue's open
-  if(upd.session==='24h') upd.time=S.time;
+  // TIME: on the venue's own today, go to its clock now (clamped into the
+  // session); on any other date, hold the same distance into the session, else
+  // that venue's open.
+  const tzNow=locTzFor(venue,S.date);
+  const nowMs=Date.now()+tzNow*3600000, nowD=new Date(nowMs);
+  const venueToday=nowD.toISOString().slice(0,10);
+  const nowH=nowD.getUTCHours()+nowD.getUTCMinutes()/60;
+  if(upd.session==='24h') upd.time=(S.date===venueToday)?String(Math.round(nowH*12)/12):S.time;
+  else if(S.date===venueToday){
+    const t=Math.min(L.close, Math.max(L.open, nowH));       // before the open / after the close → the nearest edge
+    upd.time=String(Math.round(t*12)/12);
+  }
   else { const off=parseFloat(S.time)-oldL.open;
     const t=(isFinite(off)&&off>=0&&(L.open+off)<=L.close)?(L.open+off):L.open;
     upd.time=String(Math.round(t*12)/12); }
@@ -5014,7 +5083,7 @@ window.mktSwitchSide=mktSwitchSide;
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
