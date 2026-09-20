@@ -27508,6 +27508,86 @@ async function bmIntraday(k){
   }catch(e){ return {map:null, step:null, why:(e&&e.message)||'intraday load failed'}; }
 }
 
+/* ── persisted sky ─────────────────────────────────────────────────────────
+   One record per instrument+ayanamsa holding what pass 1 costs: the sidereal
+   and tropical longitudes of the nine bodies at each session's own reading
+   instant, the retrograde and combust bitmaps, and the feature tokens as ids
+   into a names table. Flat typed arrays, so the structured clone is cheap and
+   the whole thing is roughly two megabytes for a twenty-six-year history.
+
+   The fingerprint pins it to the code that produced it. On top of that, three
+   probe sessions are recomputed live and compared before the record is
+   trusted, because a cache that silently disagrees with the engine would put
+   a wrong number on screen, which is worse than being slow. */
+const BM_SKY_FP=(function(){ try{ return [reFeat,reRaw,bmTod,reTokName].map(f=>String(f).length).join('.'); }catch(e){ return '0'; } })();
+function bmSkyKey(k,ay){ return 'bmsky|'+k+'|'+ay; }
+function bmSkyOne(s,ds,k,ay){                       // compute one session's sky
+  const ft=reFeat(ds,ay,bmTod(ds,k));
+  const toks=[]; for(let j=0;j<ft.ids.length;j++) toks.push(reTokName(ft.ids[j]));
+  const P=ft.meta&&ft.meta.planets;
+  let sl=null, tl=null;
+  if(P){
+    let an=0; try{ an=getAyanamsa(reJD(ds,bmTod(ds,k)),ay); }catch(e){ an=0; }
+    sl=new Array(BM_BODIES.length).fill(null);
+    tl=new Array(BM_BODIES.length).fill(null);
+    for(let bi=0;bi<BM_BODIES.length;bi++){ const p=P[BM_BODIES[bi]];
+      if(!p||p.lon==null||!isFinite(p.lon)) continue;
+      sl[bi]=n360(p.lon); tl[bi]=n360(p.lon+an); }
+  }
+  let rt=0, cb=0;
+  if(P) for(let bi=0;bi<BM_BODIES.length;bi++){ const pb=P[BM_BODIES[bi]];
+    if(!pb) continue; if(pb.retro) rt|=(1<<bi); if(pb.comb) cb|=(1<<bi); }
+  return {toks:toks, sl:sl, tl:tl, rt:rt, cb:cb};
+}
+async function bmSkyLoad(SS,k,ay){
+  let rec=null; try{ rec=await reKvGet(bmSkyKey(k,ay)); }catch(e){ rec=null; }
+  if(!rec || rec.fp!==BM_SKY_FP || !rec.d || !rec.sl) return 0;
+  const B=BM_BODIES.length, at=new Map();
+  for(let i=0;i<rec.d.length;i++) at.set(rec.d[i],i);
+  const read=i=>{
+    const sl=new Array(B), tl=new Array(B);
+    for(let b=0;b<B;b++){ const a=rec.sl[i*B+b], t=rec.tl[i*B+b];
+      sl[b]=isFinite(a)?a:null; tl[b]=isFinite(t)?t:null; }
+    const o=rec.off[i], e=rec.off[i+1], toks=[];
+    for(let j=o;j<e;j++) toks.push(rec.names[rec.tk[j]]);
+    return {sl:sl, tl:tl, rt:rec.rt[i], cb:rec.cb[i], toks:toks};
+  };
+  /* probe before trusting: first, middle, last */
+  const probe=[0, rec.d.length>>1, rec.d.length-1].filter((v,i,a)=>a.indexOf(v)===i && v>=0);
+  for(const i of probe){
+    let live=null; try{ live=bmSkyOne(null,rec.d[i],k,ay); }catch(e){ return 0; }
+    const got=read(i);
+    if(!live.sl||!got.sl) return 0;
+    for(let b=0;b<B;b++){
+      const x=live.sl[b], y=got.sl[b];
+      if((x==null)!==(y==null)) return 0;
+      if(x!=null && Math.abs(x-y)>1e-6) return 0; }
+    if(live.toks.join('\n')!==got.toks.join('\n')) return 0;
+    if(live.rt!==got.rt || live.cb!==got.cb) return 0;
+  }
+  let n=0;
+  for(const s of SS){ const i=at.get(s.date); if(i==null) continue;
+    const g=read(i); s.sl=g.sl; s.tl=g.tl; s.rt=g.rt; s.cb=g.cb; s.toks=g.toks; s.ok=1; n++; }
+  return n;
+}
+async function bmSkySave(SS,k,ay){
+  const rows=SS.filter(s=>s.ok&&s.sl&&s.toks);
+  if(rows.length<500) return false;
+  const B=BM_BODIES.length, N=rows.length;
+  const d=new Array(N), sl=new Float64Array(N*B), tl=new Float64Array(N*B);
+  const rt=new Uint16Array(N), cb=new Uint16Array(N), off=new Int32Array(N+1);
+  const names=[], nid=new Map(), flat=[];
+  for(let i=0;i<N;i++){ const s=rows[i];
+    d[i]=s.date; rt[i]=s.rt|0; cb[i]=s.cb|0; off[i]=flat.length;
+    for(let b=0;b<B;b++){ sl[i*B+b]=(s.sl[b]==null?NaN:s.sl[b]); tl[i*B+b]=(s.tl&&s.tl[b]!=null?s.tl[b]:NaN); }
+    for(const t of s.toks){ let j=nid.get(t); if(j==null){ j=names.length; nid.set(t,j); names.push(t); } flat.push(j); } }
+  off[N]=flat.length;
+  try{ return await reKvSet(bmSkyKey(k,ay),
+    {fp:BM_SKY_FP, d:d, sl:sl, tl:tl, rt:rt, cb:cb, off:off, tk:new Int32Array(flat), names:names}); }
+  catch(e){ return false; }
+}
+window.bmSkySave=bmSkySave; window.bmSkyLoad=bmSkyLoad;
+
 async function bmBuild0(R,k,ay){
   try{
     /* The sectoral indices are baked but are not in RE_UNIV and have no Yahoo
@@ -27544,11 +27624,17 @@ async function bmBuild0(R,k,ay){
         ivHi: iv?iv.ivHi:null, ivLo: iv?iv.ivLo:null}); }
     if(!SS.length) throw new Error('no sessions since '+BM_START+' for '+bmInstName(k));
 
-    /* pass 1 — the sky at each session's own reading instant */
+    /* pass 1 — the sky at each session's own reading instant. Anything the
+       persisted cache already holds is filled in first, so a reload pays for
+       new sessions only. */
     R.phase='sky'; R.msg='reading the sky at every session since 2000…';
     const N=SS.length;
+    let cached=0;
+    try{ cached=await bmSkyLoad(SS,k,ay); }catch(e){ cached=0; }
+    if(cached) R.msg='read '+cached.toLocaleString()+' sessions from the local cache…';
     for(let i=0;i<N;i++){
       const s=SS[i], tod=bmTod(s.date,k);
+      if(s.ok) continue;                               // already filled from cache
       try{
         const ft=reFeat(s.date,ay,tod);
         const toks=[]; for(let j=0;j<ft.ids.length;j++) toks.push(reTokName(ft.ids[j]));
@@ -27575,13 +27661,21 @@ async function bmBuild0(R,k,ay){
       if(i%40===39){ R.prog=Math.round(i/N*62); bmProg(); await reYield(); }
     }
 
+    if(!cached || cached<N) { try{ await bmSkySave(SS,k,ay); }catch(e){} }
+
     /* pass 2 — the book engine's own daily band, at the 09:15 IST reading the
        rest of the app uses for the band (taRead / dpSky), cached by reBook */
     if(window.BM.bookOff!==true){
       R.phase='book'; R.msg='running the Tech-Astro book engine for every session (cached after the first run)…';
+      /* the same persisted record the research engine keeps — this study reads
+         the band at 09:15 IST, so that is the key it shares */
+      let restored=0;
+      try{ restored=await reBookLoad(ay,9.25); }catch(e){ restored=0; }
+      if(restored) R.msg='restored '+restored.toLocaleString()+' rulebook days from the local cache…';
       for(let i=0;i<N;i++){ const s=SS[i]; if(!s.toks) continue;
         try{ const bd=reBook(s.date,ay,9.25).band; if(bd) s.toks.push('Book band: '+bd); }catch(e){}
         if(i%8===7){ R.prog=62+Math.round(i/N*33); bmProg(); await reYield(); } }
+      if(!restored) reBookSave(ay,9.25).catch(()=>{});
     }
 
     R.phase='count'; R.msg='counting…'; R.prog=96; bmProg(); await reYield();
@@ -28383,13 +28477,17 @@ function bmDMLabCell(b){
     +' of them out of sample over '+r.ooEp+' episodes. '
     +(r.proven?'Proven in backtest ✓.':'not proven — past hits ≈ random chance.')
     +' Click to open the DAY LIST on this instrument, this category and this bin.';
-  const col=r.proven?b.col:'var(--tx3)';
+  const col=r.proven?b.col:'var(--tx1)';
   const star=r.proven?'★ ':'';
   const arg=s=>"'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')+"'";
-  return '<td title="'+reEsc(tip)+'" style="cursor:pointer;color:'+col+';font-weight:'+(r.proven?700:400)+'"'
+  /* the tint carries the size of the historical match; the grey text and the
+     lone dot carry the fact that none of it is proven. The full sentence is in
+     the tooltip and stated once in the banner — repeating it inside every cell
+     was most of what made this table unreadable. */
+  return '<td title="'+reEsc(tip)+'" style="cursor:pointer;background:'+calTint(b)+';color:'+col+';font-weight:'+(r.proven?700:600)+'"'
     +' onclick="bmHBFrom('+reEsc(arg(b.k))+','+reEsc(arg(b.cat))+','+reEsc(arg(b.t))+')">'
-    +star+reEsc(b.lab)+'<div style="font-size:9px;color:var(--tx3)">'+reEsc(b.body)+' '+bmPct(r.rate)+'/'+bmPct(r.base)+' n'+r.n+'·e'+r.nEp+'</div>'
-    +(r.proven?'':'<div style="font-size:9px;color:var(--tx3)">not proven — past hits ≈ random chance</div>')+'</td>';
+    +star+reEsc(b.lab)+(r.proven?'':' <span style="color:var(--tx3)" title="not proven — past hits \u2248 random chance">\u00b7</span>')
+    +'<div style="font-size:9px;color:var(--tx3)">'+reEsc(b.body)+' '+bmPct(r.rate)+'/'+bmPct(r.base)+' n'+r.n+'\u00b7e'+r.nEp+'</div></td>';
 }
 function bmDayMapHTML(){
   const D=window.BM.dm, L=bmInsts(), fr=bmFr(), dates=bmDMDates(BM_DM_N);
@@ -28399,9 +28497,16 @@ function bmDayMapHTML(){
     for(const d of r){ if(d.cells.length) nCell++; if(d.cells.some(c=>c.r.proven)) nProven++; } }
   const banner='<div style="background:var(--bg2);border:1px solid var(--bd);border-left:3px solid '+(nProven?'var(--bull)':'var(--bd2)')+';border-radius:4px;padding:8px 10px;font-size:11.5px;line-height:1.65;color:var(--tx1)">'
     +(nProven?'<b style="color:var(--bull)">'+nProven+'</b> of the '+nCell+' filled cells below rest on a bin that passed the full standard; those are the only coloured, ★-marked ones. Every other cell is grey and unproven.'
-             :'<b>No bin has passed; these are the best matches, not forecasts.</b> Every cell below is grey because not one bin beat its own baseline in both halves of the record on at least '+BM_MIN_OOS+' out-of-sample firings over at least '+BM_MIN_EP+' separate episodes. Read a cell as "this is what the closest historical bin did", never as "this is what will happen" — past hits ≈ random chance.')
+             :'<b>No bin has passed; these are the best matches, not forecasts.</b> Not one bin beat its own baseline in both halves of the record on at least '+BM_MIN_OOS+' out-of-sample firings over at least '+BM_MIN_EP+' separate episodes, so every cell below is unstarred and its tint is held pale on purpose. Read a cell as "this is what the closest historical bin did", never as "this is what will happen" — past hits ≈ random chance.')
     +'<div style="color:var(--tx3);font-size:10.5px;margin-top:4px">Each cell is the strongest <i>testable</i> lean the study\u2019s own bins imply for that day: a bin must hold at least '+BM_DM_MIN_N+' sessions over at least '+BM_MIN_EP+' separate episodes before it is allowed to speak, and the study only builds a row at '+BM_MIN_N+' sessions, so '+BM_MIN_N+' is the bar that actually binds. The sky is read at each venue\u2019s own open (09:15 IST for the Indian instruments, 09:30 New York for the rest) and binned in the <b>'+reEsc(fr.short)+'</b> framing now selected in BIG-MOVE ANATOMY on the Backtesting tab. Weekends are removed; exchange holiday calendars are not modelled, so a listed date can turn out to be a holiday. The two intraday categories are left out on purpose — their history starts in 2022 against a different baseline and they do not belong on the same row. Hover a cell for the planet, the bin, its rate against its baseline, its n and its episodes; click it to open the DAY LIST on exactly that claim. Nothing here reaches a score.</div>'
-    +(D.done<D.want?'<div style="font-size:10.5px;color:var(--acc);margin-top:4px">building the rest in the background — <b>'+D.done+'</b> of <b>'+D.want+'</b> markets done…</div>':'')
+    +'<div style="font-size:10.5px;color:var(--tx3);margin-top:4px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      +'<span>Colour = how far the historical rate sits above its baseline, <i>not</i> proof:</span>'
+      +[['rgba(34,197,94,.08)','weak'],['rgba(34,197,94,.20)','\u2003'],['rgba(34,197,94,.34)','strong up']]
+        .map(x=>'<span style="background:'+x[0]+';padding:1px 7px;border:1px solid var(--bd)">'+x[1]+'</span>').join('')
+      +[['rgba(239,68,68,.08)','weak'],['rgba(239,68,68,.20)','\u2003'],['rgba(239,68,68,.34)','strong down / reversal']]
+        .map(x=>'<span style="background:'+x[0]+';padding:1px 7px;border:1px solid var(--bd)">'+x[1]+'</span>').join('')
+      +'<span>\u00b7 = not proven. A \u2605 and a solid colour would mean a bin passed the full standard; none has.</span></div>'
+    +(D.done<D.want?'<div style="font-size:10.5px;color:var(--acc);margin-top:4px">building the rest in the background \u2014 <b>'+D.done+'</b> of <b>'+D.want+'</b> markets done\u2026</div>':'')
     +'</div>';
   const dcol=dates.map(ds=>'<th style="font-size:9.5px;white-space:nowrap">'+reEsc(fmtD(ds,false))+'</th>').join('');
   const body=BM_GROUPS.map(g=>{
@@ -28661,7 +28766,9 @@ function calHit(lab,s){
 function calTint(b){
   const lift=(b&&b.r&&isFinite(b.r.lift))?b.r.lift:1;
   const up=(b.lab==='BULLISH'||b.lab==='REVERSAL FROM LOW');
-  const a=Math.max(.06, Math.min(b.r.proven?.55:.26, (lift-1)*(b.r.proven?.5:.28)));
+  // lift 1.0 -> barely there, 1.6 -> the cap. Unproven stops at .34 so a
+  // proven bin, when one finally exists, still reads as a different thing.
+  const a=Math.max(.05, Math.min(b.r.proven?.62:.34, (lift-1)*(b.r.proven?1.05:.58)));
   return 'rgba('+(up?'34,197,94':'239,68,68')+','+a.toFixed(3)+')';
 }
 function calShort(lab){
