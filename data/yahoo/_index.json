@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-20T07:50:57Z",
+ "generated": "2026-09-20T12:35:33Z",
  "source": "yahoo v8 chart (1d full / 60m 730d / 5m 60d)",
  "row": [
   "date-or-datetime",
@@ -9,151 +9,31 @@
   "c",
   "v"
  ],
- "instruments": {
-  "GOLD": {
-   "yahoo": "GC=F",
-   "1d": {
-    "from": "2000-08-30",
-    "to": "2026-09-18",
-    "count": 6537
-   },
-   "60m": {
-    "from": "2024-04-28 18:00",
-    "to": "2026-09-18 16:59",
-    "count": 13721
-   },
-   "5m": {
-    "from": "2026-07-12 18:10",
-    "to": "2026-09-18 16:59",
-    "count": 13431
-   }
-  },
-  "SILVER": {
-   "yahoo": "SI=F",
-   "1d": {
-    "from": "2000-08-30",
-    "to": "2026-09-18",
-    "count": 6539
-   },
-   "60m": {
-    "from": "2024-04-28 18:00",
-    "to": "2026-09-18 16:59",
-    "count": 13720
-   },
-   "5m": {
-    "from": "2026-07-12 18:10",
-    "to": "2026-09-18 16:59",
-    "count": 13430
-   }
-  },
-  "COPPER": {
-   "yahoo": "HG=F",
-   "1d": {
-    "from": "2000-08-30",
-    "to": "2026-09-18",
-    "count": 6542
-   },
-   "60m": {
-    "from": "2024-04-28 18:00",
-    "to": "2026-09-18 16:59",
-    "count": 13714
-   },
-   "5m": {
-    "from": "2026-07-12 18:10",
-    "to": "2026-09-18 16:59",
-    "count": 13367
-   }
-  },
-  "CRUDE": {
-   "yahoo": "CL=F",
-   "1d": {
-    "from": "2000-08-23",
-    "to": "2026-09-18",
-    "count": 6544
-   },
-   "60m": {
-    "from": "2024-04-28 18:00",
-    "to": "2026-09-18 16:59",
-    "count": 13536
-   },
-   "5m": {
-    "from": "2026-07-12 18:10",
-    "to": "2026-09-18 16:59",
-    "count": 13430
-   }
-  },
-  "NATGAS": {
-   "yahoo": "NG=F",
-   "1d": {
-    "from": "2000-08-30",
-    "to": "2026-09-18",
-    "count": 6543
-   },
-   "60m": {
-    "from": "2024-04-28 18:00",
-    "to": "2026-09-18 17:00",
-    "count": 13513
-   },
-   "5m": {
-    "from": "2026-07-12 18:10",
-    "to": "2026-09-18 17:00",
-    "count": 13363
-   }
-  },
-  "DOW": {
-   "yahoo": "^DJI",
-   "1d": {
-    "from": "1998-01-02",
-    "to": "2026-09-18",
-    "count": 7222
-   },
-   "60m": {
-    "from": "2023-10-20 09:30",
-    "to": "2026-09-18 16:00",
-    "count": 5081
-   },
-   "5m": {
-    "from": "2026-06-25 09:30",
-    "to": "2026-09-18 16:00",
-    "count": 4681
-   }
-  },
-  "NASDAQ": {
-   "yahoo": "^IXIC",
-   "1d": {
-    "from": "1998-01-02",
-    "to": "2026-09-18",
-    "count": 7222
-   },
-   "60m": {
-    "from": "2023-10-20 09:30",
-    "to": "2026-09-18 16:00",
-    "count": 5081
-   },
-   "5m": {
-    "from": "2026-06-25 09:30",
-    "to": "2026-09-18 16:00",
-    "count": 4681
-   }
-  },
-  "SPX": {
-   "yahoo": "^GSPC",
-   "1d": {
-    "from": "1998-01-02",
-    "to": "2026-09-18",
-    "count": 7222
-   },
-   "60m": {
-    "from": "2023-10-20 09:30",
-    "to": "2026-09-18 16:00",
-    "count": 5081
-   },
-   "5m": {
-    "from": "2026-06-25 09:30",
-    "to": "2026-09-18 16:00",
-    "count": 4680
-   }
-  }
- },
- "failures": []
+ "instruments": {},
+ "failures": [
+  "GOLD 1d: gave up after 4 attempts",
+  "GOLD 60m: gave up after 4 attempts",
+  "GOLD 5m: gave up after 4 attempts",
+  "SILVER 1d: gave up after 4 attempts",
+  "SILVER 60m: gave up after 4 attempts",
+  "SILVER 5m: gave up after 4 attempts",
+  "COPPER 1d: gave up after 4 attempts",
+  "COPPER 60m: gave up after 4 attempts",
+  "COPPER 5m: gave up after 4 attempts",
+  "CRUDE 1d: gave up after 4 attempts",
+  "CRUDE 60m: gave up after 4 attempts",
+  "CRUDE 5m: gave up after 4 attempts",
+  "NATGAS 1d: gave up after 4 attempts",
+  "NATGAS 60m: gave up after 4 attempts",
+  "NATGAS 5m: gave up after 4 attempts",
+  "DOW 1d: gave up after 4 attempts",
+  "DOW 60m: gave up after 4 attempts",
+  "DOW 5m: gave up after 4 attempts",
+  "NASDAQ 1d: gave up after 4 attempts",
+  "NASDAQ 60m: gave up after 4 attempts",
+  "NASDAQ 5m: gave up after 4 attempts",
+  "SPX 1d: gave up after 4 attempts",
+  "SPX 60m: gave up after 4 attempts",
+  "SPX 5m: gave up after 4 attempts"
+ ]
 }
