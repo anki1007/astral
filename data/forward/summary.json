@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generated": "2026-09-19T20:06:39.822Z",
+ "generated": "2026-09-20T09:05:25.406Z",
  "since": "2026-09-19",
  "lastGraded": null,
  "nDays": 0,
@@ -1787,7 +1787,7 @@
    "baselines": {
     "window": "last 250 sessions",
     "upPct": 54.4,
-    "gapPct": 77.25,
+    "gapPct": 76.82,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": null
@@ -1808,9 +1808,9 @@
     "p": null
    },
    "big": {
-    "made": 1,
+    "made": 5,
     "graded": 0,
-    "pending": 1,
+    "pending": 5,
     "hits": 0,
     "hitPct": null,
     "ci95": [
@@ -1853,7 +1853,7 @@
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": {
-     "target": "2026-09-21",
+     "target": "2026-09-25",
      "base": 0.5,
      "bigThrPct": 5.5863
     }
@@ -2224,13 +2224,13 @@
  ],
  "skyNote": "the book engine reads the sky at 09:15 IST of the session date for every instrument, US and commodities included; no US-session time is modelled",
  "lastRun": {
-  "at": "2026-09-19T19:58:53.970Z",
+  "at": "2026-09-20T09:02:58.751Z",
   "target": "2026-09-21",
-  "added": 7,
-  "turnsAdded": 77,
+  "added": 40,
+  "turnsAdded": 0,
   "graded": 0,
   "turnsGraded": 0,
-  "dailyAdded": 1,
+  "dailyAdded": 4,
   "dailyGraded": 0,
   "errors": [],
   "targets": {
@@ -2247,55 +2247,128 @@
   },
   "ms": {
    "NIFTY": {
-    "astral": 19779,
-    "latlon": 15377,
-    "daily": 389777
+    "astral": 28621,
+    "latlon": 21399,
+    "daily": 21415
    },
    "BANKNIFTY": {
-    "astral": 609,
-    "latlon": 1505,
-    "daily": 1681
+    "astral": 721,
+    "latlon": 2129,
+    "daily": 2232
    },
    "GOLD": {
-    "astral": 586,
-    "latlon": 1616,
-    "daily": 1596
+    "astral": 688,
+    "latlon": 1773,
+    "daily": 2283
    },
    "SILVER": {
-    "astral": 585,
-    "latlon": 1408,
-    "daily": 1715
+    "astral": 694,
+    "latlon": 2062,
+    "daily": 2353
    },
    "CRUDE": {
-    "astral": 583,
-    "latlon": 1498,
-    "daily": 1716
+    "astral": 686,
+    "latlon": 2493,
+    "daily": 2250
    },
    "COPPER": {
-    "astral": 625,
-    "latlon": 1531,
-    "daily": 1574
+    "astral": 687,
+    "latlon": 2086,
+    "daily": 2719
    },
    "NATGAS": {
-    "astral": 578,
-    "latlon": 1591,
-    "daily": 2102
+    "astral": 689,
+    "latlon": 2366,
+    "daily": 2825
    },
    "DOW": {
-    "astral": 2153,
-    "latlon": 1501,
-    "daily": 2157
+    "astral": 2861,
+    "latlon": 1984,
+    "daily": 2987
    },
    "SPX": {
-    "astral": 641,
-    "latlon": 1716,
-    "daily": 1804
+    "astral": 753,
+    "latlon": 2543,
+    "daily": 2608
    },
    "NASDAQ": {
-    "astral": 645,
-    "latlon": 1506,
-    "daily": 2262
+    "astral": 755,
+    "latlon": 2267,
+    "daily": 3223
    }
+  },
+  "ahead": 5,
+  "aheadTargets": {
+   "NIFTY": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "BANKNIFTY": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "GOLD": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "SILVER": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "CRUDE": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "COPPER": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "NATGAS": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "DOW": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "SPX": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ],
+   "NASDAQ": [
+    "2026-09-21",
+    "2026-09-22",
+    "2026-09-23",
+    "2026-09-24",
+    "2026-09-25"
+   ]
   }
  }
 }
