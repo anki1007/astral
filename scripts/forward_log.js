@@ -173,14 +173,40 @@ function prevCloseOf(B, target, fallback) {
   return fallback;
 }
 
+/* Venue of each instrument: 'in' = NSE/BSE (Mumbai), everything else trades in
+   New York (NYSE/Nasdaq, and COMEX/NYMEX for the metals and energies). */
+const VENUE = { india: ['Mumbai', 19.076, 72.8777, 9.25], us: ['New York', 40.7128, -74.006, 9.5], com: ['New York', 40.7128, -74.006, 9.5] };
+/* The IST hour that equals `openLocal` at the venue on that date — Intl gives
+   the venue's real UTC offset, so US daylight saving is handled. */
+function istHourFor(venueTz, dateISO, openLocal) {
+  if (venueTz === 'Asia/Kolkata') return openLocal;
+  const h = Math.floor(openLocal), mi = Math.round((openLocal - h) * 60);
+  const asIfUTC = Date.UTC(+dateISO.slice(0, 4), +dateISO.slice(5, 7) - 1, +dateISO.slice(8, 10), h, mi);
+  const f = new Intl.DateTimeFormat('en-US', { timeZone: venueTz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const partsAsUTC = t => { const o = {}; for (const x of f.formatToParts(new Date(t))) o[x.type] = x.value;
+    return Date.UTC(+o.year, +o.month - 1, +o.day, +(o.hour === '24' ? 0 : o.hour), +o.minute); };
+  // the venue's offset ON that date (so DST is handled), then the real UTC instant of its open
+  const offset = partsAsUTC(asIfUTC) - asIfUTC;
+  const utc = asIfUTC - offset;
+  const ist = new Date(utc + 5.5 * 3600000);
+  return Math.round((ist.getUTCHours() + ist.getUTCMinutes() / 60) * 12) / 12;
+}
+const VENUE_TZ = { Mumbai: 'Asia/Kolkata', 'New York': 'America/New_York' };
+
 /* ── 1. direction forecast for the next session ── */
 function predictDay(P, inst, B, target, made) {
   const last = B[B.length - 1], cls = P.E(`taInstClass(${JSON.stringify(inst.k)})`);
-  P.ctx.__q = { target, cls };
-  const a = P.E(`(()=>{ const ev=taRead(__q.target,9.25,'lahiri','daily',__q.cls);
+  // the sky over THIS exchange at ITS open, not 09:15 Mumbai for everyone
+  const [vName, vLat, vLon, vOpen] = VENUE[inst.grp] || VENUE.india;
+  const hourIST = istHourFor(VENUE_TZ[vName], target, vOpen);
+  P.ctx.__q = { target, cls, hour: hourIST, lat: vLat, lon: vLon, venue: vName, openLocal: vOpen };
+  const a = P.E(`(()=>{ LAT=__q.lat; LON=__q.lon; S.loc=__q.venue;
+    const ev=taRead(__q.target,__q.hour,'lahiri','daily',__q.cls);
     const top=(ev.rules||[]).filter(r=>r.dir&&!taRuleExcluded(r,__q.cls)).sort((x,y)=>y.w-x.w).slice(0,5)
       .map(r=>({sec:r.sec,name:r.name,dir:r.dir,w:Math.round(r.w*100)/100}));
     return {score:ev.score,band:ev.band.t,volatility:ev.volatility||0,turning:ev.turning||0,top}; })()`);
+  P.E(`(()=>{ LAT=19.0760; LON=72.8777; S.loc='Mumbai'; })()`);   // leave the engine as we found it
   // chapter-2 technicals on bars up to the last close; the session being predicted
   // has no open yet, so its open is taken as the last close (a flat open)
   const tb = B.map(b => Object.assign({}, b)); tb.push({ date: target, o: last.c, h: last.c, l: last.c, c: last.c });
@@ -197,6 +223,7 @@ function predictDay(P, inst, B, target, made) {
   // tertiles of the engine's volatility weight on NIFTY sessions 2019-2026 (<=2.3 | 2.3-3.2 | >=3.2)
   const vol = a.volatility >= 3.2 ? 'wide' : a.volatility <= 2.3 ? 'quiet' : 'normal';
   return { id: target + '|' + inst.k, target, inst: inst.k, made, lastClose: last.c, lastDate: last.date,
+    venue: { place: vName, openLocal: vOpen, hourIST },
     astro: { score: a.score, band: a.band, volatility: a.volatility, turning: a.turning, top: a.top },
     tech: { net: techNet, dir: t, fired: fired.filter(r => r.dir).map(r => ({ sec: r.sec, name: r.name, dir: r.dir })),
             setups: fired.filter(r => !r.dir).map(r => r.name), openAssumed: 'last close' },

@@ -4702,7 +4702,7 @@ function fwdHTML(){
       Each one is committed to git before its session starts, so the commit timestamp proves it was made in advance; it is never edited after.<br>
       It is graded only when that session's bar is baked: turn windows need a ≥5% swing pivot inside the window, confirmed within 20 sessions.<br>
       10 instruments, each on its own bars, class and baselines: India indices (Nifty, Bank Nifty), commodities (Gold, Silver, Crude, Copper, Nat Gas) and US indices (Dow, S&amp;P 500, Nasdaq). Each one's next session is the weekday after its own last baked bar.<br>
-      <span style="color:var(--tx3)">US indices and commodities: the book engine reads the sky at 09:15 IST of the session date, the same instant as for India. No US-session time is modelled.</span>
+      <span style="color:var(--tx3)">US indices and commodities are read at their own exchange's open — 09:30 New York (19:00 IST in US summer time, 20:00 in winter), with the chart cast for New York — so the rising sign and hora belong to the session being called. India is read at 09:15 IST. Note the Planet Lat/Lon and Day Forecast tabs still learn from a 09:15 IST sky for every market; the logged forecasts here do not.</span>
       ${S.since?`<br><span style="color:var(--tx3)">Since ${fwdEsc(S.since)} · last graded ${fwdEsc(S.lastGraded||'—')} · ${S.nDays||0} graded session${S.nDays===1?'':'s'}</span>`:''}
     </div></div>`;
   if(F.st!=='ready') return head+`<div class="pnl"><div class="pb" style="font-size:11.5px;color:var(--tx2)"><span class="spin-anim">⟳</span> loading the forward log …</div></div>`;
