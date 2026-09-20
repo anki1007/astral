@@ -4990,6 +4990,15 @@ function upcSimpleHTML(E, R, DL, cols, today){
       </div>
     </div></div>`;
 }
+/* the forward DAY MAP's mount on this tab. It depends on the bm* study and
+   NOT on data/forward/log.json, so it renders on every exit of upcHTML —
+   including the ones that report the log missing. */
+function upcDayMapMount(){
+  return `<div id="bm-daymap">${(()=>{ try{
+      setTimeout(()=>{ try{ bmDMEnsure(); }catch(e){} },0);
+      return bmDayMapHTML();
+    }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Day map unavailable: ${fwdEsc((e&&e.message)||'error')}</div></div>`; } })()}</div>`;
+}
 function upcHTML(){
   const U=window.UPC, S=U.sum||{}, L=U.log||{}, E=(L.entries||[]), R=(L.reversals||[]), DL=(L.daily||[]);
   const today=fwdToday();
@@ -5011,14 +5020,14 @@ function upcHTML(){
       What did pass both tests is almost entirely "big-move day" patterns, and their up/down split is usually a coin-flip: a ★ says a move is more or less likely on that session, never which way.<br>
       Everything here was written by the GitHub Action after a close and committed before the session it talks about; the page only reads it. ${fresh}
     </div></div>`;
-  if(U.st!=='ready') return head+`<div class="pnl"><div class="pb" style="font-size:11.5px;color:var(--tx2)"><span class="spin-anim">⟳</span> loading the forward log …</div></div>`;
+  if(U.st!=='ready') return head+`<div class="pnl"><div class="pb" style="font-size:11.5px;color:var(--tx2)"><span class="spin-anim">⟳</span> loading the forward log …</div></div>`+upcDayMapMount();
   if(!E.length&&!R.length){
     return head+`<div class="pnl"><div class="pb" style="font-size:12px;color:var(--tx2);line-height:1.7">
       <b style="color:var(--bear)">Nothing to show — no forecasts have been logged yet.</b><br>
       This view reads <code>data/forward/log.json</code> and <code>data/forward/summary.json</code>, which the nightly Action writes after each close.
       ${U.err?`<br><span style="color:var(--bear)">${fwdEsc(U.err)}</span>`:''}
       ${genDay?`<br><span style="color:var(--tx3)">Last written ${fwdEsc(gen)}${age?` — ${age} sessions ago`:''}.</span>`:'<br><span style="color:var(--tx3)">No generated timestamp was found either, so the files are probably missing.</span>'}
-      <br>${upcFwdLink()}</div></div>`;
+      <br>${upcFwdLink()}</div></div>`+upcDayMapMount();
   }
   // ── a. the five session columns: the logged, ungraded targets, earliest first
   const byKey=new Map(); E.forEach(e=>byKey.set(e.target+'|'+e.inst,e));
@@ -5112,7 +5121,11 @@ function upcHTML(){
   const foot=`<div class="pnl"><div class="pb" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--tx3)">
     ${upcFwdLink()}<span>— how these same forecasts have actually graded so far. Research log, not a recommendation.</span></div></div>`;
   const simple=upcSimpleHTML(E,R,DL,cols,today);
-  return S.upcFull ? simple+head+grid+turns+proven+foot : simple+foot;
+  /* the forward DAY MAP — every baked market, the next 30 sessions of its own
+     calendar, each cell the strongest TESTABLE lean the BIG-MOVE ANATOMY study's
+     own bins imply, coloured only where that bin passed the full standard */
+  const daymap=upcDayMapMount();
+  return S.upcFull ? simple+daymap+head+grid+turns+proven+foot : simple+daymap+foot;
 }
 window.tUpcoming=tUpcoming;
 
@@ -27451,7 +27464,9 @@ window.bmToggleDeg=bmToggleDeg; window.bmEnsure=bmEnsure; window.bmEnsureK=bmEns
 window.bmSweep=bmSweep; window.bmToggleSweep=bmToggleSweep; window.bmDiscover=bmDiscover;
 
 function bmPaint(){ try{ const e=document.getElementById('bm-body');
-  if(e) e.innerHTML=bmPanelHTML(); setTimeout(collapsibleInit,10); }catch(err){} }
+  if(e) e.innerHTML=bmPanelHTML(); setTimeout(collapsibleInit,10); }catch(err){}
+  try{ bmHBPaint(); }catch(e2){}
+  try{ bmDMPaint(); }catch(e3){} }
 window.bmPaint=bmPaint;
 
 /* The true intraday reversal, per date, from the app's own baked intraday
@@ -27499,7 +27514,7 @@ async function bmBuild0(R,k,ay){
                                    : await dsBaked(k);
     if(!rows||!rows.length) throw new Error('no baked daily file for '+bmInstName(k)+' yet');
     const seen=new Set(), bars=[];
-    (rows||[]).map(r=>({date:r.date||reISO(r.ts), c:+r.c, h:+r.h, l:+r.l}))
+    (rows||[]).map(r=>({date:r.date||reISO(r.ts), o:+r.o, c:+r.c, h:+r.h, l:+r.l}))
       .filter(b=>b.date&&isFinite(b.c)&&b.c>0)
       .sort((x,y)=>x.date<y.date?-1:1)
       .forEach(b=>{ if(!seen.has(b.date)){ seen.add(b.date); bars.push(b); } });
@@ -27517,7 +27532,8 @@ async function bmBuild0(R,k,ay){
       if(b.date<BM_START || !(p>0)) continue;
       const okH=isFinite(b.h)&&b.h>0&&b.h>=b.c, okL=isFinite(b.l)&&b.l>0&&b.l<=b.c;
       const iv=IV.map?IV.map.get(b.date):null;
-      SS.push({date:b.date, c:b.c, pc:p, mv:(b.c-p)/p*100,
+      SS.push({date:b.date, o:isFinite(b.o)?b.o:null, h:isFinite(b.h)?b.h:null,
+        l:isFinite(b.l)?b.l:null, c:b.c, pc:p, mv:(b.c-p)/p*100,
         gbHi: okH ? (b.h-b.c)/b.h*100 : null,
         gbLo: okL ? (b.c-b.l)/b.l*100 : null,
         ivHi: iv?iv.ivHi:null, ivLo: iv?iv.ivLo:null}); }
@@ -27546,7 +27562,10 @@ async function bmBuild0(R,k,ay){
             if(!p||p.lon==null||!isFinite(p.lon)) continue;
             sl[bi]=n360(p.lon); tl[bi]=n360(p.lon+an); }
         }
-        s.toks=toks; s.sl=sl; s.tl=tl; s.ok=1;
+        let rt=0, cb=0;
+        if(P) for(let bi=0;bi<BM_BODIES.length;bi++){ const pb=P[BM_BODIES[bi]];
+          if(!pb) continue; if(pb.retro) rt|=(1<<bi); if(pb.comb) cb|=(1<<bi); }
+        s.toks=toks; s.sl=sl; s.tl=tl; s.rt=rt; s.cb=cb; s.ok=1;
       }catch(e){ s.toks=null; s.ok=0; }
       if(i%40===39){ R.prog=Math.round(i/N*62); bmProg(); await reYield(); }
     }
@@ -28205,11 +28224,355 @@ function bmPanelHTML(){
   </div></div>`;
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DAY MAP (bmDM*) and DAY LIST (bmHB*)
+   ---------------------------------------------------------------------------
+   Two readers' views over the SAME study. Neither one computes any statistic
+   of its own: everything below is read out of the bm* tallies that the panel
+   above already built, so a number can never say one thing in one view and
+   something else in the other.
+
+   DAY MAP  — forward. For each baked instrument, the next BM_DM_N sessions of
+   its own calendar. For each of those days the sky is read at that venue's own
+   open (bmTod, the convention the whole study uses), each of the nine bodies is
+   binned in the framing currently selected, and the bin is looked up in the
+   study's OWN feature rows:
+       category '>1% move',      target UP   → BULLISH
+       category '>1% move',      target DOWN → BEARISH
+       category 'rev-from-high', target BIG  → REVERSAL FROM HIGH
+       category 'rev-from-low',  target BIG  → REVERSAL FROM LOW
+   A bin is only allowed to speak if it is TESTABLE: at least BM_DM_MIN_N
+   sessions with the bin present and at least BM_MIN_EP separate episodes. (The
+   study itself only builds a feature row at BM_MIN_N sessions, which is the
+   stricter of the two, so that is the bar that actually binds.) The strongest
+   lean per category is reported with its historical rate, its baseline and its
+   episode count — and it is COLOURED, and given a star, only if that same bin
+   carries "Proven in backtest ✓". Everything else is grey and says "not
+   proven — past hits ≈ random chance", which today is everything.
+   The two intraday categories are deliberately absent: their history starts in
+   2022 against a different baseline, so putting them on the same row as a
+   2000-based number would be a lie of layout.
+
+   DAY LIST — backward. Every session since 2000, filterable by instrument, by
+   category and by date, with the day's OHLC, its close-to-close move, its
+   give-back from the high, its recovery off the low and the sky it was read
+   under in the selected framing. It reads R._SS — the very sessions the study
+   tallied — so it is a window onto the study, not a second opinion about it.
+
+   Nothing here reaches a score, and no forward label may be coloured unless
+   its bin passed the full standard.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const BM_DM_N=30;          // forward sessions per row
+const BM_DM_MIN_N=20;      // a bin must hold >=20 sessions before it may speak
+const BM_DM_CATS=[
+  ['move','UP','BULLISH','var(--bull)'],
+  ['move','DOWN','BEARISH','var(--bear)'],
+  ['revhi','BIG','REVERSAL FROM HIGH','var(--bear)'],
+  ['revlo','BIG','REVERSAL FROM LOW','var(--bull)']];
+const BM_HB_PAGE=200;
+
+window.BM.dm = window.BM.dm || {rows:{}, done:0, want:0, busy:0, key:''};
+
+/* the next n sessions of a venue's own calendar. Weekends are removed; the
+   exchange holiday calendars are NOT modelled, and the panel says so rather
+   than pretending to a precision it does not have. */
+function bmDMDates(n){
+  const out=[]; let d=tnToday();
+  for(let g=0; g<400 && out.length<n; g++){
+    d=reShift(d,1);
+    const w=new Date(reMs(d)).getUTCDay();
+    if(w===0||w===6) continue;
+    out.push(d); }
+  return out;
+}
+/* the sidereal longitudes of the nine bodies at that instrument's own open —
+   the same reading instant, the same ayanamsa and the same bodies the study
+   used on every historical session */
+function bmDMSky(ds,k,ay){
+  try{
+    const ft=reFeat(ds,ay,bmTod(ds,k));
+    const P=ft&&ft.meta&&ft.meta.planets; if(!P) return null;
+    const sl=new Array(BM_BODIES.length).fill(null);
+    for(let i=0;i<BM_BODIES.length;i++){ const p=P[BM_BODIES[i]];
+      if(p&&p.lon!=null&&isFinite(p.lon)) sl[i]=n360(p.lon); }
+    return sl;
+  }catch(e){ return null; }
+}
+/* token -> the three feature rows of one tally, built once per tally */
+function bmDMIdx(Rf){
+  if(Rf._dmIdx) return Rf._dmIdx;
+  const m=new Map();
+  for(const tg of ['BIG','UP','DOWN']) for(const r of (Rf.feat&&Rf.feat[tg])||[]){
+    if(!r.isDeg) continue;
+    let o=m.get(r.t); if(!o) m.set(r.t,o={}); o[tg]=r; }
+  Rf._dmIdx=m; return m;
+}
+function bmDMTestable(r){ return !!r && r.n>=BM_DM_MIN_N && r.nEp>=BM_MIN_EP; }
+/* every category's strongest testable lean for one day's sky, proven first */
+function bmDMCell(R,fr,sl){
+  const out=[];
+  if(!sl) return out;
+  for(const spec of BM_DM_CATS){
+    const c=spec[0], tg=spec[1], lab=spec[2], col=spec[3];
+    let Rf=null; try{ Rf=bmFrBuild(R,fr,c); }catch(e){ Rf=null; }
+    if(!Rf||Rf.unavail) continue;
+    const idx=bmDMIdx(Rf);
+    let best=null;
+    for(let i=0;i<BM_BODIES.length;i++){
+      const lon=sl[i]; if(lon==null||!isFinite(lon)) continue;
+      const t=BM_DEG+fr.lab(BM_BODIES[i],fr.bin(lon));
+      const o=idx.get(t), r=o&&o[tg];
+      if(!bmDMTestable(r)) continue;
+      if(!(r.lift>1)) continue;                       // only a lean TOWARDS the event
+      const s=r.rate-r.base, pv=r.proven?1:0;
+      if(!best||pv>best.pv||(pv===best.pv&&s>best.s))
+        best={r:r, s:s, pv:pv, body:BM_BODIES[i], t:t, lab:lab, col:col, cat:c, tgt:tg}; }
+    if(best) out.push(best); }
+  out.sort((a,b)=>b.pv-a.pv||b.s-a.s);
+  return out;
+}
+function bmDMKey(){ return bmFr().id+'|'+bmAy()+'|'+tnToday(); }
+/* one instrument's whole row, from its built study — null while it is not
+   built yet, so the caller can leave the row pending and move on */
+function bmDMRow(k){
+  const ay=bmAy(), R=window.BM.res[bmKey(k,ay)];
+  if(!R||R.status!=='ready') return null;
+  const fr=bmFr(), dates=bmDMDates(BM_DM_N);
+  return dates.map(ds=>({ds:ds, cells:bmDMCell(R,fr,bmDMSky(ds,k,ay))}));
+}
+/* lazily: the selected instrument and its group first, then everything else,
+   one at a time with a yield between each, cached per framing + ayanamsa + day */
+async function bmDMEnsure(){
+  const D=window.BM.dm;
+  if(D.busy) return;
+  D.busy=1;
+  try{
+    await bmDiscover();
+    const key=bmDMKey();
+    if(D.key!==key){ D.rows={}; D.key=key; D.done=0; }
+    const L=bmInsts(), sel=bmInst(), selRow=L.find(x=>x[0]===sel), g0=selRow?selRow[2]:'';
+    const rank=x=>x[0]===sel?0:x[2]===g0?1:2;
+    const order=L.slice().sort((a,b)=>rank(a)-rank(b));
+    D.want=order.length;
+    for(const row of order){
+      if(D.key!==bmDMKey()) return;                   // the reader changed something
+      const k=row[0];
+      if(D.rows[k]) continue;
+      try{ await bmEnsureK(k); }catch(e){}
+      try{ D.rows[k]=bmDMRow(k)||'err'; }catch(e){ D.rows[k]='err'; }
+      D.done=Object.keys(D.rows).length;
+      bmDMPaint(); await reYield(); }
+  } finally { D.busy=0; bmDMPaint(); }
+}
+function bmDMPaint(){ try{ const e=document.getElementById('bm-daymap');
+  if(e) e.innerHTML=bmDayMapHTML(); }catch(e){} }
+window.bmDMEnsure=bmDMEnsure; window.bmDMPaint=bmDMPaint;
+
+function bmDMLabCell(b){
+  if(!b) return '<td style="color:var(--tx3)">·</td>';
+  const r=b.r;
+  const tip=b.body+' — '+String(b.t).slice(2)+' · '+b.lab+': '+bmPct(r.rate)+' of such days against a '+bmPct(r.base)
+    +' baseline (lift '+r.lift.toFixed(2)+'×), n '+r.n+' sessions over '+r.nEp+' episodes, '+r.ooK
+    +' of them out of sample over '+r.ooEp+' episodes. '
+    +(r.proven?'Proven in backtest ✓.':'not proven — past hits ≈ random chance.')
+    +' Click to open the DAY LIST on this instrument, this category and this bin.';
+  const col=r.proven?b.col:'var(--tx3)';
+  const star=r.proven?'★ ':'';
+  const arg=s=>"'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')+"'";
+  return '<td title="'+reEsc(tip)+'" style="cursor:pointer;color:'+col+';font-weight:'+(r.proven?700:400)+'"'
+    +' onclick="bmHBFrom('+reEsc(arg(b.k))+','+reEsc(arg(b.cat))+','+reEsc(arg(b.t))+')">'
+    +star+reEsc(b.lab)+'<div style="font-size:9px;color:var(--tx3)">'+reEsc(b.body)+' '+bmPct(r.rate)+'/'+bmPct(r.base)+' n'+r.n+'·e'+r.nEp+'</div>'
+    +(r.proven?'':'<div style="font-size:9px;color:var(--tx3)">not proven — past hits ≈ random chance</div>')+'</td>';
+}
+function bmDayMapHTML(){
+  const D=window.BM.dm, L=bmInsts(), fr=bmFr(), dates=bmDMDates(BM_DM_N);
+  const head='<div class="ph"><span class="dot" style="background:var(--acc)"></span>DAY MAP — the next '+BM_DM_N+' sessions, every market</div>';
+  let nProven=0, nCell=0;
+  for(const k of Object.keys(D.rows)){ const r=D.rows[k]; if(!Array.isArray(r)) continue;
+    for(const d of r){ if(d.cells.length) nCell++; if(d.cells.some(c=>c.r.proven)) nProven++; } }
+  const banner='<div style="background:var(--bg2);border:1px solid var(--bd);border-left:3px solid '+(nProven?'var(--bull)':'var(--bd2)')+';border-radius:4px;padding:8px 10px;font-size:11.5px;line-height:1.65;color:var(--tx1)">'
+    +(nProven?'<b style="color:var(--bull)">'+nProven+'</b> of the '+nCell+' filled cells below rest on a bin that passed the full standard; those are the only coloured, ★-marked ones. Every other cell is grey and unproven.'
+             :'<b>No bin has passed; these are the best matches, not forecasts.</b> Every cell below is grey because not one bin beat its own baseline in both halves of the record on at least '+BM_MIN_OOS+' out-of-sample firings over at least '+BM_MIN_EP+' separate episodes. Read a cell as "this is what the closest historical bin did", never as "this is what will happen" — past hits ≈ random chance.')
+    +'<div style="color:var(--tx3);font-size:10.5px;margin-top:4px">Each cell is the strongest <i>testable</i> lean the study\u2019s own bins imply for that day: a bin must hold at least '+BM_DM_MIN_N+' sessions over at least '+BM_MIN_EP+' separate episodes before it is allowed to speak, and the study only builds a row at '+BM_MIN_N+' sessions, so '+BM_MIN_N+' is the bar that actually binds. The sky is read at each venue\u2019s own open (09:15 IST for the Indian instruments, 09:30 New York for the rest) and binned in the <b>'+reEsc(fr.short)+'</b> framing now selected in BIG-MOVE ANATOMY on the Backtesting tab. Weekends are removed; exchange holiday calendars are not modelled, so a listed date can turn out to be a holiday. The two intraday categories are left out on purpose — their history starts in 2022 against a different baseline and they do not belong on the same row. Hover a cell for the planet, the bin, its rate against its baseline, its n and its episodes; click it to open the DAY LIST on exactly that claim. Nothing here reaches a score.</div>'
+    +(D.done<D.want?'<div style="font-size:10.5px;color:var(--acc);margin-top:4px">building the rest in the background — <b>'+D.done+'</b> of <b>'+D.want+'</b> markets done…</div>':'')
+    +'</div>';
+  const dcol=dates.map(ds=>'<th style="font-size:9.5px;white-space:nowrap">'+reEsc(fmtD(ds,false))+'</th>').join('');
+  const body=BM_GROUPS.map(g=>{
+    const gid=g[0], gname=g[1], inG=L.filter(x=>x[2]===gid);
+    if(!inG.length) return '';
+    return '<tr><td class="upc-g" colspan="'+(dates.length+1)+'">'+reEsc(gname.toUpperCase())+'</td></tr>'
+      +inG.map(x=>{ const k=x[0], r=D.rows[k];
+        const cells = !r ? '<td colspan="'+dates.length+'" style="color:var(--tx3);font-size:10.5px">waiting for this market\u2019s study to build…</td>'
+          : r==='err' ? '<td colspan="'+dates.length+'" style="color:var(--tx3);font-size:10.5px">could not be built</td>'
+          : r.map(d=>{ const b=d.cells[0]; return bmDMLabCell(b?Object.assign({},b,{k:k}):null); }).join('');
+        return '<tr><td style="white-space:nowrap;font-weight:700">'+reEsc(x[1])+'</td>'+cells+'</tr>'; }).join('');
+  }).join('');
+  return '<div class="pnl">'+head+'<div class="pb" style="display:flex;flex-direction:column;gap:8px">'
+    +banner
+    +'<div style="overflow:auto;max-height:640px"><table class="tbl" style="font-size:10.5px">'
+    +'<thead><tr><th style="text-align:left">Market</th>'+dcol+'</tr></thead><tbody>'+body+'</tbody></table></div>'
+    +'</div></div>';
+}
+
+/* ── DAY LIST — every session 2000 → today ──────────────────────────────── */
+const BM_HB_CATS=[
+  ['all','all sessions', s=>true],
+  ['up','moved more than +'+BM_MOVE+'%', s=>s.mv>BM_MOVE],
+  ['dn','moved more than −'+BM_MOVE+'%', s=>s.mv<-BM_MOVE],
+  ['move','moved more than '+BM_MOVE+'% either way', s=>Math.abs(s.mv)>BM_MOVE],
+  ['revhi','reversal from the high — closed at least '+BM_REV+'% below it', s=>s.gbHi!=null&&s.gbHi>=BM_REV],
+  ['revlo','reversal from the low — closed at least '+BM_REV+'% above it', s=>s.gbLo!=null&&s.gbLo>=BM_REV],
+  ['ivhi','intraday reversal from the high', s=>s.ivHi!=null&&s.ivHi>=BM_REV],
+  ['ivlo','intraday reversal from the low', s=>s.ivLo!=null&&s.ivLo>=BM_REV]];
+function bmHBCat(){ const c=S.hbCat; return BM_HB_CATS.some(x=>x[0]===c)?c:'all'; }
+function bmHBSpec(){ const c=bmHBCat(); return BM_HB_CATS.find(x=>x[0]===c); }
+function bmHBInst(){ const L=bmInsts(), k=S.hbInst; return L.some(x=>x[0]===k)?k:bmInst(); }
+function bmHBPaint(){ try{ const e=document.getElementById('hb-body'); if(e) e.innerHTML=bmHistoryHTML(); }catch(e){} }
+function bmHBSet(o){ Object.assign(S,o||{}); if(!o||o.hbPage==null) S.hbPage=0; bmHBPaint();
+  const k=bmHBInst(), R=window.BM.res[bmKey(k,bmAy())];
+  if(!R||R.status!=='ready'){ try{ bmEnsureK(k).then(bmHBPaint,bmHBPaint); }catch(e){} } }
+function bmHBPick(v){ bmHBSet({hbInst:v}); }
+function bmHBPickCat(v){ bmHBSet({hbCat:v}); }
+/* the cross-link from a DAY MAP cell: same instrument, same category, same bin */
+function bmHBFrom(k,cat,tok){
+  S.hbInst=k; S.hbCat=BM_HB_CATS.some(x=>x[0]===cat)?cat:'all'; S.hbBin=tok||''; S.hbPage=0;
+  try{ if(typeof S!=='undefined' && S.tab!=='backtest' && typeof gs==='function') gs({tab:'backtest'}); }catch(e){}
+  setTimeout(()=>{ bmHBSet({});
+    try{ const e=document.getElementById('hb-body'); if(e&&e.scrollIntoView) e.scrollIntoView(); }catch(x){} },30);
+}
+function bmHBPageBy(d){ S.hbPage=Math.max(0,(parseInt(S.hbPage||0,10)||0)+d); bmHBPaint(); }
+function bmHBSortBy(v){ if(S.hbSort===v) S.hbDir=(S.hbDir==='asc')?'desc':'asc';
+  else { S.hbSort=v; S.hbDir='desc'; } S.hbPage=0; bmHBPaint(); }
+window.bmHBPick=bmHBPick; window.bmHBPickCat=bmHBPickCat; window.bmHBSet=bmHBSet;
+window.bmHBFrom=bmHBFrom; window.bmHBPaint=bmHBPaint;
+window.bmHBPage=bmHBPageBy; window.bmHBSort=bmHBSortBy;
+
+/* the sky of one stored session, in the framing on display */
+function bmHBSky(s,fr){
+  const out=[];
+  if(!s.sl) return out;
+  for(let i=0;i<BM_BODIES.length;i++){ const lon=s.sl[i];
+    if(lon==null||!isFinite(lon)) continue;
+    const sg=Math.min(Math.floor(lon/30),11), dg=lon%30;
+    const ni=Math.min(Math.floor(lon/NAK_SPAN),26);
+    const pd=Math.min(Math.floor((lon-ni*NAK_SPAN)/(NAK_SPAN/4)),3)+1;
+    out.push({b:BM_BODIES[i], bin:fr.lab(BM_BODIES[i],fr.bin(lon)),
+      sign:SIGNS[sg], deg:dg, nak:NAKS[ni].n, pada:pd,
+      retro:!!(s.rt&(1<<i)), comb:!!(s.cb&(1<<i))}); }
+  return out;
+}
+function bmHBRows(){
+  const k=bmHBInst(), R=window.BM.res[bmKey(k,bmAy())];
+  if(!R||R.status!=='ready'||!R._SS) return null;
+  const fr=bmFr(), sp=bmHBSpec(), hit=sp[2];
+  const f=String(S.hbFrom||'').slice(0,10), t=String(S.hbTo||'').slice(0,10);
+  const bin=S.hbBin||'';
+  let rows=R._SS.filter(s=>{
+    if(!hit(s)) return false;
+    if(f && s.date<f) return false;
+    if(t && s.date>t) return false;
+    if(bin && bmFrToks(s,fr).indexOf(bin)<0) return false;
+    return true; });
+  const sort=S.hbSort||'date', dir=(S.hbDir==='asc')?1:-1;
+  rows=rows.slice().sort((a,b)=> sort==='move'
+    ? (dir*(Math.abs(a.mv)-Math.abs(b.mv))) || (a.date<b.date?1:a.date>b.date?-1:0)
+    : dir*(a.date<b.date?-1:a.date>b.date?1:0));
+  return {rows:rows, R:R, fr:fr, sp:sp, k:k};
+}
+function bmHBExport(){
+  const G=bmHBRows(); if(!G) return;
+  const fr=G.fr;
+  const head=['date','open','high','low','close','prev_close','pct_move_cc','give_back_from_high_pct','recovery_off_low_pct',
+              'intraday_fall_from_high_pct','intraday_rise_from_low_pct']
+    .concat(BM_BODIES.map(b=>b+'_bin')).concat(BM_BODIES.map(b=>b+'_sign'))
+    .concat(BM_BODIES.map(b=>b+'_deg')).concat(BM_BODIES.map(b=>b+'_nak'))
+    .concat(BM_BODIES.map(b=>b+'_pada')).concat(BM_BODIES.map(b=>b+'_retro'))
+    .concat(BM_BODIES.map(b=>b+'_combust'));
+  const num=(v,d)=>(v==null||!isFinite(v))?'':(+v).toFixed(d==null?2:d);
+  const body=G.rows.map(s=>{ const P=bmHBSky(s,fr), by=b=>P.find(x=>x.b===b);
+    const col=f=>BM_BODIES.map(b=>{ const p=by(b); return p?f(p):''; });
+    return [s.date,num(s.o),num(s.h),num(s.l),num(s.c),num(s.pc),num(s.mv),num(s.gbHi),num(s.gbLo),num(s.ivHi),num(s.ivLo)]
+      .concat(col(p=>p.bin)).concat(col(p=>p.sign)).concat(col(p=>num(p.deg,2)))
+      .concat(col(p=>p.nak)).concat(col(p=>String(p.pada))).concat(col(p=>p.retro?'1':'0')).concat(col(p=>p.comb?'1':'0')); });
+  try{ reDownload('day-list_'+G.k+'_'+bmHBCat()+'_'+fr.id+'.csv', reCsv([head].concat(body))); }catch(e){}
+  return [head].concat(body);
+}
+window.bmHBExport=bmHBExport;
+function bmHistoryHTML(){
+  const L=bmInsts(), k=bmHBInst(), fr=bmFr(), cat=bmHBCat();
+  const head='<div class="ph"><span class="dot" style="background:var(--acc)"></span>DAY LIST — every session '+BM_START.slice(0,4)+' → today</div>';
+  const sel='<select onchange="bmHBPick(this.value)" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">'
+    +BM_GROUPS.map(g=>{ const inG=L.filter(x=>x[2]===g[0]); return inG.length?
+      '<optgroup label="'+reEsc(g[1])+'">'+inG.map(x=>'<option value="'+reEsc(x[0])+'"'+(x[0]===k?' selected':'')+'>'+reEsc(x[1])+'</option>').join('')+'</optgroup>':''; }).join('')
+    +'</select>';
+  const csel='<select onchange="bmHBPickCat(this.value)" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">'
+    +BM_HB_CATS.map(x=>'<option value="'+reEsc(x[0])+'"'+(x[0]===cat?' selected':'')+'>'+reEsc(x[1])+'</option>').join('')+'</select>';
+  const dsel='<input type="date" value="'+reEsc(S.hbFrom||'')+'" onchange="bmHBSet({hbFrom:this.value})" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">'
+    +'<span style="color:var(--tx3)">→</span>'
+    +'<input type="date" value="'+reEsc(S.hbTo||'')+'" onchange="bmHBSet({hbTo:this.value})" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">';
+  const binPill=S.hbBin?'<span class="pill" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2)">bin '+reEsc(String(S.hbBin).slice(2))+' <a style="cursor:pointer;color:var(--tx3)" onclick="bmHBSet({hbBin:\'\'})">✕</a></span>':'';
+  const bar='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px">'+sel+csel+dsel+binPill
+    +'<button onclick="bmHBExport()" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:11px;cursor:pointer">⤓ CSV of the filtered set</button></div>';
+  const G=bmHBRows();
+  if(!G){ const R=window.BM.res[bmKey(k,bmAy())];
+    if(!R) setTimeout(()=>{ try{ bmEnsureK(k).then(bmHBPaint,bmHBPaint); }catch(e){} },0);
+    return '<div class="pnl">'+head+'<div class="pb" style="display:flex;flex-direction:column;gap:8px">'+bar
+      +'<div style="font-size:11.5px;color:var(--tx3)">'+((R&&R.status==='error')?reEsc(R.err||'could not be built')
+        :'building this market\u2019s sessions — <b style="color:var(--acc)">'+((R&&R.prog)||0)+'%</b>…')+'</div></div></div>'; }
+  const n=G.rows.length;
+  const nPage=Math.max(1,Math.ceil(n/BM_HB_PAGE));
+  const page=Math.min(Math.max(0,parseInt(S.hbPage||0,10)||0),nPage-1);
+  const slice=G.rows.slice(page*BM_HB_PAGE,(page+1)*BM_HB_PAGE);
+  const num=(v,d)=>(v==null||!isFinite(v))?'—':(+v).toFixed(d==null?2:d);
+  const skyCell=s=>{ const P=bmHBSky(s,G.fr);
+    const tip=P.map(p=>p.b+': '+p.bin.replace(p.b+' ','')+' · '+p.sign+' '+p.deg.toFixed(2)+'° · '+p.nak+' pada '+p.pada
+      +(p.retro?' · retrograde':'')+(p.comb?' · combust':'')).join('\n');
+    return '<td style="font-size:9.5px;color:var(--tx2);white-space:normal;line-height:1.5" title="'+reEsc(tip)+'">'
+      +P.map(p=>'<span style="white-space:nowrap">'+reEsc(p.b.slice(0,2))+' '+reEsc(p.sign.slice(0,2))+' '+p.deg.toFixed(1)+'° '
+        +reEsc(p.nak.slice(0,4))+'-'+p.pada+(p.retro?'<b style="color:var(--bear)">℞</b>':'')+(p.comb?'<b style="color:var(--neut)">☉</b>':'')+'</span>').join(' · ')
+      +'</td>'; };
+  const rows=slice.map(s=>'<tr>'
+    +'<td style="white-space:nowrap;font-weight:700">'+reEsc(s.date)+'</td>'
+    +'<td style="text-align:right">'+num(s.o)+'</td><td style="text-align:right">'+num(s.h)+'</td>'
+    +'<td style="text-align:right">'+num(s.l)+'</td><td style="text-align:right">'+num(s.c)+'</td>'
+    +'<td style="text-align:right;color:'+(s.mv>0?'var(--bull)':s.mv<0?'var(--bear)':'var(--tx3)')+';font-weight:700">'+(s.mv>0?'+':'')+num(s.mv)+'%</td>'
+    +'<td style="text-align:right">'+num(s.gbHi)+(s.gbHi==null?'':'%')+'</td>'
+    +'<td style="text-align:right">'+num(s.gbLo)+(s.gbLo==null?'':'%')+'</td>'
+    +skyCell(s)+'</tr>').join('');
+  const sortLab=v=>((S.hbSort||'date')===v?((S.hbDir==='asc')?' ▲':' ▼'):'');
+  return '<div class="pnl">'+head+'<div class="pb" style="display:flex;flex-direction:column;gap:8px">'
+    +bar
+    +'<div style="font-size:10.5px;color:var(--tx3);line-height:1.6"><b style="color:var(--tx1)">'+n.toLocaleString()+'</b> session'+(n===1?'':'s')
+      +' match on '+reEsc(bmInstName(G.k))+' — '+reEsc(G.sp[1])
+      +((S.hbFrom||S.hbTo)?', '+reEsc(S.hbFrom||G.R.firstBar)+' → '+reEsc(S.hbTo||G.R.lastBar):'')
+      +(S.hbBin?', with the bin <b>'+reEsc(String(S.hbBin).slice(2))+'</b> present':'')
+      +'. These are the very sessions the study above tallied ('+reEsc(G.R.firstBar)+' → '+reEsc(G.R.lastBar)+', '+G.R._SS.length.toLocaleString()
+      +' in all); the sky column is that same single reading, binned in the <b>'+reEsc(fr.short)+'</b> framing selected above. ℞ = retrograde, ☉ = combust. Descriptive only — no number in this table is a signal and none of it reaches a score.</div>'
+    +'<div style="overflow:auto;max-height:620px"><table class="tbl" style="font-size:10.5px"><thead><tr>'
+      +'<th style="cursor:pointer" onclick="bmHBSort(\'date\')">Date'+sortLab('date')+'</th>'
+      +'<th style="text-align:right">Open</th><th style="text-align:right">High</th><th style="text-align:right">Low</th><th style="text-align:right">Close</th>'
+      +'<th style="text-align:right;cursor:pointer" onclick="bmHBSort(\'move\')">% move c-to-c'+sortLab('move')+'</th>'
+      +'<th style="text-align:right">Give-back from high</th><th style="text-align:right">Recovery off low</th>'
+      +'<th>Sky that day — '+reEsc(fr.short)+' · sign · degree · nakshatra-pada</th></tr></thead>'
+      +'<tbody>'+(rows||'<tr><td colspan="9" style="color:var(--tx3)">no session matches these filters</td></tr>')+'</tbody></table></div>'
+    +'<div style="display:flex;gap:8px;align-items:center;font-size:11px;color:var(--tx3)">'
+      +'<button onclick="bmHBPage(-1)"'+(page<=0?' disabled':'')+' style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:2px 9px;font-family:inherit;font-size:11px;cursor:pointer">◀ prev</button>'
+      +'<span>rows '+(n?(page*BM_HB_PAGE+1).toLocaleString():0)+'–'+Math.min(n,(page+1)*BM_HB_PAGE).toLocaleString()+' of '+n.toLocaleString()+' · page '+(page+1)+' of '+nPage+'</span>'
+      +'<button onclick="bmHBPage(1)"'+(((page+1)*BM_HB_PAGE>=n)?' disabled':'')+' style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:2px 9px;font-family:inherit;font-size:11px;cursor:pointer">next ▶</button>'
+    +'</div></div></div>';
+}
+window.bmDayMapHTML=bmDayMapHTML; window.bmHistoryHTML=bmHistoryHTML;
+window.bmDMRow=bmDMRow; window.bmDMDates=bmDMDates; window.bmHBRows=bmHBRows;
+window.bmDMCell=bmDMCell; window.bmDMSky=bmDMSky;
+
 function tREBacktest(){
   setTimeout(collapsibleInit,20);
   return `<div class="pnl"><div class="ph" data-noco><span class="dot"></span>⟲ BACKTESTING — statistical swing-reversal research engine</div>
       <div class="pb"><div id="re-head">${reHeadHTML()}</div></div></div>
     <div id="bm-body">${(()=>{ try{ return bmPanelHTML(); }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Big-move anatomy unavailable: ${reEsc((e&&e.message)||'error')}</div></div>`; } })()}</div>
+    <div id="hb-body">${(()=>{ try{ return bmHistoryHTML(); }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Day list unavailable: ${reEsc((e&&e.message)||'error')}</div></div>`; } })()}</div>
     <div id="re-body">${reBacktestBodyHTML()}</div>`;
 }
 
