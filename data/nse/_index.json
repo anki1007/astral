@@ -1,5 +1,5 @@
 {
- "generated": "2026-09-20T12:11:00Z",
+ "generated": "2026-09-20T12:54:02Z",
  "source": "upstox v3 historical-candle",
  "instruments": {
   "NIFTY": {
@@ -96,6 +96,16 @@
    "from": "2006-01-02",
    "to": "2026-09-18",
    "count": 5135
+  },
+  "NIFTYHEALTH": {
+   "from": "2005-04-01",
+   "to": "2026-09-18",
+   "count": 5313
+  },
+  "NIFTYOILGAS": {
+   "from": "2005-04-01",
+   "to": "2026-09-18",
+   "count": 5313
   },
   "NIFTYSERV": {
    "from": "2000-01-03",
@@ -1210,8 +1220,6 @@
   ]
  },
  "failures": [
-  "NIFTYHEALTH: HTTP 400: {\"status\":\"error\",\"errors\":[{\"errorCode\":\"UDAPI100011\",\"message\":\"Invalid Instrument key\",\"propertyPath\":null,\"invalidValue\":null,\"error_code\":\"UDAPI100011\",\"property_path\":null,\"invalid_value\":null}]",
-  "NIFTYOILGAS: HTTP 400: {\"status\":\"error\",\"errors\":[{\"errorCode\":\"UDAPI100011\",\"message\":\"Invalid Instrument key\",\"propertyPath\":null,\"invalidValue\":null,\"error_code\":\"UDAPI100011\",\"property_path\":null,\"invalid_value\":null}]",
   "GOLDSTAR: 'unknown symbol: GOLDSTAR'"
  ]
 }
