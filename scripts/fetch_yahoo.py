@@ -218,8 +218,33 @@ def main():
         if len(entry) > 1:
             manifest[k] = entry
         time.sleep(1.0)
-    # Merge, never clobber: a run that fetched nothing must not erase the
-    # index that the app builds its instrument lists from.
+    # The index is what the app builds its instrument lists from, so it is
+    # rebuilt from the FILES ON DISK, not from what this run managed to fetch.
+    # Yahoo refuses GitHub's runners outright (and so does the relay), so a
+    # scheduled run fetches nothing while the committed data sits there intact
+    # — and an index written from that run's empty manifest made Gold and the
+    # US indices vanish from the app.
+    def _scan(kind, suffix):
+        out = {}
+        for k in INSTRUMENTS:
+            f = os.path.join(OUT_DIR, f"{k}{suffix}.json")
+            try:
+                with open(f, encoding="utf-8") as fh:
+                    j = json.load(fh)
+                if j.get("bars"):
+                    out.setdefault(k, {})[kind] = {"from": j["from"], "to": j["to"], "count": j["count"]}
+            except (OSError, ValueError, KeyError):
+                pass
+        return out
+    onDisk = {}
+    for kind, suffix in (("1d", ""), ("60m", "_60m"), ("5m", "_5m")):
+        for k, v in _scan(kind, suffix).items():
+            onDisk.setdefault(k, {}).update(v)
+    for k, v in onDisk.items():
+        manifest.setdefault(k, {}).update({kk: vv for kk, vv in v.items() if kk not in manifest.get(k, {})})
+    if not manifest:
+        print("nothing fetched and nothing on disk — leaving the index alone", file=sys.stderr)
+        return
     ipath = os.path.join(OUT_DIR, "_index.json")
     try:
         with open(ipath, encoding="utf-8") as f:
@@ -242,7 +267,7 @@ def main():
     print(f"\nbaked {got} series across {len(manifest)}/{len(keys)} instruments"
           + (f", {len(failures)} failure(s)" if failures else ""))
     if not manifest:
-        sys.exit("nothing baked - every symbol failed")
+        print("nothing fetched this run — the committed files and the index stand", file=sys.stderr)
 
 
 if __name__ == "__main__":
