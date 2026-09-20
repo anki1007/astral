@@ -86,8 +86,8 @@ INDICES = {
     "NIFTYINFRA":    "NSE_INDEX|Nifty Infra",
     "NIFTYCOMMOD":   "NSE_INDEX|Nifty Commodities",
     "NIFTYCONSUM":   "NSE_INDEX|Nifty Consumption",
-    "NIFTYHEALTH":   "NSE_INDEX|Nifty Healthcare",
-    "NIFTYOILGAS":   "NSE_INDEX|Nifty Oil and Gas",
+    "NIFTYHEALTH":   "NSE_INDEX|NIFTY HEALTHCARE",
+    "NIFTYOILGAS":   "NSE_INDEX|NIFTY OIL AND GAS",
     "NIFTYSERV":     "NSE_INDEX|Nifty Serv Sector",
 }
 
