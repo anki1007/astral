@@ -27129,6 +27129,94 @@ const BM_INST=(typeof DP_INST!=='undefined')?DP_INST:[['NIFTY','Nifty 50']];   /
 const BM_INDIA=new Set(['NIFTY','BANKNIFTY','SENSEX','FINNIFTY','MIDCPNIFTY','NIFTYNXT50']);
 const BM_DEG='° ';             // degree-token prefix
 const BM_MIN_BARS=600;         // a baked file shorter than this is skipped, and said to be skipped
+const BM_MIN_BIN=20;           // a degree bin with fewer category sessions than this is NOT ranked
+
+/* ── the zodiacal FRAMES ──────────────────────────────────────────────
+   "Sun 11°" is ambiguous, and the ambiguity is the whole question. It can mean
+   the 11th degree OF WHATEVER SIGN the Sun is in (one bin shared by all twelve
+   signs), or 11° Aries specifically (one bin on the 360° wheel), or the
+   nakshatra or pada the Sun occupies, or the 11th degree WITHIN its nakshatra.
+   Only the first of those was ever tested. Each is a different question about
+   the same sky, so each gets its own binning of the same nine bodies, its own
+   Benjamini–Hochberg family and its own multiple-testing line.
+
+   bin(lon) takes a SIDEREAL longitude in [0,360) and returns the bin index;
+   lab(body,i) names it. Nothing else about the study changes: the same
+   sessions, the same episode null, the same train / test split and the same
+   "Proven in backtest ✓" standard apply in every framing.
+
+   `per` is the number of bins PER BODY — the count that explodes, and the
+   reason every framing has to state its own expected-by-luck figure. */
+const BM_FRAMES=[
+  {id:'rashi', per:30, short:'rashi degree',
+   pick:'rashi degree — degree within the sign',
+   unit:'whole degrees within the sign',
+   name:'the whole degree WITHIN the sign',
+   note:'“11°” here means the 11th degree of whatever sign the body is in — 11° Aries and 11° Scorpio fall in the SAME bin. This is the framing this study has always used.',
+   bin:l=>Math.min(Math.floor(l%30),29),
+   lab:(b,i)=>b+' '+i+'°'},
+  {id:'abs1', per:360, short:'whole wheel, 1°',
+   pick:'absolute longitude — 1° bins (the whole wheel)',
+   unit:'one-degree bins on the whole wheel',
+   name:'the whole degree ON THE 360° WHEEL',
+   note:'“11° Aries” is its own bin and “11° Scorpio” is a different one. Twelve times as many bins as the rashi-degree framing, so each bin holds roughly a twelfth of the sessions — which is exactly why the minimum-sample rule below bites hardest here.',
+   bin:l=>Math.min(Math.floor(l),359),
+   lab:(b,i)=>b+' '+(i%30)+'° '+SABB[Math.floor(i/30)%12]},
+  {id:'abs5', per:72, short:'whole wheel, 5°',
+   pick:'absolute longitude — 5° bins (the whole wheel, coarser)',
+   unit:'five-degree arcs on the whole wheel',
+   name:'a 5° ARC ON THE 360° WHEEL',
+   note:'the same whole-wheel question as the 1° framing, asked with five times fewer bins. It sits beside the 1° version on purpose: comparing the two is how you see whether the 1° table is signal or thin-sample noise.',
+   bin:l=>Math.min(Math.floor(l/5),71),
+   lab:(b,i)=>{const d=(i*5)%30; return b+' '+d+'–'+(d+4)+'° '+SABB[Math.floor(i/6)%12];}},
+  {id:'sign', per:12, short:'sign',
+   pick:'sign (rashi)',
+   unit:'signs',
+   name:'the SIGN the body occupies',
+   note:'the natural aggregate of the wheel — twelve bins per body, the fattest samples on offer, and the framing with the least room to hide behind a small n.',
+   bin:l=>Math.min(Math.floor(l/30),11),
+   lab:(b,i)=>b+' '+SIGNS[i]},
+  {id:'nak', per:27, short:'nakshatra',
+   pick:'nakshatra',
+   unit:'nakshatras',
+   name:'the NAKSHATRA the body occupies',
+   note:'the 27 lunar mansions of 13°20′ each, read with the same getNak() every other part of this app uses.',
+   bin:l=>Math.min(Math.floor(l/NAK_SPAN),26),
+   lab:(b,i)=>b+' '+NAKS[i].n},
+  {id:'pada', per:108, short:'pada',
+   pick:'pada — quarter of a nakshatra',
+   unit:'padas',
+   name:'the PADA — the 3°20′ quarter of a nakshatra',
+   note:'27 nakshatras × 4 padas = 108 bins per body, the Vedic framing closest in fineness to the 5° wheel.',
+   bin:l=>{const ni=Math.min(Math.floor(l/NAK_SPAN),26);
+     return ni*4+Math.min(Math.floor((l-ni*NAK_SPAN)/(NAK_SPAN/4)),3);},
+   lab:(b,i)=>b+' '+NAKS[Math.floor(i/4)].n+'-'+(i%4+1)},
+  {id:'nakdeg', per:14, short:'degree-in-nakshatra',
+   pick:'degree within the nakshatra (0–13°)',
+   unit:'whole degrees within the nakshatra',
+   name:'the whole degree WITHIN the nakshatra',
+   note:'the Vedic analogue of the rashi-degree framing: the 0th to 13th degree of whatever nakshatra the body is in, pooled across all 27 of them. The last bin is a third of a degree short, because a nakshatra is 13°20′ and not 14°.',
+   bin:l=>{const ni=Math.min(Math.floor(l/NAK_SPAN),26); return Math.min(Math.floor(l-ni*NAK_SPAN),13);},
+   lab:(b,i)=>b+' nak '+i+'°'}
+];
+function bmFrame(f){
+  if(f&&typeof f==='object'&&f.bin) return f;
+  let id=(typeof f==='string'&&f)||'';
+  if(!id){ try{ id=S.bmFrame||''; }catch(e){ id=''; } }
+  return BM_FRAMES.find(x=>x.id===id)||BM_FRAMES[0];
+}
+function bmFr(){ return bmFrame(null); }
+function bmFrBins(f){ return BM_BODIES.length*bmFrame(f).per; }
+/* the degree tokens of ONE framing for one session, built from the stored
+   longitudes — `which` picks the sidereal ('sl') or the tropical ('tl') read */
+function bmFrToks(s,fr,which){
+  const L=s[which||'sl'], out=[]; if(!L) return out;
+  fr=bmFrame(fr);
+  for(let i=0;i<BM_BODIES.length;i++){ const lon=L[i];
+    if(lon==null||!isFinite(lon)) continue;
+    out.push(BM_DEG+fr.lab(BM_BODIES[i],fr.bin(lon))); }
+  return out;
+}
 
 /* ── which instruments this panel offers ────────────────────────────────────
    Discovered from the bakes themselves — data/nse/_index.json and
@@ -27326,6 +27414,7 @@ function bmRetry(){ delete window.BM.res[bmKey(bmInst())]; bmPaint(); bmEnsure()
 function bmPick(v){ S.bmInst=v; bmPaint(); bmEnsure().then(bmPaint,bmPaint); }
 function bmPickCat(v){ S.bmCat=v; bmPaint(); }
 function bmToggleDeg(){ S.bmAllDeg=(S.bmAllDeg==='1')?'':'1'; bmPaint(); }
+function bmPickFrame(v){ S.bmFrame=v; bmPaint(); setTimeout(()=>{ try{ bmFrEnsure(); }catch(e){} },0); }
 
 /* ── the cross-market sweep ─────────────────────────────────────────────────
    The summary table wants one row per instrument, which means one full build
@@ -27443,15 +27532,22 @@ async function bmBuild0(R,k,ay){
         const ft=reFeat(s.date,ay,tod);
         const toks=[]; for(let j=0;j<ft.ids.length;j++) toks.push(reTokName(ft.ids[j]));
         const P=ft.meta&&ft.meta.planets;
-        const dg={}, dgT={};
+        /* The sky is stored as RAW LONGITUDES — sidereal and tropical, one per
+           body — and not as degree tokens. Every zodiacal framing (rashi
+           degree, whole wheel, sign, nakshatra, pada, degree-in-nakshatra) is
+           derived from these same numbers at tally time, so the one expensive
+           reading of the sky answers all of them and they cannot drift apart. */
+        let sl=null, tl=null;
         if(P){
           let an=0; try{ an=getAyanamsa(reJD(s.date,tod),ay); }catch(e){ an=0; }
-          for(const b of BM_BODIES){ const p=P[b]; if(!p||p.deg==null||!isFinite(p.deg)) continue;
-            const d=Math.floor(p.deg)%30; dg[b]=d; toks.push(bmDegTok(b,d));
-            if(p.lon!=null&&isFinite(p.lon)) dgT[b]=Math.floor(n360(p.lon+an)%30)%30; }
+          sl=new Array(BM_BODIES.length).fill(null);
+          tl=new Array(BM_BODIES.length).fill(null);
+          for(let bi=0;bi<BM_BODIES.length;bi++){ const p=P[BM_BODIES[bi]];
+            if(!p||p.lon==null||!isFinite(p.lon)) continue;
+            sl[bi]=n360(p.lon); tl[bi]=n360(p.lon+an); }
         }
-        s.toks=toks; s.dg=dg; s.dgT=dgT;
-      }catch(e){ s.toks=null; }
+        s.toks=toks; s.sl=sl; s.tl=tl; s.ok=1;
+      }catch(e){ s.toks=null; s.ok=0; }
       if(i%40===39){ R.prog=Math.round(i/N*62); bmProg(); await reYield(); }
     }
 
@@ -27475,6 +27571,15 @@ async function bmBuild0(R,k,ay){
       cat[c].k=k; cat[c].ay=ay; cat[c].catId=c;
       await reYield();
     }
+    /* The other framings are derived later, on demand, from these same
+       sessions — so the sessions are kept. Their TOKEN LISTS are not: every
+       non-degree sky feature is identical in every framing and is reused from
+       this build, and every framing's degree bins come from s.sl / s.tl.
+       Dropping the token arrays here keeps one built instrument near a megabyte
+       instead of tens of them, which matters because the cross-market sweep
+       holds every instrument at once. */
+    for(const s of SS) s.toks=null;
+    R._SS=SS;
     Object.assign(R, cat.move, {cat, status:'ready',prog:100,msg:'',
       lastBar:bars[bars.length-1].date, firstBar:SS[0].date, nBars:bars.length,
       ivStep:IV.step, ivWhy:IV.why, ivDays:IV.map?IV.map.size:0,
@@ -27494,9 +27599,15 @@ async function bmBuild0(R,k,ay){
    are literally the same code and the same null — only the definition of the
    session changes. Field names are kept (nBig / nUp / nDn / upShare) so that
    the reader of one table is reading the identical quantity in the next. */
-function bmTally(SS,k,ay,sp){
-  sp=sp||bmSpec('move');
-  const use=SS.filter(s=>s.toks&&sp.ok(s));
+function bmTally(SS,k,ay,sp,fr,reuse){
+  sp=sp||bmSpec('move'); fr=bmFrame(fr);
+  /* `reuse` is the list of NON-degree feature rows from this instrument's
+     rashi build. Those rows do not depend on the framing at all — same
+     sessions, same episodes, same p — so a second framing re-tests only the
+     degree bins and takes the feature rows as they already are. They are
+     CLONED below, because Benjamini–Hochberg rewrites q on whatever it is
+     handed and each framing is its own family. */
+  const use=SS.filter(s=>s.ok&&sp.ok(s));
   const nAll=use.length;
 
   /* the out-of-sample split. The daily categories run 2000 → 2018 against
@@ -27516,9 +27627,10 @@ function bmTally(SS,k,ay,sp){
                  gbMax:null,gbAvgPos:null,gbMedPos:null,alsoBig:null,alsoBigN:0,alsoOther:null,
                  runMax:0,runAvg:null,nRuns:0,tr:{nAll:0,nBig:0,nUp:0,share:0,upShare:0},
                  oo:{nAll:0,nBig:0,nUp:0,share:0,upShare:0}},
-            deg:[], degT:[], feat:{BIG:[],UP:[],DOWN:[]}, provenList:[],
+            deg:[], degT:[], feat:{BIG:[],UP:[],DOWN:[]}, featNonDeg:[], provenList:[],
             tests:0, luck:0, raw:0, rawDay:0, bhPass:0, nProven:0, bases:bases0,
-            degBins:BM_BODIES.length*30, sp:sp.id, split, trLab, ooLab,
+            degBins:BM_BODIES.length*fr.per, degTested:0, degOcc:0, degExcl:0, degMinN:null,
+            fr:fr.id, sp:sp.id, split, trLab, ooLab,
             catFirst:nAll?use[0].date:null, catLast:nAll?use[nAll-1].date:null,
             unavail:'only '+nAll+' session'+(nAll===1?'':'s')+' of usable history for this category — fewer than the '+BM_MIN_SESS+' this study will test on'};
 
@@ -27571,7 +27683,8 @@ function bmTally(SS,k,ay,sp){
   const T=new Map();
   const get=t=>{ let o=T.get(t); if(!o) T.set(t,o={t, ix:[]}); return o; };
   for(let i=0;i<use.length;i++){ const s=use[i], seen=new Set();
-    for(const t of s.toks){ if(seen.has(t)) continue; seen.add(t); get(t).ix.push(i); } }
+    if(!reuse&&s.toks) for(const t of s.toks){ if(seen.has(t)) continue; seen.add(t); get(t).ix.push(i); }
+    for(const t of bmFrToks(s,fr)){ if(seen.has(t)) continue; seen.add(t); get(t).ix.push(i); } }
   const runsOf=ix=>{ const R=[]; let a=0;
     for(let j=1;j<=ix.length;j++) if(j===ix.length||ix[j]!==ix[j-1]+1){ R.push(ix.slice(a,j)); a=j; }
     return R; };
@@ -27623,6 +27736,7 @@ function bmTally(SS,k,ay,sp){
     return Math.max(0,Math.min(1, 1-reErf(Math.abs(k-mu)/sd/Math.SQRT2))); };
 
   const deg=[], feat={BIG:[],UP:[],DOWN:[]};
+  let degOcc=0, degExcl=0, degMinN=null;
   for(const o of T.values()){
     const ix=o.ix, runs=runsOf(ix);
     /* per-period day counts */
@@ -27639,7 +27753,13 @@ function bmTally(SS,k,ay,sp){
            same series. */
     if(bmIsDeg(o.t)){
       const n=nBigP[0]+nBigP[1], kk=nUpP[0]+nUpP[1];
-      if(n){
+      /* A bin that fired on three days and "won" all three is not a finding,
+         it is a small number — and the finer the framing, the more such bins
+         there are. Bins holding fewer than BM_MIN_BIN category sessions are
+         therefore neither ranked nor tested; they are counted, and the count
+         is printed beside the table, which is the honest way to drop them. */
+      if(n) degOcc++;
+      if(n>=BM_MIN_BIN){
         let nEp=0,kEp=0,trEp=0,ooEp=0,mu=0,va=0;
         for(const RR of runs){ const w=WIN(RR.length); mu+=w.qLean; va+=w.qLean*(1-w.qLean);
           let b=0,u=0;
@@ -27654,7 +27774,8 @@ function bmTally(SS,k,ay,sp){
           ooN:nBigP[1], ooU:nUpP[1], ooShare:nBigP[1]?nUpP[1]/nBigP[1]:null,
           ooEdge:nBigP[1]?nUpP[1]/nBigP[1]-cnt.oo.upShare:null, kind:'deg'};
         deg.push(r); tests.push(r);
-      }
+        if(degMinN==null||n<degMinN) degMinN=n;
+      } else if(n) degExcl++;
     }
 
     /* (b) FEATURE rows — how often the feature is present on category days vs
@@ -27683,14 +27804,22 @@ function bmTally(SS,k,ay,sp){
         const r={t:o.t, tgt, n, k:kk, rate, base, lift, ci:reWilson(kk,n),
           pDay:bmP2(kk,n,base), p:bmZ(kEp,mu,va), epMu:mu, nEp, kEp, trEp, ooEp, kEpOo, epLen:EL,
           trN:nAllP[0], trK:cP[0], trR, trLift:(trR!=null&&bTr>0)?trR/bTr:null,
-          ooN:nAllP[1], ooK:cP[1], ooR, ooLift:(ooR!=null&&bOo>0)?ooR/bOo:null, kind:'feat'};
+          ooN:nAllP[1], ooK:cP[1], ooR, ooLift:(ooR!=null&&bOo>0)?ooR/bOo:null, kind:'feat',
+          isDeg:bmIsDeg(o.t)};
         feat[tgt].push(r); tests.push(r);
       }
     }
   }
 
+  /* the framing-independent feature rows, taken from the rashi build and
+     cloned so this framing's Benjamini–Hochberg rewrites only its own copies.
+     They belong in this framing's family because they were part of the same
+     search. */
+  if(reuse) for(const src of reuse){ const c2=Object.assign({},src); c2.q=null; c2.proven=false;
+    if(feat[c2.tgt]) feat[c2.tgt].push(c2); tests.push(c2); }
+
   /* one Benjamini–Hochberg family over EVERYTHING tested for this instrument
-     in THIS category */
+     in THIS category and THIS framing */
   reBH(tests, tests.length);
   const luck=tests.length*0.05;
   const raw=tests.filter(r=>r.p<0.05).length;
@@ -27715,32 +27844,130 @@ function bmTally(SS,k,ay,sp){
   deg.sort((a,b)=>b.edge-a.edge);
   ['BIG','UP','DOWN'].forEach(t=>feat[t].sort((a,b)=>b.lift-a.lift));
 
-  /* the tropical read of the same degree table, reported alongside */
-  const degT=bmDegTrop(use,cnt,sp);
+  /* the tropical read of the same degree table, in the same framing */
+  const degT=bmDegTrop(use,cnt,sp,fr);
 
-  return {cnt, deg, degT, feat, provenList, tests:tests.length, luck, raw, rawDay, bhPass, nProven,
-          bases:bs, degBins:BM_BODIES.length*30, sp:sp.id, split, trLab, ooLab,
+  return {cnt, deg, degT, feat, provenList,
+          featNonDeg: reuse ? reuse
+            : ['BIG','UP','DOWN'].reduce((a,t)=>a.concat(feat[t].filter(r=>!r.isDeg)),[]),
+          tests:tests.length, luck, raw, rawDay, bhPass, nProven,
+          bases:bs, degBins:BM_BODIES.length*fr.per, degTested:deg.length,
+          degOcc, degExcl, degMinN, fr:fr.id, sp:sp.id, split, trLab, ooLab,
           catFirst:use[0].date, catLast:use[use.length-1].date};
 }
 
 /* same degree table, tropical — a second read of the same sessions so the
    answer never rests on one ayanamsa */
-function bmDegTrop(use,cnt,sp){
-  sp=sp||bmSpec('move');
+function bmDegTrop(use,cnt,sp,fr){
+  sp=sp||bmSpec('move'); fr=bmFrame(fr);
   const M=new Map();
-  for(const s of use){ if(!s.dgT) continue; if(!sp.hit(s)) continue;
-    for(const b of BM_BODIES){ const d=s.dgT[b]; if(d==null) continue;
-      const t=bmDegTok(b,d); let o=M.get(t); if(!o) M.set(t,o={t,n:0,k:0});
+  for(const s of use){ if(!s.tl) continue; if(!sp.hit(s)) continue;
+    for(const t of bmFrToks(s,fr,'tl')){ let o=M.get(t); if(!o) M.set(t,o={t,n:0,k:0});
       o.n++; if(sp.pos(s)) o.k++; } }
-  const out=[];
+  const out=[]; let excl=0;
   for(const o of M.values()){ if(!o.n) continue;
+    if(o.n<BM_MIN_BIN){ excl++; continue; }   // the same minimum sample as the sidereal table
     out.push({t:o.t, n:o.n, k:o.k, share:o.k/o.n, edge:o.k/o.n-cnt.upShare, p:bmP2(o.k,o.n,cnt.upShare)}); }
   reBH(out,out.length);
   out.sort((a,b)=>b.edge-a.edge);
+  out.excl=excl;
   return out;
 }
 
 /* ── panel ──────────────────────────────────────────────────────────────── */
+/* ── the other zodiacal framings, derived on demand ───────────────────────
+   The rashi-degree framing IS the build, so it is always present. Every other
+   framing re-tests only the degree bins — the sky-feature rows are identical
+   in all of them — and is then cached beside it. The selected instrument's
+   framing is derived on the paint that needs it; the rest are filled in the
+   background, one at a time, exactly the way the cross-market sweep is. */
+function bmFrKey(fr,c){ return bmFrame(fr).id+'|'+(c||bmCat()); }
+function bmFrGet(R,fr,c){
+  fr=bmFrame(fr); c=c||bmCat();
+  if(!R||R.status!=='ready') return null;
+  if(fr.id==='rashi') return bmSel(R,c);
+  return (R.frc&&R.frc[bmFrKey(fr,c)])||null;
+}
+function bmFrBuild(R,fr,c){
+  fr=bmFrame(fr); c=c||bmCat();
+  const have=bmFrGet(R,fr,c); if(have) return have;
+  if(!R||R.status!=='ready'||!R._SS) return null;
+  const base=bmSel(R,c);
+  const out=bmTally(R._SS,R.k,R.ay,bmSpec(c),fr,(base&&base.featNonDeg)||[]);
+  out.k=R.k; out.ay=R.ay; out.catId=c;
+  out.lastBar=R.lastBar; out.firstBar=R.firstBar;
+  (R.frc||(R.frc={}))[bmFrKey(fr,c)]=out;
+  return out;
+}
+/* every framing of the SELECTED instrument in the selected category — that is
+   what the comparison line needs — and then the selected framing of every
+   other instrument, which is what the summary table needs. One at a time,
+   yielding between each, abandoned the moment the reader changes anything. */
+async function bmFrEnsure(){
+  if(window.BM.frBusy) return; window.BM.frBusy=1;
+  try{
+    const ay=bmAy(), c=bmCat(), fid=bmFr().id, k0=bmInst();
+    /* Only the SELECTED instrument keeps every framing — that is what the
+       comparison line needs. Every other instrument keeps just the framing on
+       display, which is all the summary table reads, so a long session that
+       wanders through instruments and framings cannot grow without bound. */
+    for(const row of bmInsts()){
+      if(row[0]===k0) continue;
+      const R=window.BM.res[bmKey(row[0],ay)];
+      if(!R||!R.frc) continue;
+      for(const key of Object.keys(R.frc)) if(key!==fid+'|'+c) delete R.frc[key]; }
+    const stale=()=>bmAy()!==ay||bmCat()!==c||bmFr().id!==fid||bmInst()!==k0;
+    const own=window.BM.res[bmKey(k0,ay)];
+    if(own&&own.status==='ready'){
+      for(const f of BM_FRAMES){
+        if(bmFrGet(own,f,c)) continue;
+        bmFrBuild(own,f,c); bmPaint(); await reYield();
+        if(stale()) return; } }
+    if(!bmSweepOn()) return;
+    for(const row of bmInsts()){
+      const R=window.BM.res[bmKey(row[0],ay)];
+      if(!R||R.status!=='ready'||!R._SS) continue;
+      if(bmFrGet(R,fid,c)) continue;
+      bmFrBuild(R,fid,c); bmPaint(); await reYield();
+      if(stale()) return; }
+  }catch(e){}
+  finally{ window.BM.frBusy=0; }
+}
+/* the one-line answer to "which framing looks strongest": how many rows survive
+   Benjamini–Hochberg in each framing, side by side, for the selected
+   instrument and category. When the answer is zero in every one of them it
+   says so in those words — that is the useful result, because it means the
+   question has been asked in every reasonable way and answered no every time. */
+function bmFrCompareHTML(R,c,sp){
+  const nm=bmInstName((R&&R.k)||bmInst());
+  const parts=[], miss=[];
+  let allZero=true, anyKnown=false, best=null, featBH=null, featPr=null;
+  for(const f of BM_FRAMES){
+    const Q=bmFrGet(R,f,c);
+    if(!Q||Q.unavail){ miss.push(f); continue; }
+    anyKnown=true;
+    /* the DEGREE BINS are what differs between framings. The sky-feature rows
+       are by construction the identical rows in all seven, so counting them
+       seven times would compare a framing with itself and bury the answer. */
+    const dBH=Q.deg.filter(r=>r.q!=null&&r.q<=BM_Q).length;
+    const dPr=Q.deg.filter(r=>r.proven).length;
+    if(f.id==='rashi'){ featBH=Q.bhPass-dBH; featPr=Q.nProven-dPr; }
+    if(dBH>0||dPr>0) allZero=false;
+    if(!best||dBH>best.n) best={f,n:dBH,pr:dPr};
+    parts.push(`<b>${reEsc(f.short)}</b> <span style="color:var(--tx3)">(${Q.degBins} bins, ${Q.degTested} tested${Q.degExcl?', '+Q.degExcl+' too thin':''})</span>: <b style="color:${dPr?'var(--bull)':dBH?'var(--neut)':'var(--tx3)'}">${dBH}</b> survive BH${dPr?', <b style="color:var(--bull)">'+dPr+' proven</b>':''}`);
+  }
+  if(!anyKnown) return `<div style="font-size:11px;color:var(--tx3);margin-top:6px">Deriving the other zodiacal framings for ${reEsc(nm)} …</div>`;
+  const shared = featBH
+    ? ` The ${featBH} row${featBH===1?'':'s'} that do survive Benjamini–Hochberg in each family ${featBH===1?'is a sky-FEATURE row':'are sky-FEATURE rows'}, not degree bins, and ${featBH===1?'it is the identical row':'they are the identical rows'} in all ${BM_FRAMES.length} framings — nothing about any zodiacal framing produced ${featBH===1?'it':'them'}, and ${featPr?featPr+' of them reached the full standard':'not one of them reached the full standard either'}.`
+    : '';
+  const tail = allZero
+    ? `<b>Not one degree bin survives Benjamini–Hochberg in any framing — the answer is zero everywhere.</b> Whether “Sun 11°” is read as a degree within the sign, a degree on the whole 360° wheel, a 5° arc of it, a sign, a nakshatra, a pada or a degree within the nakshatra, the question has now been asked in every one of those ways on ${reEsc(nm)}'s ${reEsc(sp.catLab)} sessions, and every one of them answers no.${shared}`
+    : `Most degree-bin survivors: <b>${reEsc(best.f.short)}</b> with ${best.n}${best.pr?' ('+best.pr+' proven)':''}. Surviving Benjamini–Hochberg is NOT the full standard — a bin still has to hold the same direction in BOTH periods, on at least ${BM_MIN_OOS} out-of-sample firings over at least ${BM_MIN_EP} separate episodes, before it reads “Proven in backtest ✓”. The “proven” counts here are the only ones that mean anything; a bare BH survivor is not a finding, and a framing that finds more of them mostly has more bins to find them in.${shared}`;
+  const pend = miss.length?` <span style="color:var(--tx3)">(${miss.map(f=>reEsc(f.short)).join(', ')}: not derived yet)</span>`:'';
+  return `<div style="font-size:11px;color:var(--tx2);margin-top:6px;line-height:1.6;padding:5px 8px;border:1px solid var(--bd2);background:var(--bg2)">
+    <b style="color:var(--tx1)">WHICH FRAMING LOOKS STRONGEST</b> — DEGREE BINS surviving Benjamini–Hochberg for ${reEsc(nm)}, ${reEsc(sp.catLab)} sessions, the same nine bodies read ${BM_FRAMES.length} ways: ${parts.join(' · ')}.${pend} ${tail}</div>`;
+}
+
 function bmEdgeClr(sp,e){ return e>0?sp.up:e<0?sp.dn:'var(--tx2)'; }
 function bmCap(s){ return String(s).charAt(0).toUpperCase()+String(s).slice(1); }
 function bmSummaryLine(R,sp){
@@ -27787,16 +28014,22 @@ function bmFeatRow(r){
     <td>${bmFlag(r)}</td></tr>`;
 }
 function bmDegTable(R,sp){
-  const all=S.bmAllDeg==='1', L=R.deg;
-  if(!L.length) return `<div style="font-size:11px;color:var(--tx3)">No degree bin was occupied on a ${reEsc(sp.catLab)} session.</div>`;
+  const L=R.deg;
+  /* a fine framing can leave fewer bins than the 15-and-15 view wants; showing
+     the whole thing is both simpler and honest when it is that short */
+  const all=S.bmAllDeg==='1'||L.length<=30;
+  if(!L.length) return `<div style="font-size:11px;color:var(--tx3)">${R.degOcc
+      ? 'Not one of the '+R.degOcc+' bins this framing put a body in on a '+reEsc(sp.catLab)+' session carries the '+BM_MIN_BIN+' sessions a bin needs before it is ranked — all '+R.degExcl+' of them are too thin to mean anything, which is itself the finding: at this many bins per body there is not enough history to fill them.'
+      : 'No degree bin was occupied on a '+reEsc(sp.catLab)+' session.'}</div>`;
   const head=`<thead><tr><th>Degree bin</th><th>n ${sp.catShort}</th><th>${sp.degLab}</th><th>edge vs ${bmPct(R.cnt.upShare)}</th><th>95% Wilson CI</th><th title="episodes with a ${reEsc(sp.catLab)} / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>${reEsc(R.trLab)}</th><th>${reEsc(R.ooLab)}</th><th>Verdict</th></tr></thead>`;
   const body = all
     ? L.map(r=>bmDegRow(r,sp)).join('')
     : L.slice(0,15).map(r=>bmDegRow(r,sp)).join('')
       +`<tr><td colspan="10" style="font-size:10.5px;color:var(--tx3);white-space:normal">… ${Math.max(0,L.length-30)} bins in the middle hidden — the most negative 15 follow …</td></tr>`
       +L.slice(-15).map(r=>bmDegRow(r,sp)).join('');
-  return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">${head}<tbody>${body}</tbody></table></div>
-    <div style="margin-top:5px"><a style="cursor:pointer;color:var(--acc);font-size:11px" onclick="bmToggleDeg()">${all?'▴ show only the most positive / most negative 15':'▾ show all '+L.length+' degree bins'}</a></div>`;
+  const excl=R.degExcl?`<div style="font-size:10.5px;color:var(--tx3);margin-top:3px">${R.degExcl} further bin${R.degExcl===1?'':'s'} held fewer than ${BM_MIN_BIN} ${reEsc(sp.catShort)} sessions and ${R.degExcl===1?'is':'are'} not ranked, not tested and not counted in this framing's Benjamini–Hochberg family.</div>`:'';
+  const link=L.length>30?`<div style="margin-top:5px"><a style="cursor:pointer;color:var(--acc);font-size:11px" onclick="bmToggleDeg()">${all?'▴ show only the most positive / most negative 15':'▾ show all '+L.length+' degree bins'}</a></div>`:'';
+  return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">${head}<tbody>${body}</tbody></table></div>${link}${excl}`;
 }
 function bmFeatTable(R,tgt,n,sp){
   const L=R.feat[tgt]; if(!L.length) return `<div style="font-size:11px;color:var(--tx3)">No feature was present on at least ${BM_MIN_N} sessions.</div>`;
@@ -27825,11 +28058,12 @@ function bmCountsHTML(R,sp){
     <div>${reEsc(R.trLab)}: ${C.tr.nBig} of ${C.tr.nAll} · split ${bmPct(C.tr.upShare)}</div>
     <div>${reEsc(R.ooLab)}: ${C.oo.nBig} of ${C.oo.nAll} · split ${bmPct(C.oo.upShare)}</div></div>`;
 }
-function bmTropHTML(R,sp){
+function bmTropHTML(R,sp,fr){
+  fr=bmFrame(fr);
   const L=R.degT; if(!L||!L.length) return '';
   const row=r=>`<tr><td style="white-space:nowrap">${reEsc(r.t)}</td><td style="text-align:right">${r.n}</td><td style="text-align:right;color:${bmEdgeClr(sp,r.edge)}">${bmPct(r.share)}</td><td style="text-align:right;color:${bmEdgeClr(sp,r.edge)}">${bmPP(r.edge)}</td><td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)}</div></td></tr>`;
   const pass=L.filter(r=>r.q!=null&&r.q<=BM_Q).length;
-  return `<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">THE SAME TABLE, TROPICAL ZODIAC <span style="font-weight:400;color:var(--tx3)">— the table above is sidereal (${reEsc(R.ay||bmAy())}); this is the identical measurement on the tropical degree, so the answer does not rest on one ayanamsa. ${pass} of ${L.length} bins survive Benjamini–Hochberg here.</span></div>
+  return `<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">THE SAME TABLE, TROPICAL ZODIAC <span style="font-weight:400;color:var(--tx3)">— the table above is sidereal (${reEsc(R.ay||bmAy())}); this is the identical measurement, in the same ${reEsc(fr.short)} framing, on the tropical longitude — so the answer does not rest on one ayanamsa. ${pass} of the ${L.length} bins that cleared the ${BM_MIN_BIN}-session minimum survive Benjamini–Hochberg here${L.excl?', and '+L.excl+' thinner bins were excluded':''}.</span></div>
     <div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px"><thead><tr><th>Degree bin</th><th>n ${sp.catShort}</th><th>${sp.degLab}</th><th>edge</th><th>p (2-sided)</th></tr></thead><tbody>
     ${L.slice(0,10).map(row).join('')}<tr><td colspan="5" style="font-size:10.5px;color:var(--tx3)">… most negative 10 …</td></tr>${L.slice(-10).map(row).join('')}</tbody></table></div></div>`;
 }
@@ -27846,7 +28080,8 @@ function bmXCell(r,sp){
   return `<td style="white-space:nowrap">${reEsc(r.t)}<div style="font-size:9.5px;color:var(--tx3)">${r.n}d / ${r.nEp}ep · q ${bmPf(r.q)}</div></td>
     <td style="text-align:right;color:${c};font-weight:700">${bmPct(r.share)}<div style="font-size:9.5px;font-weight:400">${bmPP(r.edge)}</div></td>`;
 }
-function bmXTable(c,sp){
+function bmXTable(c,sp,fr){
+  fr=bmFrame(fr);
   const ay=bmAy(), L=bmInsts(), rows=[];
   let done=0, err=0, nProv=0;
   let html='';
@@ -27861,7 +28096,14 @@ function bmXTable(c,sp){
       if(R.status==='error'){ err++;
         html+=`<tr><td>${reEsc(label)}</td><td colspan="7" style="font-size:10.5px;color:var(--tx3)">not available — ${reEsc(R.err||'error')}</td></tr>`;
         continue; }
-      const Rc=bmSel(R,c); done++;
+      /* a non-rashi framing is derived in the background, one instrument at a
+         time, so a row may legitimately not have it yet — which is said, not
+         papered over with a blank */
+      const Rc=bmFrGet(R,fr,c);
+      if(!Rc){
+        html+=`<tr><td>${reEsc(label)}</td><td colspan="7" style="font-size:10.5px;color:var(--tx3)">deriving the ${reEsc(fr.short)} framing…</td></tr>`;
+        continue; }
+      done++;
       if(Rc.unavail){
         html+=`<tr><td>${reEsc(label)}</td><td colspan="7" style="font-size:10.5px;color:var(--tx3)">not tested — ${reEsc(Rc.unavail)}</td></tr>`;
         continue; }
@@ -27883,7 +28125,7 @@ function bmXTable(c,sp){
   const skipTxt=skip.length?`<div style="font-size:10px;color:var(--tx3);margin-top:3px">Not offered: ${skip.map(s=>reEsc(s[0])+' ('+reEsc(s[1])+')').join(', ')}.</div>`:'';
   const line = nProv>0
     ? `<b style="color:var(--bull)">${nProv}</b> of the ${done*2} extreme bins listed above passed the full standard and read "Proven in backtest ✓".`
-    : `<b>None of these rows is proven.</b> Every one of them is the most extreme of ${BM_BODIES.length*30} degree bins for its instrument, and with ~${BM_BODIES.length*30} bins per instrument a handful of extreme-looking rows is expected by chance alone — that is what this table shows, and it is why each row carries its Benjamini–Hochberg q and its verdict rather than a number anyone could trade.`;
+    : `<b>None of these rows is proven.</b> Every one of them is the most extreme of this instrument's ${bmFrBins(fr)} ${reEsc(fr.short)} bins, and with ~${bmFrBins(fr)} bins per instrument a handful of extreme-looking rows is expected by chance alone — that is what this table shows, and it is why each row carries its Benjamini–Hochberg q and its verdict rather than a number anyone could trade.`;
   return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">
     <thead><tr><th>Instrument</th><th>n ${sp.catShort}</th><th>share of sessions</th>
       <th colspan="2">most ${sp.id==='move'?'bullish':'positive'} degree bin (${sp.degLab})</th>
@@ -27894,15 +28136,20 @@ function bmXTable(c,sp){
 
 function bmPanelHTML(){
   const k=bmInst(), ay=bmAy(), R=window.BM.res[bmKey(k,ay)], c=bmCat(), sp=bmSpec(c);
-  const L=bmInsts();
+  const fr=bmFr(), L=bmInsts();
   const sel=`<select onchange="bmPick(this.value)" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">
     ${BM_GROUPS.map(([gid,gname])=>{ const inG=L.filter(x=>x[2]===gid); return inG.length?
       `<optgroup label="${reEsc(gname)}">${inG.map(x=>`<option value="${reEsc(x[0])}"${x[0]===k?' selected':''}>${reEsc(x[1])}</option>`).join('')}</optgroup>`:''; }).join('')}</select>`;
   const csel=`<select onchange="bmPickCat(this.value)" title="the same two tables run on a different definition of the session — each against its own baseline, each its own Benjamini–Hochberg family" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">
     ${BM_CATS.map(x=>`<option value="${reEsc(x)}"${x===c?' selected':''}>${reEsc(bmSpec(x).pick)}</option>`).join('')}</select>`;
+  /* the SAME sessions and the SAME statistics, read in a different zodiacal
+     framing — only the degree bins change; the sky-feature tables below do
+     not depend on the framing at all */
+  const fsel=`<select onchange="bmPickFrame(this.value)" title="What does &quot;Sun 11°&quot; mean? A degree within the sign, a degree on the whole 360° wheel, a sign, a nakshatra, a pada, or a degree within the nakshatra. Each is a different question; each gets its own bins, its own Benjamini–Hochberg family and its own expected-by-luck figure." style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">
+    ${BM_FRAMES.map(f=>`<option value="${reEsc(f.id)}"${f.id===fr.id?' selected':''}>${reEsc(f.pick)} — ${BM_BODIES.length*f.per} bins</option>`).join('')}</select>`;
   const head=`<div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px">
     <span><span class="dot" style="background:var(--acc)"></span>BIG-MOVE ANATOMY — ${sp.head}</span>
-    <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${csel}${sel}${reNoEdgePill()}</span></div>`;
+    <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${csel}${fsel}${sel}${reNoEdgePill()}</span></div>`;
   if(!R||R.status==='loading'){ if(!R) setTimeout(()=>{ try{ bmEnsure().then(bmPaint,bmPaint); }catch(e){} },0);
     return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--tx3)">
       Measuring every session of ${reEsc(bmInstName(k))} since 2000 — the ones that closed more than ${BM_MOVE}% from the previous close, the ones that closed at least ${BM_REV}% below the day's high, the ones that closed at least ${BM_REV}% above the day's low, and (on the baked intraday bars) the ones that travelled at least ${BM_REV}% away from an intraday extreme — and the sky at each one read at that venue's own open …
@@ -27912,41 +28159,49 @@ function bmPanelHTML(){
   if(R.status==='error') return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--bear)">Could not build the big-move study: ${reEsc(R.err||'error')} · <a style="cursor:pointer;color:var(--acc)" onclick="bmRetry()">retry</a></div></div>`;
 
   const Rc=bmSel(R,c);
+  /* the active framing for the selected instrument, derived now if this is the
+     first paint that asks for it; everything below reads Rf, and in the
+     rashi-degree framing Rf IS Rc, so that framing is untouched */
+  const Rf=bmFrBuild(R,fr,c)||Rc;
   const other=BM_CATS.filter(x=>x!==c).map(x=>{ const o=R.cat&&R.cat[x]; const s2=bmSpec(x);
     return o?`${reEsc(s2.pick)}: ${o.unavail?'not tested':(o.nProven?('<b style="color:var(--bull)">'+o.nProven+' passed</b>'):'nothing passed')}`:'';
   }).filter(Boolean).join(' · ');
   const ivNote = sp.src!=='intraday' ? '' :
-    `<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">Measured on the baked ${R.ivStep==='60'?'60-minute':'5-minute'} bars (${R.ivDays||0} covered sessions), so this category has a much shorter history than the daily ones, its own baseline and its own train / test split — ${reEsc(Rc.trLab)} against ${reEsc(Rc.ooLab)}, because there is no pre-2022 intraday data to split at 2018. It is never merged with the daily-OHLC categories.${DS_YAHOO_ONLY.has(k)?' Read this one with care: the Yahoo 60-minute file for a round-the-clock future covers far more than a cash session, so a calendar day here spans the overnight too and the category fires much more often than the daily high-to-close version does. That is a property of the data, not a discovery.':''}</div>`;
+    `<div style="font-size:10.5px;color:var(--tx3);margin-top:4px">Measured on the baked ${R.ivStep==='60'?'60-minute':'5-minute'} bars (${R.ivDays||0} covered sessions), so this category has a much shorter history than the daily ones, its own baseline and its own train / test split — ${reEsc(Rf.trLab)} against ${reEsc(Rf.ooLab)}, because there is no pre-2022 intraday data to split at 2018. It is never merged with the daily-OHLC categories.${DS_YAHOO_ONLY.has(k)?' Read this one with care: the Yahoo 60-minute file for a round-the-clock future covers far more than a cash session, so a calendar day here spans the overnight too and the category fires much more often than the daily high-to-close version does. That is a property of the data, not a discovery.':''}</div>`;
 
-  const head1=`<div style="padding:6px 9px;border:1px solid var(--bd2);border-left:3px solid ${(!Rc.unavail&&Rc.nProven)?'var(--bull)':'var(--bd2)'};background:var(--bg2);font-size:12px;color:var(--tx1);line-height:1.6">${bmSummaryLine(Rc,sp)}
+  const head1=`<div style="padding:6px 9px;border:1px solid var(--bd2);border-left:3px solid ${(!Rf.unavail&&Rf.nProven)?'var(--bull)':'var(--bd2)'};background:var(--bg2);font-size:12px;color:var(--tx1);line-height:1.6">${bmSummaryLine(Rf,sp)}
       <div style="font-size:10.5px;color:var(--tx3);margin-top:4px">Definition: ${sp.defn}${sp.src==='daily'&&sp.id!=='move'?' The "…and it also closed below/above the previous close" reading is kept below as a SECONDARY SPLIT, not as the category.':''} The other categories on this instrument — ${other}.</div>${ivNote}</div>`;
 
-  if(Rc.unavail) return `<div class="pnl">${head}<div class="pb">${head1}
+  if(Rf.unavail) return `<div class="pnl">${head}<div class="pb">${head1}
     <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">⓪ EVERY MARKET AT ONCE — ${reEsc(sp.pick)}
-      <span style="font-weight:400;color:var(--tx3)">— one row per baked instrument: how many such sessions it had, and the single most positive and single most negative of its ${BM_BODIES.length*30} degree bins, each with its episode count, its Benjamini–Hochberg q and its verdict. Built one instrument at a time in the background and cached, so the panel opens immediately.</span></div>
-      ${bmXTable(c,sp)}</div>
-    <div style="margin-top:10px;font-size:11.5px;color:var(--tx3)">No degree table and no feature table are shown for this category, and no test was run, because a number built on ${Rc.cnt.nAll} sessions would not mean anything. ${sp.src==='intraday'?'Bake more intraday history (scripts/fetch_yahoo.py for the Yahoo instruments, the NSE 5-minute shards for the Indian ones) and this category fills in by itself.':''}</div>
+      <span style="font-weight:400;color:var(--tx3)">— one row per baked instrument: how many such sessions it had, and the single most positive and single most negative of its ${bmFrBins(fr)} ${reEsc(fr.short)} bins, each with its episode count, its Benjamini–Hochberg q and its verdict. Built one instrument at a time in the background and cached, so the panel opens immediately.</span></div>
+      ${bmXTable(c,sp,fr)}
+      ${bmFrCompareHTML(R,c,sp)}</div>
+    <div style="margin-top:10px;font-size:11.5px;color:var(--tx3)">No degree table and no feature table are shown for this category, and no test was run, because a number built on ${Rf.cnt.nAll} sessions would not mean anything. ${sp.src==='intraday'?'Bake more intraday history (scripts/fetch_yahoo.py for the Yahoo instruments, the NSE 5-minute shards for the Indian ones) and this category fills in by itself.':''}</div>
     </div></div>`;
 
-  setTimeout(()=>{ try{ bmSweep(); }catch(e){} },0);
+  setTimeout(()=>{ try{ bmSweep(); }catch(e){} try{ bmFrEnsure(); }catch(e){} },0);
   return `<div class="pnl">${head}<div class="pb">
     ${head1}
     <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">⓪ EVERY MARKET AT ONCE — ${reEsc(sp.pick)}
-      <span style="font-weight:400;color:var(--tx3)">— one row per baked instrument: how many such sessions it had, and the single most positive and single most negative of its ${BM_BODIES.length*30} degree bins, each with its episode count, its Benjamini–Hochberg q and its verdict. Built one instrument at a time in the background and cached, so the panel opens immediately.</span></div>
-      ${bmXTable(c,sp)}</div>
-    ${bmCountsHTML(Rc,sp)}
-    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">① DEGREE TABLE — every planet × whole degree-in-sign, on ${reEsc(sp.catLab)} sessions only
-      <span style="font-weight:400;color:var(--tx3)">— ${BM_BODIES.length} bodies × 30 degrees = ${Rc.degBins} bins, sidereal (${reEsc(R.ay)}), read at ${bmGrp(k)==='india'?'09:15 IST':'09:30 New York'}. "Edge" is against this instrument's own ${reEsc(sp.degBase)} within this category (${bmPct(Rc.cnt.upShare)}), never against its all-session up-rate. At 5%, roughly <b>${(Rc.degBins*0.05).toFixed(0)}</b> of the ${Rc.degBins} bins on ONE instrument — about <b>${(Rc.degBins*L.length*BM_CATS.length*0.05).toFixed(0)}</b> across all ${L.length} instruments and all ${BM_CATS.length} categories — would look significant by luck alone, which is why every row carries a Benjamini–Hochberg q.</span></div>
-      ${bmDegTable(Rc,sp)}
-      ${bmTropHTML(Rc,sp)}</div>
+      <span style="font-weight:400;color:var(--tx3)">— one row per baked instrument: how many such sessions it had, and the single most positive and single most negative of its ${bmFrBins(fr)} ${reEsc(fr.short)} bins, each with its episode count, its Benjamini–Hochberg q and its verdict. Built one instrument at a time in the background and cached, so the panel opens immediately.</span></div>
+      ${bmXTable(c,sp,fr)}
+      ${bmFrCompareHTML(R,c,sp)}</div>
+    ${bmCountsHTML(Rf,sp)}
+    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">① DEGREE TABLE — every planet × ${reEsc(fr.name)}, on ${reEsc(sp.catLab)} sessions only
+      <span style="font-weight:400;color:var(--tx3)">— ${BM_BODIES.length} bodies × ${fr.per} ${reEsc(fr.unit)} = <b>${Rf.degBins} bins</b>, sidereal (${reEsc(R.ay)}), read at ${bmGrp(k)==='india'?'09:15 IST':'09:30 New York'}. ${reEsc(fr.note)} "Edge" is against this instrument's own ${reEsc(sp.degBase)} within this category (${bmPct(Rf.cnt.upShare)}), never against its all-session up-rate.
+      <br><b>How many of these rows would look significant by luck, in THIS framing:</b> ${Rf.degTested} bins are actually tested here, so at p &lt; 0.05 about <b>${(Rf.degTested*0.05).toFixed(0)}</b> of them would reach that by chance alone on this one instrument in this one category — and about <b>${(Rf.degTested*L.length*BM_CATS.length*0.05).toFixed(0)}</b> across all ${L.length} instruments and all ${BM_CATS.length} categories. The finer the framing the bigger that number gets, which is why nothing is ever claimed from a raw p and why every row carries a Benjamini–Hochberg q computed for this framing's own family.
+      <br><b>Minimum sample per bin:</b> a bin must hold at least <b>${BM_MIN_BIN}</b> ${reEsc(sp.catShort)} sessions before it is ranked or tested at all. Of the ${Rf.degBins} bins this framing allows, <b>${Rf.degOcc}</b> were ever occupied on such a session, <b>${Rf.degTested}</b> cleared that bar, and <b>${Rf.degExcl}</b> did not and are excluded from the table and from the family — a three-day bin sitting at 100% is a small number, not a finding. The thinnest bin still in the table below holds <b>${Rf.degMinN==null?'—':Rf.degMinN}</b> sessions.</span></div>
+      ${bmDegTable(Rf,sp)}
+      ${bmTropHTML(Rf,sp,fr)}</div>
     <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">② WHAT ELSE WAS PRESENT — every other sky feature the app already computes, on ${reEsc(sp.catLab)} days vs ordinary days
-      <span style="font-weight:400;color:var(--tx3)">— planet sign, nakshatra and pada, retrograde / stationary / combust, the full aspect matrix, declination, tithi / yoga / karana (all from the research engine's own reFeat) and the book engine's own daily band (reBook, 09:15 IST). Lift = how much more often the feature is present on a ${reEsc(sp.catLab)} day than on an ordinary one, against the base ${bmPct(Rc.bases.BIG[0])} — this category's own rate across all its usable sessions. Minimum ${BM_MIN_N} days present.</span></div>
-      ${bmFeatTable(Rc,'BIG',25,sp)}</div>
-    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">③ ${sp.id==='move'?'UP-MOVES ONLY':'SECONDARY SPLIT'} — ${sp.posLab} <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(Rc.bases.UP[0])} of all usable sessions. ${sp.id==='move'?'"What moves the market" and "which way" are different questions, so they get different tables.':'A sub-question, not the category: the headline count above does not depend on the previous close at all.'}</span></div>
-      ${bmFeatTable(Rc,'UP',15,sp)}</div>
-    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">④ ${sp.id==='move'?'DOWN-MOVES ONLY':'THE REST OF THE SPLIT'} — ${sp.negLab} <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(Rc.bases.DOWN[0])} of all usable sessions</span></div>
-      ${bmFeatTable(Rc,'DOWN',15,sp)}</div>
-    <div style="font-size:10px;color:var(--tx3);margin-top:10px;line-height:1.55">${Rc.tests.toLocaleString()} tests were run for ${reEsc(bmInstName(k))} in this category (${Rc.deg.length} degree bins + ${Rc.feat.BIG.length+Rc.feat.UP.length+Rc.feat.DOWN.length} feature × target rows); each category is its own Benjamini–Hochberg family, and all ${BM_CATS.length} are built from the same single reading of the sky. About <b>${Rc.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck; <b>${Rc.raw}</b> did on the episode test (<b>${Rc.rawDay}</b> would have on the naïve day-level test, which is why the day test is not the one used); <b>${Rc.bhPass}</b> survived Benjamini–Hochberg at q = ${BM_Q}. Every p here is computed on EPISODES — contiguous runs of sessions on which the feature is present — because these sessions cluster and a slow planet holds one degree or one aspect for a single unbroken stretch, so its days are one observation and not hundreds. "Proven in backtest ✓" additionally requires the same direction on ${reEsc(Rc.trLab)} <i>and</i> on ${reEsc(Rc.ooLab)}, with at least ${BM_MIN_OOS} out-of-sample firings spread over at least ${BM_MIN_EP} separate episodes in each period; everything else reads "not proven — past hits ≈ random chance". ${R.book?'':'The book band was omitted in this run. '}A study aid — nothing here is a recommendation, and no number on this panel reaches a score.</div>
+      <span style="font-weight:400;color:var(--tx3)">— planet sign, nakshatra and pada, retrograde / stationary / combust, the full aspect matrix, declination, tithi / yoga / karana (all from the research engine's own reFeat) and the book engine's own daily band (reBook, 09:15 IST). Lift = how much more often the feature is present on a ${reEsc(sp.catLab)} day than on an ordinary one, against the base ${bmPct(Rf.bases.BIG[0])} — this category's own rate across all its usable sessions. Minimum ${BM_MIN_N} days present.</span></div>
+      ${bmFeatTable(Rf,'BIG',25,sp)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">③ ${sp.id==='move'?'UP-MOVES ONLY':'SECONDARY SPLIT'} — ${sp.posLab} <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(Rf.bases.UP[0])} of all usable sessions. ${sp.id==='move'?'"What moves the market" and "which way" are different questions, so they get different tables.':'A sub-question, not the category: the headline count above does not depend on the previous close at all.'}</span></div>
+      ${bmFeatTable(Rf,'UP',15,sp)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">④ ${sp.id==='move'?'DOWN-MOVES ONLY':'THE REST OF THE SPLIT'} — ${sp.negLab} <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(Rf.bases.DOWN[0])} of all usable sessions</span></div>
+      ${bmFeatTable(Rf,'DOWN',15,sp)}</div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:10px;line-height:1.55">${Rf.tests.toLocaleString()} tests were run for ${reEsc(bmInstName(k))} in this category, in the <b>${reEsc(fr.short)}</b> framing (${Rf.deg.length} degree bins that cleared the ${BM_MIN_BIN}-session minimum, with ${Rf.degExcl} thinner ones excluded, + ${Rf.feat.BIG.length+Rf.feat.UP.length+Rf.feat.DOWN.length} feature × target rows); each category × framing is its own Benjamini–Hochberg family, and all ${BM_CATS.length} categories and all ${BM_FRAMES.length} framings are built from the same single reading of the sky — the sky-feature rows do not depend on the framing at all, only the degree bins do. About <b>${Rf.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck; <b>${Rf.raw}</b> did on the episode test (<b>${Rf.rawDay}</b> would have on the naïve day-level test, which is why the day test is not the one used); <b>${Rf.bhPass}</b> survived Benjamini–Hochberg at q = ${BM_Q}. Every p here is computed on EPISODES — contiguous runs of sessions on which the feature is present — because these sessions cluster and a slow planet holds one degree or one aspect for a single unbroken stretch, so its days are one observation and not hundreds. "Proven in backtest ✓" additionally requires the same direction on ${reEsc(Rf.trLab)} <i>and</i> on ${reEsc(Rf.ooLab)}, with at least ${BM_MIN_OOS} out-of-sample firings spread over at least ${BM_MIN_EP} separate episodes in each period; everything else reads "not proven — past hits ≈ random chance". ${R.book?'':'The book band was omitted in this run. '}A study aid — nothing here is a recommendation, and no number on this panel reaches a score.</div>
   </div></div>`;
 }
 

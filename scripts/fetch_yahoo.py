@@ -65,6 +65,25 @@ INSTRUMENTS = {
 }
 
 
+def _via_relay(url):
+    """r.jina.ai fetches the page from its own servers, so it gets through
+    where a cloud IP is refused. It prefixes a plain-text header unless asked
+    otherwise; either way the JSON is cut out of what comes back."""
+    p = subprocess.run(["curl", "-s", "-f", "-m", "90", "-A", UA,
+                        "-H", "X-Return-Format: text",
+                        "https://r.jina.ai/" + url],
+                       capture_output=True, timeout=120)
+    if p.returncode != 0 or not p.stdout:
+        raise RuntimeError("relay returned nothing")
+    t = p.stdout.decode("utf-8", "replace")
+    i = t.find('{"chart"')
+    if i < 0:
+        i = t.find("{")
+    if i < 0:
+        raise RuntimeError("relay returned no JSON")
+    return json.loads(t[i:])
+
+
 def get(url, tries=4):
     """Yahoo answers curl but returns 429 to Python's own HTTP client (it
     fingerprints the TLS handshake), so curl goes first; urllib is kept only
@@ -93,7 +112,10 @@ def get(url, tries=4):
             raise RuntimeError(f"HTTP {e.code}")
         except (URLError, TimeoutError):
             time.sleep(3 * (attempt + 1))
-    raise RuntimeError(f"gave up after {tries} attempts")
+    try:                                   # last resort: the relay
+        return _via_relay(url)
+    except Exception as e:
+        raise RuntimeError(f"gave up after {tries} attempts; relay: {e}")
 
 
 # interval -> (Yahoo range parameter, output filename suffix). Daily is fetched
@@ -196,7 +218,22 @@ def main():
         if len(entry) > 1:
             manifest[k] = entry
         time.sleep(1.0)
-    with open(os.path.join(OUT_DIR, "_index.json"), "w", encoding="utf-8") as f:
+    # Merge, never clobber: a run that fetched nothing must not erase the
+    # index that the app builds its instrument lists from.
+    ipath = os.path.join(OUT_DIR, "_index.json")
+    try:
+        with open(ipath, encoding="utf-8") as f:
+            old = (json.load(f) or {}).get("instruments") or {}
+    except (OSError, ValueError):
+        old = {}
+    if not manifest and old:
+        print("nothing fetched this run — keeping the existing index", file=sys.stderr)
+        merged = old
+    else:
+        merged = dict(old)
+        merged.update(manifest)
+    manifest = merged
+    with open(ipath, "w", encoding="utf-8") as f:
         json.dump({"generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                    "source": "yahoo v8 chart (1d full / 60m 730d / 5m 60d)",
                    "row": ["date-or-datetime", "o", "h", "l", "c", "v"],
