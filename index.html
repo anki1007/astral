@@ -5083,7 +5083,7 @@ window.mktSwitchSide=mktSwitchSide;
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
@@ -5103,7 +5103,7 @@ window.navGo=navGo;
 addEventListener('hashchange',()=>{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m && m[1]!==S.tab) gs({tab:m[1]}); });
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,vr2:tVR2,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();
@@ -15899,6 +15899,8 @@ function resolveAnchor(mode, open, prevClose, ex){
 const VR_BEN={Moon:1,Mercury:1,Jupiter:1,Venus:1};
 const VR_DEV={Sun:'सूर्य',Moon:'चन्द्र',Mars:'मंगल',Mercury:'बुध',Jupiter:'गुरु',Venus:'शुक्र',Saturn:'शनि',Rahu:'राहु',Ketu:'केतु',Uranus:'हर्षल',Neptune:'नेपच्यून',Pluto:'प्लूटो'};
 const VR_NAMES=['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu','Uranus','Neptune','Pluto'];
+// ग्रह ↔ वस्तु — the volume-1 commodity table (hoisted out of computeVR so the rule grader can name each row)
+const VR_COMM_TABLE=[['सोना · Gold',['Sun','Jupiter']],['चांदी · Silver',['Moon']],['रूई · Cotton',['Venus']],['सूत · Yarn',['Mercury','Venus']],['गेहूँ · Wheat',['Sun']],['चावल · Rice',['Moon']],['सरसों · Mustard',['Sun','Saturn']],['चीनी · Sugar',['Venus']],['तेल · Oil',['Saturn','Neptune']],['सीमेंट · Cement',['Saturn']],['लोहा · Iron/Steel',['Mars','Saturn']],['तांबा · Copper',['Sun','Mars']],['रेशम · Silk',['Mercury','Venus']],['हल्दी · Turmeric',['Sun','Neptune']],['सीसा · Lead',['Pluto']]];
 const VR_ASP=[
   {a:0,orb:6,nm:'Yuti',dev:'युति',mode:'cond'},
   {a:180,orb:6,nm:'Pratiyoga',dev:'प्रतियोग',mode:'cond'},
@@ -15967,8 +15969,7 @@ const VR_STLBL={bull:'तेजी · Bullish',bear:'मंदी · Bearish',vo
 
 function computeVR(D){
   const P=vrPlanetsAt(D.J); const r=vrYogas(P);
-  const COMM=[['सोना · Gold',['Sun','Jupiter']],['चांदी · Silver',['Moon']],['रूई · Cotton',['Venus']],['सूत · Yarn',['Mercury','Venus']],['गेहूँ · Wheat',['Sun']],['चावल · Rice',['Moon']],['सरसों · Mustard',['Sun','Saturn']],['चीनी · Sugar',['Venus']],['तेल · Oil',['Saturn','Neptune']],['सीमेंट · Cement',['Saturn']],['लोहा · Iron/Steel',['Mars','Saturn']],['तांबा · Copper',['Sun','Mars']],['रेशम · Silk',['Mercury','Venus']],['हल्दी · Turmeric',['Sun','Neptune']],['सीसा · Lead',['Pluto']]];
-  const commodities=COMM.map(c=>{ const rel=r.yogas.filter(y=>c[1].includes(y.p1.name)||c[1].includes(y.p2.name));
+  const commodities=VR_COMM_TABLE.map(c=>{ const rel=r.yogas.filter(y=>c[1].includes(y.p1.name)||c[1].includes(y.p2.name));
     return {nm:c[0],rulers:c[1],score:Math.round(rel.reduce((s,y)=>s+y.v,0)*100)/100,n:rel.length}; });
   return {P,Pm:Object.fromEntries(P.map(p=>[p.name,p])),yogas:r.yogas,net:r.net,tejiC:r.yogas.filter(y=>y.v>0).length,mandiC:r.yogas.filter(y=>y.v<0).length,commodities};
 }
@@ -16020,7 +16021,7 @@ async function vrcLoad(){
   }catch(e){ window.VRC.status='error'; window.VRC.err=(e&&e.message)||'fetch failed'; }
   vrcPaint();
 }
-function vrcPaint(){ if(typeof S==='undefined')return; if(S.tab!=='vr'&&S.tab!=='vr2')return;
+function vrcPaint(){ if(typeof S==='undefined')return; if(S.tab!=='vr')return;
   const el=document.getElementById('vrc-chart'); if(el) el.innerHTML=vrcChart(); vrcAttach(); }
 // daily तेजी/मंदी verdict at a bar's date (noon IST), memoised per calendar day
 function vrcDaySig(ms){ const cache=window.VRC.sig; const ds=planISO(ms);
@@ -16230,8 +16231,20 @@ function tVR(){
       सौम्य: <span style="color:${PC.Moon}">चन्द्र</span> <span style="color:${PC.Mercury}">बुध</span> <span style="color:${PC.Jupiter}">गुरु</span> <span style="color:${PC.Venus}">शुक्र</span> · क्रूर: <span style="color:${PC.Sun}">सूर्य</span> <span style="color:${PC.Mars}">मंगल</span> <span style="color:${PC.Saturn}">शनि</span> राहु-केतु, हर्षल, प्लूटो.
     </div></div>`;
 
-  return `<div style="display:flex;flex-direction:column;gap:10px">${hdr}${vrcPanel()}${trioPanel}${intraPanel}${upcomingPanel}${yogaPanel}${sharPanel}${commPanel}${legend}
-    <div style="font-size:10.5px;color:var(--tx3)">स्रोत: Vyaapar_ratna_part_1.md & _part_2.md. सायन गणना. अध्ययन-सहायक, निवेश-सलाह नहीं।</div></div>`;
+  // ── the graded evidence (background build; first paint never waits on it) ──
+  setTimeout(vrgEnsure,0);
+  const GR=window.VRG.res[vrgKey(vrgInst())]||null;
+  const fired=(GR&&GR.status==='ready')?vrgToday(GR,S.date):null;
+  const intro=`<div style="font-size:10px;color:var(--tx3);background:var(--bg3);padding:5px 9px;border-radius:3px;border-left:3px solid var(--acc)">
+    ★ <b>ONE TAB, BOTH VOLUMES.</b> Volume 1 (दृष्टि-योग तेजी-मंदी engine, source <b>${VRG_SRC1}</b>) and Volume 2 (द्वितीय खण्ड + वाणिज्य-सर्वस्व, R1–R24, source <b>${VRG_SRC2}</b>) each keep their own rule groups, their own verdict and their own panels. Where both volumes read the same thing — a तेजी/मंदी verdict, शर-परिवर्तन, क्रान्ति-साम्य — they are shown side by side as separate named rules, never averaged into one number.</div>`;
+  const vol1=`<div class="pnl"><div class="ph"><span class="dot"></span>★ VOLUME 1 — व्यापार रत्न · दृष्टि-योग तेजी-मंदी <span style="margin-left:auto;font-size:10px;color:var(--tx3)">source: ${VRG_SRC1}</span></div></div>`;
+  return `<div style="display:flex;flex-direction:column;gap:10px">${intro}
+    ${vrgVerdictHTML(GR,fired)}
+    ${vrgLedgerHTML(GR,fired)}
+    ${vrgTableHTML(GR)}
+    ${vol1}${hdr}${vrcPanel()}${trioPanel}${intraPanel}${upcomingPanel}${yogaPanel}${sharPanel}${commPanel}${legend}
+    ${vr2Panels()}
+    <div style="font-size:10.5px;color:var(--tx3)">स्रोत: Vyaapar_ratna_part_1.md & _part_2.md (खण्ड १) तथा Analyzing Market Trend Using Planetary Aspects.md (खण्ड २). सायन गणना. अध्ययन-सहायक, निवेश-सलाह नहीं।</div></div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -16668,14 +16681,17 @@ function vr2SharWindow(peakDeg,meanDeg,latSpdDegPerDay){
   return{delta,fmin,productArcmin,days:productArcmin/spdArcmin};
 }
 const VR2_SHAR_CACHE=new Map();
-function vr2SharEvents(J){
-  const key=Math.floor(J);
-  if(VR2_SHAR_CACHE.has(key))return VR2_SHAR_CACHE.get(key);
+const VR2_SHAR_BODIES=[['Moon',18,0.25],['Mercury',50,1],['Venus',60,1],['Mars',90,2],['Jupiter',200,4],['Saturn',200,4],['Uranus',200,5],['Neptune',200,5],['Pluto',200,5]];
+/* One body's zero-Shar crossings inside [Ja,Jb]. This is the R4/R5 crossing detector lifted
+   verbatim out of vr2SharEvents so that a whole span can be scanned ONCE (vr2SharIndex) instead
+   of re-scanning +/-span around every single instant -- the grading engine needs one Shar read
+   per session over 25 years. The arithmetic (refinement, peak, mean, window, polarity) is
+   unchanged; only the J-relative fields (active / daysFromNow) are stamped on later. */
+function vr2SharScan(b,span,step,Ja,Jb){
   const out=[];
-  const bodies=[['Moon',18,0.25],['Mercury',50,1],['Venus',60,1],['Mars',90,2],['Jupiter',200,4],['Saturn',200,4],['Uranus',200,5],['Neptune',200,5],['Pluto',200,5]];
-  for(const[b,span,step]of bodies){
+  {
     let prev=null,prevJ=null;
-    for(let t=J-span;t<=J+span;t+=step){
+    for(let t=Ja;t<=Jb;t+=step){
       let la;try{la=geoLat(b,t);}catch(e){break;}
       if(prev!==null&&((prev<0&&la>=0)||(prev>0&&la<=0))){
         let lo=prevJ,hi=t;                                     // refine crossing
@@ -16701,17 +16717,42 @@ function vr2SharEvents(J){
         if(retro||comb){dir=-dir;flip=retro?'Retro-flip (वक्री)':'Combust-flip (अस्त)';}
         out.push({body:b,dev:VR2_DEV[b],J:Jc,north,dir,retro,comb,flip,
           peak,mean,productArcmin:win.productArcmin,days:Math.min(win.days,400),
-          from:Jc,to:Jc+Math.min(win.days,400),
-          active:J>=Jc&&J<=Jc+Math.min(win.days,400),
-          daysFromNow:Math.round((Jc-J)*10)/10});
+          from:Jc,to:Jc+Math.min(win.days,400)});
         t=Jc+span/6;                                           // skip past this crossing
       }
       prev=la;prevJ=t;
     }
   }
+  return out;
+}
+/* stamp a crossing with its position relative to the instant being read */
+function vr2SharStamp(e,J){ return{body:e.body,dev:e.dev,J:e.J,north:e.north,dir:e.dir,retro:e.retro,comb:e.comb,flip:e.flip,
+  peak:e.peak,mean:e.mean,productArcmin:e.productArcmin,days:e.days,from:e.from,to:e.to,
+  active:J>=e.from&&J<=e.to,daysFromNow:Math.round((e.J-J)*10)/10}; }
+function vr2SharEvents(J){
+  const key=Math.floor(J);
+  if(VR2_SHAR_CACHE.has(key))return VR2_SHAR_CACHE.get(key);
+  let out=[];
+  for(const[b,span,step]of VR2_SHAR_BODIES) for(const e of vr2SharScan(b,span,step,J-span,J+span)) out.push(vr2SharStamp(e,J));
   out.sort((a,b)=>Math.abs(a.daysFromNow)-Math.abs(b.daysFromNow));
   if(VR2_SHAR_CACHE.size>60)VR2_SHAR_CACHE.clear();
   VR2_SHAR_CACHE.set(key,out);
+  return out;
+}
+/* Whole-span Shar index: every body scanned once over [Ja,Jb] plus its own look-around margin,
+   so vr2SharAt(X,J) returns exactly what vr2SharEvents(J) would, in O(events) instead of O(scan). */
+const VR2_SHAR_IDX=new Map();
+function vr2SharIndex(Ja,Jb){
+  const key=Math.round(Ja)+'|'+Math.round(Jb); let X=VR2_SHAR_IDX.get(key); if(X)return X;
+  X=VR2_SHAR_BODIES.map(function(g){ const b=g[0],span=g[1],step=g[2];
+    return{b:b,span:span,ev:vr2SharScan(b,span,step,Ja-span-step,Jb+span+step)}; });
+  if(VR2_SHAR_IDX.size>8)VR2_SHAR_IDX.clear();
+  VR2_SHAR_IDX.set(key,X); return X;
+}
+function vr2SharAt(X,J){
+  const out=[];
+  for(const g of X) for(const e of g.ev) if(e.J>=J-g.span&&e.J<=J+g.span) out.push(vr2SharStamp(e,J));
+  out.sort((a,b)=>Math.abs(a.daysFromNow)-Math.abs(b.daysFromNow));
   return out;
 }
 
@@ -16803,13 +16844,13 @@ function vr2Pairs(P,ctx){
 }
 
 // ── R23 — master routing: full snapshot at instant J ───────────────
-function vr2Compute(J,commKey){
+function vr2Compute(J,commKey,sharList){
   const comm=VR2_COMM[commKey||(typeof S!=='undefined'&&S.vr2Comm)||'GENERIC']||VR2_COMM.GENERIC;
   const P=vr2PlanetsAt(J);
   const fnCache={};
   const fn=n=>{if(!(n in fnCache))fnCache[n]=vr2FuncNature(n,comm.lagna).v;return fnCache[n];};
   // Step-3 global override sweeper
-  const shar=vr2SharEvents(J);
+  const shar=sharList||vr2SharEvents(J);
   const frozen=new Set(shar.filter(s=>s.active).map(s=>s.body));
   const ctx={lagna:comm.lagna,lord:comm.lord,fn,frozen};
   // Step-2 aspects (past/present/future via phase engine)
@@ -17112,20 +17153,21 @@ function vr2SelfTest(){
   }
   // V1 preservation checks
   add('V1 intact: old Vyapaar Ratna module untouched',()=>{
-    return typeof vrYogas==='function'&&typeof computeVR==='function'&&typeof tVR==='function'&&
+    return typeof vrYogas==='function'&&typeof computeVR==='function'&&typeof tVR==='function'&&typeof vr2Panels==='function'&&
            Array.isArray(VR_ASP)&&VR_ASP.length===17;});
   const pass=T.filter(t=>t.pass).length;
   return{tests:T,pass,fail:T.length-pass,total:T.length,allPass:pass===T.length};
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// TAB: VYAPAAR RATNA V2 — UI
+// VYAPAAR RATNA — VOLUME 2 DETAIL PANELS (was the ★★ V2 tab's UI; the
+// tab itself is gone and tVR() calls this, so every V2 panel is kept)
 // ═══════════════════════════════════════════════════════════════════
 function vr2StateCol(st){return st==='bull'?'#00c050':st==='bear'?'#ff3355':st==='volatile'?'var(--neut2)':'var(--tx3)';}
 const VR2_STLBL={bull:'Bullish (तेजी)',bear:'Bearish (मंदी)',volatile:'Volatile (अस्थिर)',neutral:'Neutral (सम)'};
 function vr2DowName(d){return['Sun रविवार','Mon सोमवार','Tue मंगलवार','Wed बुधवार','Thu गुरुवार','Fri शुक्रवार','Sat शनिवार'][d];}
 
-function tVR2(){
+function vr2Panels(){
   if(typeof S!=='undefined'&&!S.vr2Comm)S.vr2Comm='GENERIC';
   const commKey=(typeof S!=='undefined'&&S.vr2Comm)||'GENERIC';
   const dp=S.date.split('-').map(Number);
@@ -17139,7 +17181,7 @@ function tVR2(){
   // ── header ──
   const commSel=Object.keys(VR2_COMM).map(k=>`<option value="${k}"${k===commKey?' selected':''}>${VR2_COMM[k].nm}</option>`).join('');
   const hdr=`<div class="pnl" style="border-color:${netCol}55">
-    <div class="ph"><span class="dot" style="background:${netCol}"></span>★★ Vyapaar Ratna V2 · Volume 2 + Vanijya-Sarvasva (व्यापार रत्न — द्वितीय खण्ड) · ${S.date}
+    <div class="ph"><span class="dot" style="background:${netCol}"></span>★★ VOLUME 2 · Vanijya-Sarvasva (व्यापार रत्न — द्वितीय खण्ड) · ${S.date}
       <span style="margin-left:auto;font-size:10px;color:var(--tx3)">V2 ENGINE — 40-gate Deeptansh chakra</span></div>
     <div class="pb">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -17323,11 +17365,11 @@ function tVR2(){
       <div class="ts" style="max-height:260px;overflow:auto"><table class="tbl"><thead><tr><th>Test</th><th style="text-align:center">Result</th><th>Note</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }catch(e){testPanel=`<div class="pnl"><div class="pb" style="color:var(--bear)">self-test error: ${e.message}</div></div>`;}
 
-  return`<div style="display:flex;flex-direction:column;gap:10px">
+  return`
     <div style="font-size:10px;color:var(--tx3);background:var(--bg3);padding:5px 9px;border-radius:3px;border-left:3px solid var(--acc)">
-      ★★ <b>V2 — new version</b>, separate from (and listed below) the old ★ Vyapaar Ratna. Source: <b>Analyzing Market Trend Using Planetary Aspects.docx/.md</b> — Vyapar Ratna Volume 2 (द्वितीय खण्ड) + Vanijya-Sarvasva. The old V1 module remains untouched above.</div>
-    ${hdr}${vrcPanel()}${sharPanel}${dayPanel}${weekPanel}${intraPanel}${aspPanel}${planetPanel}${evPanel}${rulePanel}${testPanel}
-    <div style="font-size:10.5px;color:var(--tx3)">Source: "Analyzing Market Trend Using Planetary Aspects.md" (in this folder). Sayana computation; nakshatra nirayana. Study aid — not investment advice.</div></div>`;
+      ★★ <b>VOLUME 2 (द्वितीय खण्ड)</b> — the detail panels of the second volume, now part of this one tab. Source: <b>Analyzing Market Trend Using Planetary Aspects.docx/.md</b> — Vyapar Ratna Volume 2 + Vanijya-Sarvasva. Volume 1's own panels are above; neither volume's rules were merged into the other.</div>
+    ${hdr}${sharPanel}${dayPanel}${weekPanel}${intraPanel}${aspPanel}${planetPanel}${evPanel}${rulePanel}${testPanel}
+    <div style="font-size:10.5px;color:var(--tx3)">Source: "Analyzing Market Trend Using Planetary Aspects.md" (in this folder). Sayana computation; nakshatra nirayana. Study aid — not investment advice.</div>`;
 }
 
 
@@ -18228,6 +18270,479 @@ function dpPanelHTML(){
 }
 
 /* ══ DF-END ══ */
+// ═══════════════════════════════════════════════════════════════════
+// VYAPAAR RATNA — RULE GRADER (vrg*)  ·  walk-forward evidence engine
+// ───────────────────────────────────────────────────────────────────
+// Grades EVERY named rule of BOTH volumes against baked price history,
+// per instrument, the way the Day Forecast's dp* engine grades its
+// daily patterns — same targets, same split, same statistics:
+//   · learn on 2000-01-01 → 2018-12-31, report 2019 → last bar apart;
+//   · a rule fires on a session, the NEXT session is the outcome;
+//   · direction target: next close vs its previous close, flat band ±0.1%;
+//   · size target: next session's true range in the top 30% of the
+//     previous 250 gradable sessions (the dp* big-move definition) —
+//     a rule that says "volatile / turning" is graded on THAT, not on
+//     direction;
+//   · every claim is scored against always-bullish and always-neutral
+//     on the SAME sessions (the two trivial callers);
+//   · n, hit%, edge in points, Wilson 95% CI, one-sided binomial p;
+//   · Benjamini-Hochberg across all rules of the instrument, and the
+//     number of rows expected by luck is printed next to them.
+// PROVEN = beats its own baseline in BOTH periods, ≥30 firings out of
+// sample, out-of-sample p<0.05 AND BH q<0.05.  Nothing is fitted on the
+// test period: the rules are the books', fixed before any bar is read.
+// The sky (which rule fired on which session) is instrument-independent,
+// built once in the background with a progress %, and cached.
+// ═══════════════════════════════════════════════════════════════════
+const VRG_START=DP_START, VRG_TRAIN_END=DP_TRAIN_END, VRG_MIN=DP_MIN, VRG_FLAT=DP_FLAT;
+const VRG_VER='vrg-1';                                  // bump to invalidate the cached sky
+/* Volume-1 commodity row (VR_COMM_TABLE) that rules each instrument */
+const VRG_COMM_OF={GOLD:'सोना · Gold',SILVER:'चांदी · Silver',COPPER:'तांबा · Copper',CRUDE:'तेल · Oil',NATGAS:'तेल · Oil'};
+const VRG_SRC1='Vyaapar_ratna_part_1.md &amp; _part_2.md';
+const VRG_SRC2='Analyzing Market Trend Using Planetary Aspects.md';
+const VRG_TGT={dir:{t:'DIRECTION',what:'next session closes more than 0.1% away from its previous close, in the direction the rule names'},
+               big:{t:'BIG-MOVE / TURNING',what:"next session's true range lands in the top 30% of the previous 250 sessions"}};
+window.VRG=window.VRG||{sky:{},res:{}};
+
+/* ── the rule catalogue: every named rule of both volumes, in ledger order ──
+   vol 1 = ★ व्यापार रत्न — the दृष्टि-योग teji/mandi engine (source: Vyaapar_ratna part 1 & 2)
+   vol 2 = ★★ द्वितीय खण्ड + वाणिज्य-सर्वस्व, rules R1-R24 (source: Analyzing Market Trend…)
+   target 'dir' = a directional claim · 'big' = a volatility/turning claim, graded on size
+   target ''    = a framework rule (a mandate or a lookup table) with no standing market claim */
+const VRG_RULES=(function(){
+  const R=[], add=(id,vol,chap,name,dev,target,note)=>{R.push({id,vol,chap,name,dev,target,note,i:R.length});};
+  // ── VOLUME 1 ────────────────────────────────────────────────────
+  VR_ASP.forEach(A=>add('V1-A'+A.a,1,'दृष्टि-योग चक्र (VR_ASP)','दृष्टि-योग · '+A.nm,A.dev,'dir',
+    A.a+'° · दीप्तांश orb '+A.orb+'° · verdict mode "'+A.mode+'" — शुभ⇒तेजी, अशुभ⇒मंदी, वक्री⇒विपरीत'));
+  add('V1-KRANTI',1,'पु.329 · क्रान्ति-साम्य','Kranti-Samya ≤1° (युति-तुल्य)','क्रान्ति-साम्य','dir',
+    'A declination parallel within 1° is read as a conjunction; समदिशा 75% बल, विपरीत 50%.');
+  add('V1-JAYA',1,'जय-पराजय · उत्तर शर विजयी','Jaya-Parajaya (mixed शुभ/क्रूर pairs)','जय-पराजय','dir',
+    'In a mixed benefic/malefic yoga the planet with the higher (more northern) शर wins; the फल takes its nature.');
+  add('V1-VAKRI',1,'वक्री-विपरीत','Vakri reversal (odd retrograde count)','वक्री','dir',
+    'A yoga with an odd number of retrograde participants delivers the opposite फल.');
+  add('V1-VERDICT',1,'फल योग = Σv · vrState','VOLUME 1 COMBINED VERDICT — तेजी / मंदी','सम्पूर्ण निर्णय','dir',
+    'The volume-1 headline call: net फल ≥ +0.4 ⇒ तेजी, ≤ −0.4 ⇒ मंदी.');
+  add('V1-VOLATILE',1,'पु.325 · शर-परिवर्तन / चन्द्र','VOLUME 1 अस्थिर — VOLATILE state','अस्थिर','big',
+    'चन्द्र tight on a hard aspect to a क्रूर, or चन्द्र at शर≈0 (परिवर्तन-बिन्दु): a turning claim, not a direction.');
+  add('V1-MOONHARD',1,'पु.325 · चन्द्र कठिन दृष्टि','Moon hard-aspect trigger (चन्द्र · क्रूर ≤0.45°)','चन्द्र-कठिन','big',
+    'चन्द्र within 0.45° of प्रतियोग / षडष्टक-रहित / केन्द्रार्ध to a malefic — the volume-1 turbulence trigger.');
+  add('V1-TRIO',1,'पु.269-271 · सूर्य–बुध–शुक्र त्रिक','Sun–Mercury–Venus trio (futures-basis engine)','त्रिक','dir',
+    '"बुध और शुक्र के बीच की दूरी ही तैयार और वायदे के बाज़ार की चाल के रुख को बतलाती है।"');
+  VR_COMM_TABLE.forEach((c,k)=>add('V1-C'+k,1,'ग्रह ↔ वस्तु · COMMODITY',c[0]+' — स्वामी '+c[1].join(' · '),'वस्तु-स्वामी','dir',
+    'The sum of the दृष्टि-योग फल carried by this commodity’s ruling planets; graded only on the instrument it rules.'));
+  // ── VOLUME 2 (R1 … R24) ─────────────────────────────────────────
+  add('V2-R1' ,2,'Ch.1 · Sayana mandate','R1 Sayana system mandate','सायन','',
+    'Volume-2 predictions use Sayana longitudes (Nirayana + ayanamsha; the book’s Cancer 15° → Leo 8°16′ example). A computation mandate — it makes no market claim of its own.');
+  add('V2-R2' ,2,'Ch.3 · Speed tiers','R2 Micro-tier pulse (Moon–Mercury)','सूक्ष्म-स्पन्द','dir',
+    'Macro Pluto-Neptune-Herschel-Saturn-Jupiter · Meso Sun-Mars-Venus · Micro Moon-Mercury, which carries the day-level move.');
+  add('V2-R3' ,2,'Ch.4 · Shar-Kranti geometry','R3 Shar-Kranti convergence','शर-क्रान्ति','',
+    'A true Yuti needs longitude + शर + क्रान्ति to converge; Sun-Rahu-Ketu ride the ecliptic (शर=0). Geometry, not a claim.');
+  add('V2-R4' ,2,'Ch.4 · Shar-Parivartan','R4 Shar-Parivartan crossing (±1.5d) — direction','शर-परिवर्तन','dir',
+    'North entry ⇒ मंदी, South entry ⇒ तेजी; Retrograde/Combust ⇒ flip. Supreme over every degree-interval yoga.');
+  add('V2-R4S',2,'Ch.4 · Shar-Parivartan','R4 Shar-Parivartan crossing — size / turning','शर-परिवर्तन','big',
+    'The same crossing read as the book reads it — "the greatest single effect on the market" — graded on move size, not direction.');
+  add('V2-R5' ,2,'Vanijya-Sarvasva · effect period','R5 Effect-period window (5-step formula)','प्रभाव-काल','dir',
+    'min(peak, |peak−mean|) × mean = arc-minutes ÷ daily शर speed = days (Mars Jan-1958 → ≈23 days). Fires inside that window.');
+  add('V2-R6' ,2,'Ch. Kranti-Samya','R6 Kranti-Samya (parallel .75 / contra .50)','क्रान्ति-साम्य','dir',
+    '≤1° orb, dynamic half-of-daily-motion commercial window, ×1.25 intensifier when an aspect runs with it.');
+  add('V2-R7' ,2,'Ch.5 · 8 Teji aspects','R7 Teji aspect present (तेजी-दृष्टि)','तेजी-दृष्टि','dir',
+    '0°(1.0) 30°(.125) 36°(.09375) 60°(.25) 72°(.09375) 120°(.5) 144°(.09375) 150°(.25) — the eight rising aspects.');
+  add('V2-R8' ,2,'Ch.6 · 5 Mandi aspects','R8 Mandi aspect present (मंदी-दृष्टि)','मंदी-दृष्टि','dir',
+    '180°(16 annas) 135°(12) 90°(8) 45°(4) 22°30′(1 anna) — the five falling aspects, weighted in annas.');
+  add('V2-R9' ,2,'Ch. 22°30′ filter','R9 22°30′ inter-sign nullification','षोडशांश','dir',
+    'षोडशांश is inert inside one sign; it acts only when it bridges a sign boundary.');
+  add('V2-R10',2,'Ch. decision matrices','R10 Heaviest-mass pair (6-step matrix)','भार-निर्णय','dir',
+    'Mass → sign bias → navamsa → शर-change → क्रान्ति-साम्य → geometry: a heavy pair at 0.5 outweighs a light pair at 1.0.');
+  add('V2-R11T',2,'Ch. Navamsa-Yuti tables','R11 Navamsa-Yuti — Tezi pairing','नवांश-युति तेजी','dir',
+    'Same-D9 pairs on the Tezi table (with the Saturn inversion: Mars-Saturn and Mercury-Saturn read Tezi).');
+  add('V2-R11M',2,'Ch. Navamsa-Yuti tables','R11 Navamsa-Yuti — Mandi pairing','नवांश-युति मंदी','dir',
+    'Same-D9 pairs on the Mandi table; the Neptune constant makes every Neptune pairing Mandi.');
+  add('V2-R11K',2,'Ch. Navamsa-Yuti tables','R11 Navamsa-Yuti — Kshanik-Tezi (fleeting)','क्षणिक-तेजी','big',
+    'Moon-Mercury / Moon-Venus: a fleeting rise, "scalp only" — a turning claim, so it is graded on size.');
+  add('V2-R11S',2,'Ch. Navamsa-Yuti tables','R11 Navamsa-Yuti — Sahasa-Tezi (explosive)','साहस-तेजी','big',
+    'Mars-Herschel / Mercury-Herschel: a sudden, explosive move — graded on size.');
+  add('V2-R12',2,'Ch. Sun elongation limits','R12 Sun-Mercury (≤28°) / Sun-Venus (≤48°)','सूर्य-दूरी','dir',
+    'Mercury can make only 3 aspect types with the Sun and Venus 5 (Yuti, Navansha-yuti, Kranti-Samya, 30°, 36°).');
+  add('V2-R13',2,'Ch. Deeptansh chakra','R13 Deeptansh chakra — any of the 40 gates inside orb','दीप्तांश-चक्र','dir',
+    '40 gates, Mercury’s 7° base orb, Trairashik orb∝strength scaling, half-part (अर्घभाग) pre/post-cusp window.');
+  add('V2-R14',2,'Ch. polarity matrix','R14 Gate routing (Kendra / Trikona family)','द्वार-निर्णय','dir',
+    'Trine always शुभ; Kendra क्रूर (Saturn-Mars 4th exception); 72° 3-11/4-10 split; 60° Saturn vectors + Tulya-Ansh; 108° Kendra-or-Trikona; 135/128°34′ Trine-or-Shadashtaka.');
+  add('V2-R15',2,'Ch. Dwidwadash tables','R15 Dwidwadash (2/12) sign-pair table','द्विद्वादश','dir',
+    'Auspicious: Pis-Ari, Tau-Gem, Can-Leo, Leo-Vir, Vir-Lib, Sco-Sag, Cap-Aqu. Inauspicious: Ari-Tau, Gem-Can, Lib-Sco, Sag-Cap, Aqu-Pis.');
+  add('V2-R16',2,'Ch. Shadashtaka tables','R16 Shadashtaka (6/8) sign-pair table','षडष्टक','dir',
+    'Auspicious: Ari-Sco, Gem-Cap, Leo-Pis, Lib-Tau, Sag-Can, Aqu-Vir. Inauspicious: Ari-Vir, Gem-Sco, Leo-Cap, Lib-Pis, Sag-Tau, Aqu-Can.');
+  add('V2-R17',2,'Ch. Jaya-Parajaya','R17 Jaya-Parajaya (Navansha-yuti gates)','जय-पराजय','dir',
+    'North शर beats South; both north ⇒ the higher degrees win; both south ⇒ the lower degrees win.');
+  add('V2-R18',2,'Ch. Samagam / Yuddha / Ast','R18 Samagam · Graha-Yuddha · Node · Combustion','समागम-ग्रहयुद्ध','dir',
+    'Moon+Tara same sign = Samagam (north wins); Tara+Tara = war (Venus always wins); Rahu/Ketu pure-north; near the Sun = अस्त, signal muted.');
+  add('V2-R19',2,'Ch. Dynamic Trigger Mechanics','R19 Seer-Seen phase (post-aspect side)','द्रष्टा-दृश्य','dir',
+    'The lower D1 house is the Seer; the Seen planet’s declination hemisphere × velocity sets the pre/post-aspect timing.');
+  add('V2-R20',2,'Ch. inversion engine','R20 Inversion engine (combust / debilitated / retrograde flip)','विपर्यय','dir',
+    'An odd number of afflicted participants flips polarity; Niransh 0-1° ×0.5; Margi outranks Vakri; lagnesh dominance ×1.3.');
+  add('V2-R21',2,'Vishesh-Shastra · functional nature','R21 Functional nature of the planets','विशेष-शास्त्र','dir',
+    'Trikona lords always benefic; Kendradhipati dosha (Jup-Ven > Mercury > Moon); Yogakaraka; 8th-lord rules; 2nd/12th chameleons; Rahu-Ketu absorb context.');
+  add('V2-R22',2,'Ch. commodity chart','R22 Commodity lagna (shelter sign)','वस्तु-लग्न','',
+    'Cotton = Libra/Venus (light-white), Silver = Cancer/Moon (heavy-white); D1 and D9 share the anchor. It chooses the chart every other rule is read in, so it is graded through them, never on its own.');
+  add('V2-R23',2,'Ch. master routing','R23 VOLUME 2 COMBINED VERDICT — Trend = ΣTeji − ΣMandi','सम्पूर्ण निर्णय','dir',
+    'Init → temporal sort → override sweeper → inversion core → Trend; TEJI-run / MANDI-run / CHURN.');
+  add('V2-R23V',2,'Ch. master routing','R23 CHURN / volatile regime — size','मंथन','big',
+    'चन्द्र शर≈0, a Kshanik D9 pairing, or an active शर crossing within ±1.5d ⇒ churn: a turning claim, graded on size.');
+  add('V2-R24',2,'Ch. Dynamic Trigger Mechanics','R24 Nakshatra layer (Moon nakshatra lord)','नक्षत्र','dir',
+    'Sign / nakshatra / pada entries are the granular triggers; the Moon’s nakshatra lord sets the day’s tone (nirayana).');
+  // ── both volumes together ───────────────────────────────────────
+  add('BOTH',0,'both volumes agreeing','COMBINED — volume 1 and volume 2 agree','संयुक्त','dir',
+    'Fires only when the volume-1 दृष्टि-योग verdict and the volume-2 Trend point the same way. Shown as its own rule, never as an average of the two.');
+  return R;
+})();
+const VRG_BY_ID=Object.fromEntries(VRG_RULES.map(r=>[r.id,r]));
+const VRG_GRADED=VRG_RULES.filter(r=>r.target);
+
+/* ── one session's firings: id → +1 (तेजी / "yes") or −1 (मंदी / "no") ──
+   An add()-style ledger, the way the chapters read: each rule group contributes
+   at most one signed entry, carrying the section it came from (VRG_RULES[].chap). */
+function vrgLedger(J,sharX){
+  const L={}, add=(id,v)=>{ if(v>1e-9)L[id]=1; else if(v<-1e-9)L[id]=-1; };
+  // ═══ VOLUME 1 — दृष्टि-योग engine ═══
+  const V=computeVR({J}), r1=vrYogas(V.P), st1=vrState(r1);
+  const byA={}; let jaya=0,vakri=0,kran=0;
+  for(const y of V.yogas){
+    if(y.kranti) kran+=y.v; else { const k='V1-A'+y.asp.a; byA[k]=(byA[k]||0)+y.v; }
+    if(y.p1.ben!==y.p2.ben) jaya+=y.v;
+    if(((y.p1.retro?1:0)+(y.p2.retro?1:0))%2===1) vakri+=y.v;
+  }
+  Object.keys(byA).forEach(k=>add(k,byA[k]));
+  add('V1-KRANTI',kran); add('V1-JAYA',jaya); add('V1-VAKRI',vakri);
+  if(Math.abs(V.net)>=0.4) add('V1-VERDICT',V.net);
+  if(st1==='volatile') L['V1-VOLATILE']=1;
+  if(r1.moonHard) L['V1-MOONHARD']=1;
+  V.commodities.forEach((c,k)=>{ if(Math.abs(c.score)>0.3) add('V1-C'+k,c.score); });
+  try{ const ay=getAyanamsa(J,(typeof S!=='undefined'&&S.ayMode)||'lahiri');
+       const T=sunMerVenTrio(V.P.map(p=>{const sid=n360(p.tlon-ay);
+         return{name:p.name,lon:sid,s:Math.floor(sid/30),retro:p.retro};}),J);
+       if(T&&Math.abs(T.trioScore)>=10) add('V1-TRIO',T.trioScore); }catch(e){}
+  // ═══ VOLUME 2 — R1…R24 ═══
+  const C=vr2Compute(J,'GENERIC',sharX?vr2SharAt(sharX,J):null);
+  const TEJI_DEG=new Set([0,30,36,60,72,120,144,150]), MANDI_DEG=new Set([180,135,90,45,22.5]);
+  const ROUTED=new Set(['trine','kendra','p72','p60','kenTri','triShad','m7t','m7m','m7ba','opp']);
+  let r6=0,r7=0,r8=0,r9=0,r12=0,r13=0,r14=0,r15=0,r16=0,r17=0,r19=0,r20=0,r11t=0,r11m=0,heavy=null;
+  for(const r of C.pairs){
+    r13+=r.w;
+    if(r.ks) r6+=r.w;
+    if(r.gate.deg!=null&&TEJI_DEG.has(r.gate.deg)) r7+=Math.abs(r.w);
+    if(r.gate.deg!=null&&MANDI_DEG.has(r.gate.deg)) r8+=Math.abs(r.w);
+    if(r.gate.mode==='in22') r9+=r.w;
+    if(ROUTED.has(r.gate.mode)) r14+=r.w;
+    if(/Dwidwadash/.test(r.verdict.why)) r15+=r.w;
+    if(/Shadashtaka/.test(r.verdict.why)) r16+=r.w;
+    if(/navyuti/.test(r.kind)) r17+=r.w;
+    if(r.phase&&r.phase.phase==='POST') r19+=r.w;
+    if(r.inverted) r20+=r.w;
+    if((r.p1.name==='Sun'&&(r.p2.name==='Mercury'||r.p2.name==='Venus'))||
+       (r.p2.name==='Sun'&&(r.p1.name==='Mercury'||r.p1.name==='Venus'))) r12+=r.w;
+    if(r.navPairing==='TEZI') r11t+=Math.abs(r.w);
+    if(r.navPairing==='MANDI') r11m+=Math.abs(r.w);
+    if(r.navPairing==='KSHANIK') L['V2-R11K']=1;
+    if(r.navPairing==='SAHASA') L['V2-R11S']=1;
+    if(!heavy||r.massF>heavy.massF||(r.massF===heavy.massF&&Math.abs(r.w)>Math.abs(heavy.w))) heavy=r;
+  }
+  if(Math.abs(C.microNet)>=0.25) add('V2-R2',C.microNet);
+  { let cross=0; for(const s of C.shar) if(Math.abs(s.daysFromNow)<1.5) cross+=s.dir*(VR2_MASS[VR2_TIER[s.body]]||1);
+    if(cross!==0){ add('V2-R4',cross); L['V2-R4S']=1; } }
+  if(C.activeShar.length) add('V2-R5',C.overrideScore||C.activeShar.reduce((a,s)=>a+s.dir,0));
+  add('V2-R6',r6); if(r7>0)L['V2-R7']=1; if(r8>0)L['V2-R8']=-1;
+  add('V2-R9',r9); if(heavy)add('V2-R10',heavy.w);
+  if(r11t>0)L['V2-R11T']=1; if(r11m>0)L['V2-R11M']=-1;
+  add('V2-R12',r12); add('V2-R13',r13); add('V2-R14',r14); add('V2-R15',r15); add('V2-R16',r16);
+  add('V2-R17',r17); add('V2-R19',r19); add('V2-R20',r20);
+  { let ev=0; for(const e of C.events) ev+=(VR2_BEN[e.winner]?1:-1); add('V2-R18',ev); }
+  { let fn=0; for(const k in C.fn) fn+=C.fn[k]; add('V2-R21',fn); }
+  if(Math.abs(C.net)>=0.5) add('V2-R23',C.net);
+  if(C.volatile) L['V2-R23V']=1;
+  if(C.moonNak&&C.moonNak.l) add('V2-R24',VR2_BEN[C.moonNak.l]?1:-1);
+  // ═══ BOTH volumes ═══
+  if(L['V1-VERDICT']&&L['V2-R23']&&L['V1-VERDICT']===L['V2-R23']) L['BOTH']=L['V1-VERDICT'];
+  return L;
+}
+
+/* ── the shared sky: which rule fired on which weekday session, 2000 → today ──
+   Instrument-independent (the sky is the sky), built once in the background with a
+   progress %, and kept in localStorage so a second visit paints at once. */
+function vrgSky(ay){ const T=window.VRG, key=ay+'|'+tnToday(); let Z=T.sky[key];
+  if(!Z){ Z=T.sky[key]={status:'loading',prog:0}; Z.prom=vrgSky0(Z,ay); } return Z.prom; }
+function vrgProg(){ const R=window.VRG.res[vrgKey(vrgInst())]; if(!R) return;
+  let p=R.prog||0;
+  if(R.status==='loading'&&R.phase!=='grade'){ const Z=window.VRG.sky[R.ay+'|'+tnToday()]; if(Z) p=Math.round((Z.prog||0)*0.9); }
+  R.prog=p; try{ const e=document.getElementById('vrgProg'); if(e) e.textContent=p+'%'; }catch(e){} }
+async function vrgSky0(Z,ay){
+  const end=tnToday(), dsA=[];
+  for(let ds=VRG_START; ds<=end; ds=reShift(ds,1)) if(dpWk(ds)) dsA.push(ds);
+  const nD=dsA.length, nR=VRG_RULES.length;
+  const F=VRG_RULES.map(()=>new Int8Array(nD));
+  const ck='astralVrgSky|'+VRG_VER+'|'+ay+'|'+VRG_START;
+  let cache=null; try{ cache=JSON.parse(localStorage.getItem(ck)||'null'); }catch(e){}
+  let from=0;
+  if(cache&&cache.a===VRG_START&&Array.isArray(cache.f)&&cache.f.length===nR&&cache.n<=nD){
+    for(let r=0;r<nR;r++){ const s=cache.f[r]; for(let i=0;i<s.length&&i<nD;i++) F[r][i]=s.charCodeAt(i)-49; }
+    from=cache.n;
+  }
+  Z.prog=Math.round(from/nD*100); vrgProg(); await reYield();
+  const J0=planJDfromMs(planMs(dsA[0])+DP_OPEN_H*3600000), J1=planJDfromMs(planMs(dsA[nD-1])+DP_OPEN_H*3600000);
+  const X=vr2SharIndex(J0,J1);                  // every zero-शर crossing of the span, scanned once
+  for(let d=from; d<nD; d++){
+    const J=planJDfromMs(planMs(dsA[d])+DP_OPEN_H*3600000);
+    let L={}; try{ L=vrgLedger(J,X); }catch(e){}
+    for(let r=0;r<nR;r++){ const v=L[VRG_RULES[r].id]; if(v) F[r][d]=v; }
+    if(d%25===24){ Z.prog=Math.round(d/nD*100); vrgProg(); await reYield(); }
+  }
+  try{ const enc=A=>{ let s=''; for(let i=0;i<nD;i++) s+=String.fromCharCode(A[i]+49); return s; };
+       localStorage.setItem(ck,JSON.stringify({a:VRG_START,n:nD,f:F.map(enc)})); }catch(e){}
+  const dOf={}; dsA.forEach((ds,i)=>{ dOf[ds]=i; });
+  Object.assign(Z,{status:'ready',prog:100,dsA,nD,F,dOf});
+  return Z;
+}
+
+/* ── per-instrument grading ─────────────────────────────────────── */
+function vrgAy(){ try{ return taAy(); }catch(e){ return 'lahiri'; } }
+function vrgInst(){ let k=(typeof S!=='undefined'&&S.vrgInst)||''; if(!k){ try{ k=dfInst(); }catch(e){} }
+  return DP_INST.some(x=>x[0]===k)?k:'NIFTY'; }
+function vrgKey(k,ay){ return [k,ay||vrgAy(),(typeof dsEpoch==='function'?dsEpoch():'')].join('|'); }
+function vrgBuild(k,ay){ ay=ay||vrgAy(); const key=vrgKey(k,ay), C=window.VRG.res;
+  if(C[key]) return C[key].prom||Promise.resolve(C[key]);
+  const R=C[key]={status:'loading',prog:0,k,ay,key}; R.prom=vrgBuild0(R,k,ay); return R.prom; }
+/* one arm of one rule: its firings and hits, plus what the same sessions did */
+function vrgArm(){ return {n:0,h:0,up:0,flat:0,big:0}; }
+/* The baseline is the trivial caller measured over EVERY gradable session of the period, not over
+   the rule's own firing days: a rule that fires on most days and simply echoes the day would
+   otherwise be scored against itself. For a directional rule it is the better of always-bullish
+   and always-neutral (the two callers any rule here must beat, and the pair the accuracy pill
+   quotes); for a size rule it is always-big, i.e. the period's own big-move rate. The always-
+   bullish / always-neutral rates ON THE FIRING DAYS are kept beside it for context. */
+function vrgUn(){ return {dn:0,dup:0,dflat:0,bn:0,bbig:0}; }
+function vrgBase(U,target){ return target==='big'?(U.bn?U.bbig/U.bn:0)
+  :Math.max(U.dn?U.dup/U.dn:0, U.dn?U.dflat/U.dn:0); }
+function vrgFin(A,target,U){
+  const n=A.n, rate=n?A.h/n:0, base=vrgBase(U,target);
+  return {n,h:A.h,rate,base,
+    alwaysB:target==='big'?(n?A.big/n:0):(n?A.up/n:0),
+    alwaysN:target==='big'?(n?1-A.big/n:0):(n?A.flat/n:0),
+    unB:U.dn?U.dup/U.dn:0, unN:U.dn?U.dflat/U.dn:0, unBig:U.bn?U.bbig/U.bn:0, unN2:U.bn||0,
+    edge:(rate-base)*100,ci:tnWilson(A.h,n),p:n?tnBinomUpper(n,A.h,base):1};
+}
+async function vrgBuild0(R,k,ay){
+  try{
+    const u=RE_UNIV[k]; if(!u) throw new Error('unknown instrument '+k);
+    const rows=dsHasBake(k) ? await dsBars(k,'days','1',VRG_START,tnToday(),()=>reFetchOHLCYahoo(u.sym,'max')) : await reFetchOHLC(u.sym,'max',k);
+    const seen=new Set(), bars=[];
+    (rows||[]).map(r=>({date:r.date||reISO(r.ts),o:+r.o,h:+r.h,l:+r.l,c:+r.c}))
+      .filter(b=>b.date&&isFinite(b.h)&&isFinite(b.l)&&isFinite(b.c)&&b.c>0)
+      .sort((x,y)=>x.date<y.date?-1:1).forEach(b=>{ if(!seen.has(b.date)){ seen.add(b.date); bars.push(b); } });
+    if(bars.length<600) throw new Error('only '+bars.length+' daily bars for '+dpInstName(k));
+    const Z=await vrgSky(ay); R.phase='grade'; R.prog=92; vrgProg(); await reYield();
+    const N=bars.length, Y=dpTargets(bars);
+    const up=new Int8Array(N).fill(-1), fl=new Int8Array(N).fill(-1);
+    for(let i=1;i<N;i++){ const pc=bars[i-1].c; if(!(pc>0)) continue; const m=(bars[i].c/pc-1)*100;
+      up[i]=m>VRG_FLAT?1:0; fl[i]=Math.abs(m)<=VRG_FLAT?1:0; }
+    // the two trivial callers over every gradable session of each period (0 = 2000-2018, 1 = 2019+)
+    const UN=[vrgUn(),vrgUn()];
+    for(let i=1;i<N-1;i++){ const j=i+1, o=bars[i].date<=VRG_TRAIN_END?0:1;
+      if(bars[i].date<VRG_START) continue;
+      if(up[j]>=0&&fl[j]>=0){ UN[o].dn++; UN[o].dup+=up[j]; UN[o].dflat+=fl[j]; }
+      if(Y.big[j]>=0){ UN[o].bn++; if(Y.big[j]===1) UN[o].bbig++; } }
+    const cNm=VRG_COMM_OF[k], commRule=cNm?('V1-C'+VR_COMM_TABLE.findIndex(c=>c[0]===cNm)):null;
+    const G=[];
+    for(const rule of VRG_GRADED){
+      const na=(/^V1-C\d+$/.test(rule.id)&&rule.id!==commRule);
+      const row={rule,id:rule.id,na,claim:0,claimTxt:'',proven:false,why:'',bh:null,
+        tr:vrgFin(vrgArm(),rule.target,UN[0]),oos:vrgFin(vrgArm(),rule.target,UN[1])};
+      if(na){ row.why='not applicable to '+dpInstName(k)+' — this commodity does not rule it'; G.push(row); continue; }
+      const A=[vrgArm(),vrgArm()];                       // 0 = 2000-2018 · 1 = 2019 → last bar
+      let sgn=0,nPos=0,nNeg=0;
+      for(let i=1;i<N-1;i++){
+        const d=Z.dOf[bars[i].date]; if(d==null) continue;
+        const v=Z.F[rule.i][d]; if(!v) continue;
+        const j=i+1, y=rule.target==='big'?Y.big[j]:up[j];
+        if(y<0||up[j]<0||fl[j]<0) continue;
+        const o=bars[i].date<=VRG_TRAIN_END?0:1, a=A[o];
+        a.n++; a.up+=up[j]; a.flat+=fl[j]; if(Y.big[j]===1)a.big++;
+        const hit=rule.target==='big'?(y===1):(v>0?up[j]===1:(up[j]===0&&fl[j]===0));
+        if(hit)a.h++;
+        if(o===0){ sgn+=v; if(v>0)nPos++; else nNeg++; }
+      }
+      const claim=rule.target==='big'?1:(sgn>=0?1:-1);   // the way it leaned IN SAMPLE — never refit on the test years
+      row.claim=claim; row.oneWay=(nPos===0||nNeg===0);
+      row.claimTxt=rule.target==='big'?'a big-move / turning session next'
+        :row.oneWay?(claim>0?'तेजी — an up session next':'मंदी — a down session next')
+        :'its own तेजी/मंदी call that session (leans '+(claim>0?'तेजी':'मंदी')+')';
+      row.tr=vrgFin(A[0],rule.target,UN[0]); row.oos=vrgFin(A[1],rule.target,UN[1]);
+      G.push(row);
+    }
+    // Benjamini-Hochberg across every graded rule of this instrument, on the out-of-sample p
+    const T=G.filter(r=>!r.na&&r.oos.n>0).sort((x,y)=>x.oos.p-y.oos.p), m=T.length;
+    for(let j=m-1;j>=0;j--){ const v=Math.min(1,T[j].oos.p*m/(j+1)); T[j].bh=(j===m-1)?v:Math.min(v,T[j+1].bh); }
+    for(const r of G){
+      if(r.na) continue;
+      if(r.bh==null) r.bh=1;
+      const inOk=r.tr.n>=VRG_MIN&&r.tr.rate>r.tr.base, ooN=r.oos.n>=VRG_MIN, ooOk=r.oos.rate>r.oos.base;
+      r.proven=inOk&&ooN&&ooOk&&r.oos.p<0.05&&r.bh<0.05;
+      r.why=r.proven?'':r.tr.n<VRG_MIN?'only '+r.tr.n+' firings in 2000–2018 (need '+VRG_MIN+')'
+        :!inOk?'2000–2018 did not beat its own baseline ('+tnPct(r.tr.rate)+' vs '+tnPct(r.tr.base)+')'
+        :!ooN?'only '+r.oos.n+' firings in 2019+ (need '+VRG_MIN+')'
+        :!ooOk?'2019+ went the other way ('+tnPct(r.oos.rate)+' vs '+tnPct(r.oos.base)+')'
+        :r.oos.p>=0.05?'2019+ p '+tnPfmt(r.oos.p)+' (need < 0.05)'
+        :'2019+ BH q '+tnPfmt(r.bh)+' after correcting for '+m+' rules tested (need < 0.05)';
+    }
+    const ord=r=>r.proven?0:r.na?2:1;
+    G.sort((x,y)=>ord(x)-ord(y)||(x.bh==null?1:x.bh)-(y.bh==null?1:y.bh)||(x.na?1:x.oos.p)-(y.na?1:y.oos.p)||x.rule.i-y.rule.i);
+    const proven=G.filter(r=>r.proven);
+    Object.assign(R,{status:'ready',prog:100,phase:'done',bars,G,proven,tested:m,luck:0.05*m,
+      firstBar:bars[0].date,lastBar:bars[N-1].date,trainTo:VRG_TRAIN_END,oosFrom:'2019-01-01',
+      skyF:Z.F,dOf:Z.dOf,nSky:Z.nD,skyLast:Z.dsA[Z.nD-1]});
+    try{ console.info('[vyapaar ratna] '+dpInstName(k)+': '+m+' rules tested · '+proven.length+' proven · '+(0.05*m).toFixed(1)+' expected by luck'); }catch(e){}
+  }catch(e){ R.status='error'; R.err=String(e&&e.message||e); }
+  return R;
+}
+/* build in the background for the tab's instrument, then the rest — never blocks first paint */
+async function vrgEnsure(){ try{ if(typeof S==='undefined'||S.tab!=='vr') return;
+  const k=vrgInst(), ay=vrgAy();
+  const had=(window.VRG.res[vrgKey(k,ay)]||{}).status==='ready';
+  await vrgBuild(k,ay); if(!had&&typeof render==='function'&&S.tab==='vr') render();
+  for(const x of DP_INST){ if(S.tab!=='vr'||vrgAy()!==ay) return;
+    const P=window.VRG.res[vrgKey(x[0],ay)]; if(P&&P.status!=='loading') continue;
+    await vrgBuild(x[0],ay); }
+}catch(e){} }
+/* today's firings, read off the very same sky the grades came from */
+function vrgToday(R,ds){ const d=R.dOf[ds]; if(d==null) return null;
+  const out={}; VRG_RULES.forEach(r=>{ const v=R.skyF[r.i][d]; if(v) out[r.id]=v; }); return out; }
+
+/* ── the graded-evidence UI (shared by the headline strip, the ledger and the table) ── */
+const VRG_PILL=DP_PILL;   // the app's one measured-accuracy pill, verbatim
+const VRG_NOTPROVEN='not proven — past hits ≈ random chance';
+const VRG_PROVEN='Proven in backtest ✓';
+function vrgStatus(r){ return r.na?'<span style="color:var(--tx3)">not applicable</span>'
+  :r.proven?'<b style="color:var(--bull)">'+VRG_PROVEN+'</b>'
+  :'<span style="color:var(--tx3)">'+VRG_NOTPROVEN+'</span>'; }
+function vrgArmTxt(x){ return x.n?tnPct(x.rate)+' <span style="color:var(--tx3)">vs '+tnPct(x.base)+'</span>':'<span style="color:var(--tx3)">—</span>'; }
+function vrgEdge(x){ if(!x.n) return '—'; const v=x.edge; return (v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1); }
+function vrgCI(x){ return x.n?'['+tnPct(x.ci[0])+' … '+tnPct(x.ci[1])+']':'—'; }
+/* the app's one published qualitative scale (DP_BOOK) — every wording maps through it */
+function vrgBand(score){ const i=score>=2?6:score>=1?5:score>=0.35?4:score<=-2?0:score<=-1?1:score<=-0.35?2:3; return DP_BOOK[i]; }
+function vrgBandCol(t){ return /HIGH BEARISH|^BEARISH/.test(t)?'var(--bear)':/MILD BEARISH/.test(t)?'var(--bear)'
+  :/HIGH BULLISH|^BULLISH/.test(t)?'var(--bull)':/MILD BULLISH/.test(t)?'var(--bull)':'var(--neut)'; }
+function vrgInstSel(){ return DP_INST.map(x=>'<option value="'+x[0]+'"'+(x[0]===vrgInst()?' selected':'')+'>'+x[1]+'</option>').join(''); }
+
+/* headline verdict strip — PROVEN rules only, per volume and combined */
+function vrgVerdictHTML(R,fired){
+  const box=(ttl,sub,body)=>'<div style="flex:1;min-width:210px;background:var(--bg3);border-radius:3px;padding:8px 11px">'+
+    '<div style="font-size:8.5px;color:var(--tx3);letter-spacing:.05em">'+ttl+'</div>'+body+
+    '<div style="font-size:9.5px;color:var(--tx3);margin-top:3px">'+sub+'</div></div>';
+  const mk=(ttl,sel)=>{
+    if(!R||R.status!=='ready') return box(ttl,'grading…','<div style="font-size:15px;font-weight:800;color:var(--tx3)">building <span id="vrgProg">'+((R&&R.prog)||0)+'%</span></div>');
+    const P=R.proven.filter(sel);
+    if(!P.length) return box(ttl,'no rule of this group passed the walk-forward test',
+      '<div style="font-size:15px;font-weight:800;color:var(--tx3)">UNPROVEN</div>'+
+      '<div style="font-size:10px;color:var(--tx3)">'+VRG_NOTPROVEN+'</div>');
+    const act=P.filter(r=>fired&&fired[r.id]);
+    if(!act.length) return box(ttl,P.length+' proven rule'+(P.length>1?'s':'')+' in this group, none firing today',
+      '<div style="font-size:15px;font-weight:800;color:var(--neut)">NO CALL TODAY</div>');
+    let sc=0, big=0;
+    act.forEach(r=>{ if(r.rule.target==='big') big++; else sc+=r.claim*Math.max(0,r.oos.edge)/10; });
+    const band=vrgBand(sc), col=vrgBandCol(band);
+    return box(ttl,act.length+' proven rule'+(act.length>1?'s':'')+' firing · '+VRG_PROVEN,
+      '<div style="font-size:15px;font-weight:800;color:'+col+'">'+band+(big?' <span style="color:var(--neut2);font-size:11px">⚡ turning</span>':'')+'</div>');
+  };
+  const un=(!R||R.status!=='ready')?0:R.G.filter(r=>!r.na&&!r.proven&&fired&&fired[r.id]).length;
+  return '<div class="pnl" style="border-color:var(--acc)55"><div class="ph"><span class="dot" style="background:var(--acc)"></span>'+
+    '⚖ HEADLINE VERDICT — assembled from PROVEN rules only · '+(R&&R.k?dpInstName(R.k):'')+' · '+S.date+
+    '<span style="margin-left:auto">'+VRG_PILL+'</span></div><div class="pb">'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      mk('VOLUME 1 · दृष्टि-योग (★)',r=>r.rule.vol===1)+
+      mk('VOLUME 2 · द्वितीय खण्ड (★★)',r=>r.rule.vol===2)+
+      mk('COMBINED · both volumes',r=>true)+
+    '</div>'+
+    '<div style="font-size:10.5px;color:var(--tx2);margin-top:8px;line-height:1.6">Nothing above is averaged across the two volumes: each volume keeps its own rule groups and its own verdict, and the combined box is simply every proven rule of both. '+
+    (R&&R.status==='ready'
+      ? (R.proven.length
+          ? '<b style="color:var(--bull)">'+R.proven.length+' of '+R.tested+' rules passed</b> the walk-forward test on '+dpInstName(R.k)+'; about <b>'+R.luck.toFixed(1)+'</b> would be expected by luck alone at 5%, so Benjamini-Hochberg is applied across all '+R.tested+' before anything is called proven.'
+          : '<b style="color:var(--bear)">No rule of either volume passed the walk-forward test on '+dpInstName(R.k)+'.</b> '+R.tested+' were tested, about '+R.luck.toFixed(1)+' would be expected by luck at 5%, and none survived Benjamini-Hochberg out of sample. The combined verdict is therefore <b>unproven</b> — the '+un+' rule'+(un===1?'':'s')+' firing today are listed below for reference only.')
+      : 'The grades are still building in the background — the panels below are already live.')+
+    '</div></div></div>';
+}
+
+/* the rule ledger — grouped by volume and chapter, every rule with its citation */
+function vrgLedgerHTML(R,fired){
+  const rdy=R&&R.status==='ready', by={};
+  VRG_RULES.forEach(r=>{ const k=r.vol+'|'+r.chap; (by[k]||(by[k]=[])).push(r); });
+  const volTtl={1:'★ VOLUME 1 — व्यापार रत्न · दृष्टि-योग तेजी-मंदी engine <span style="color:var(--tx3);font-weight:400">(source: '+VRG_SRC1+')</span>',
+                2:'★★ VOLUME 2 — द्वितीय खण्ड + वाणिज्य-सर्वस्व · R1–R24 <span style="color:var(--tx3);font-weight:400">(source: '+VRG_SRC2+')</span>',
+                0:'⊕ BOTH VOLUMES <span style="color:var(--tx3);font-weight:400">(shown as its own rule, never as an average)</span>'};
+  let out='';
+  for(const vol of [1,2,0]){
+    const keys=Object.keys(by).filter(k=>+k.split('|')[0]===vol);
+    let rows='';
+    for(const key of keys){
+      const chap=key.split('|').slice(1).join('|');
+      rows+='<tr style="background:var(--bg3)"><td colspan="5" style="font-size:10px;color:var(--acc);font-weight:700;letter-spacing:.04em">§ '+chap+'</td></tr>';
+      for(const r of by[key]){
+        const g=rdy?R.G.find(x=>x.id===r.id):null;
+        const f=fired&&fired[r.id];
+        const fire=!r.target?'<span style="color:var(--tx3)">framework</span>'
+          :f?'<b style="color:'+(f>0?'var(--bull)':'var(--bear)')+'">'+(r.target==='big'?'⚡ FIRING':(f>0?'▲ तेजी':'▼ मंदी'))+'</b>'
+            :'<span style="color:var(--tx3)">quiet</span>';
+        const res=!r.target?'<span style="color:var(--tx3)">no market claim — nothing to grade</span>'
+          :!g?'<span style="color:var(--tx3)">grading…</span>'
+          :g.na?'<span style="color:var(--tx3)">'+g.why+'</span>'
+          :vrgStatus(g)+'<div style="font-size:9.5px;color:var(--tx3)">'+g.oos.n+' firings 2019+ · '+vrgArmTxt(g.oos)+(g.proven?'':' · '+g.why)+'</div>';
+        rows+='<tr class="'+(f>0?'tr-b':f<0?'tr-r':'tr-n')+'"><td style="color:var(--acc);font-weight:700;white-space:nowrap;font-size:10px">'+r.id+'</td>'+
+          '<td style="font-weight:700;font-size:11px">'+r.name+'<div style="font-size:9px;color:var(--tx3)">'+r.dev+' · '+(r.target?VRG_TGT[r.target].t:'FRAMEWORK')+'</div></td>'+
+          '<td style="font-size:10px;color:var(--tx2)">'+r.note+'</td>'+
+          '<td style="text-align:center;white-space:nowrap;font-size:10px">'+fire+'</td>'+
+          '<td style="font-size:10px">'+res+'</td></tr>';
+      }
+    }
+    out+='<div class="pnl"><div class="ph"><span class="dot"></span>'+volTtl[vol]+'</div>'+
+      '<div class="ts" style="max-height:460px;overflow:auto"><table class="tbl"><thead><tr><th>#</th><th>Rule</th><th>What the book says (citation above)</th><th style="text-align:center">'+S.date+'</th><th>Measured</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+  }
+  return out;
+}
+
+/* the graded evidence table: in-sample, out-of-sample, CI, p, BH q, verdict */
+function vrgTableHTML(R){
+  if(!R) return '';
+  if(R.status==='error') return '<div class="pnl"><div class="ph"><span class="dot" style="background:var(--bear)"></span>⚖ GRADED EVIDENCE</div><div class="pb" style="color:var(--bear);font-size:11.5px">Grading failed: '+reEsc(R.err||'')+'</div></div>';
+  if(R.status!=='ready') return '<div class="pnl"><div class="ph"><span class="dot"></span>⚖ GRADED EVIDENCE — walk-forward</div>'+
+    '<div class="pb" style="font-size:11.5px;color:var(--tx2)">Grading every rule of both volumes against '+dpInstName(vrgInst())+"'s baked daily bars, in the background: <b id=\"vrgProg\">"+(R.prog||0)+'%</b>. The panels below are already live — nothing waits on this.</div></div>';
+  const row=r=>'<tr class="'+(r.proven?'tr-b':'tr-n')+'">'+
+    '<td style="font-weight:700;font-size:10.5px">'+r.rule.name+'<div style="font-size:9px;color:var(--tx3)">'+r.id+' · '+r.rule.chap+'</div></td>'+
+    '<td style="text-align:center;font-size:10px;white-space:nowrap">'+(r.rule.vol===0?'both':'Vol '+r.rule.vol)+'<div style="font-size:8.5px;color:var(--tx3)">'+VRG_TGT[r.rule.target].t+'</div></td>'+
+    '<td style="font-size:10px;color:var(--tx2)">'+(r.na?'—':r.claimTxt)+'</td>'+
+    '<td style="text-align:right;font-family:monospace">'+(r.na?'—':r.tr.n+' / '+r.oos.n)+'</td>'+
+    '<td style="text-align:right;font-size:10.5px">'+(r.na?'—':vrgArmTxt(r.tr))+'</td>'+
+    '<td style="text-align:right;font-size:10.5px">'+(r.na?'—':vrgArmTxt(r.oos)+'<div style="font-size:9px;color:var(--tx3)">same days ▲'+tnPct(r.oos.alwaysB)+' · •'+tnPct(r.oos.alwaysN)+'</div>')+'</td>'+
+    '<td style="text-align:right;font-family:monospace;color:'+(r.na||r.oos.edge<=0?'var(--tx3)':'var(--bull)')+'">'+(r.na?'—':vrgEdge(r.oos))+'</td>'+
+    '<td style="text-align:right;font-size:9.5px;color:var(--tx3)">'+(r.na?'—':vrgCI(r.oos))+'</td>'+
+    '<td style="text-align:right;font-family:monospace;font-size:10px">'+(r.na?'—':tnPfmt(r.oos.p))+'</td>'+
+    '<td style="text-align:right;font-family:monospace;font-size:10px">'+(r.na||r.bh==null?'—':tnPfmt(r.bh))+'</td>'+
+    '<td style="font-size:10px">'+vrgStatus(r)+'</td></tr>';
+  const head='<tr><th>Rule</th><th style="text-align:center">Volume</th><th>Its own claim</th><th style="text-align:right">n in / out</th>'+
+    '<th style="text-align:right">2000–2018 hit% vs base</th><th style="text-align:right">2019+ hit% vs base</th><th style="text-align:right">edge (pts)</th>'+
+    '<th style="text-align:right">Wilson 95% (2019+)</th><th style="text-align:right">p</th><th style="text-align:right">BH q</th><th>Verdict</th></tr>';
+  const trivial=(()=>{ const a=R.G.find(r=>!r.na&&r.oos.n>0); if(!a) return '';
+    return 'Over all '+a.oos.unN2+' gradable 2019+ sessions of '+dpInstName(R.k)+' the trivial callers scored: always-bullish '+tnPct(a.oos.unB)+', always-neutral '+tnPct(a.oos.unN)+', always-big '+tnPct(a.oos.unBig)+'.'; })();
+  return '<div class="pnl" style="border-color:'+(R.proven.length?'var(--bull)':'var(--bd2)')+'55">'+
+    '<div class="ph"><span class="dot" style="background:'+(R.proven.length?'var(--bull)':'var(--tx3)')+'"></span>'+
+    '⚖ GRADED EVIDENCE — walk-forward, learn 2000–2018 / report 2019 → '+R.lastBar+' · '+dpInstName(R.k)+
+    '<span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+R.tested+' tested · '+R.proven.length+' proven · ≈'+R.luck.toFixed(1)+' expected by luck</span></div>'+
+    '<div class="pb" style="padding-bottom:4px"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">'+
+      '<span style="font-size:10.5px;color:var(--tx3)">Instrument</span>'+
+      '<select onchange="S.vrgInst=this.value;render()" style="background:var(--bg3);color:var(--tx1);border:1px solid var(--bd);border-radius:3px;padding:3px 6px;font-size:11px">'+vrgInstSel()+'</select>'+
+      '<span style="font-size:10px;color:var(--tx3)">bars '+R.firstBar+' → '+R.lastBar+' · ayanamsa '+reEsc(R.ay)+' · '+R.nSky+' sky sessions</span></div>'+
+    '<div style="font-size:10.5px;color:var(--tx2);line-height:1.6;margin-bottom:6px">Each rule fires on a session and is scored on the <b>next</b> one. '+VRG_TGT.dir.what+' ('+VRG_TGT.dir.t+'); a rule that claims volatility rather than direction is graded on '+VRG_TGT.big.what+' ('+VRG_TGT.big.t+') instead. '+
+      'The base column is the trivial caller over <b>every</b> gradable session of the period — the better of always-bullish and always-neutral for a directional rule, always-big for a size rule — never the rule’s own firing days, so a rule that speaks most days is not scored against itself. '+trivial+' Nothing is fitted after 2018: each rule makes the book’s call, and the 2019+ arm is untouched until it is reported. '+
+      '<b>'+VRG_PROVEN+'</b> needs a win in both periods, ≥'+VRG_MIN+' firings out of sample, p&lt;0.05 and BH q&lt;0.05.</div>'+
+    '</div><div class="ts" style="max-height:520px;overflow:auto"><table class="tbl"><thead>'+head+'</thead><tbody>'+R.G.map(row).join('')+'</tbody></table></div>'+
+    '<div class="pb" style="font-size:10.5px;color:var(--tx3)">'+(R.proven.length?'':'No row cleared the bar — every rule above reads <b>'+VRG_NOTPROVEN+'</b>, and the headline verdict says so rather than inventing a signal.')+'</div></div>';
+}
+
 function tSharParivartan(mode){
   const isShar = (mode||'shar')==='shar';
   const from = S.spFrom || S.date;

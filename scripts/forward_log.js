@@ -4,7 +4,8 @@
  * Runs in the Upstox bake job, after the bake. It loads index.html headless,
  * writes the engine's forecasts for the NEXT 5 SESSIONS (and the astro turn
  * windows for the next 30 sessions) into data/forward/log.json, plus the
- * active PROVEN DAILY patterns (Day Forecast; source "Proven daily") into log.daily, and grades
+ * active PROVEN DAILY patterns (Day Forecast; source "Proven daily") and the proven rules of the
+ * merged Vyapaar Ratna tab (source "Vyapaar Ratna") into log.daily, and grades
  * every earlier forecast whose outcome is now in the baked bars. Ten instruments (INSTS: India
  * indices, commodities, US indices), each on its own bars, book class and baselines; each one's
  * next session is the weekday after its own last bar. The book engine reads the sky at 09:15 IST
@@ -63,6 +64,16 @@ const BUDGET_MS = (parseFloat(process.env.FWD_BUDGET_MIN) || 30) * 60000, T0 = D
  * one committed file per class: {ver, loc, ay, cls, bands:[[date, bandIndex (-1 = none)], ...]}.
  * Instruments of the same class share it; later runs only compute the new days. */
 const BAND_KEY = /^astralDpBook\|([^|]*)\|([^|]*)\|(.*)$/;
+/* ── Vyapaar Ratna sky cache: data/forward/cache_vrg_<ver>_<ay>.json ──
+ * The merged ★ tab's grader keeps "which rule fired on which session since 2000" in localStorage
+ * under 'astralVrgSky|<ver>|<ay>|<start>'. It is instrument-independent and pure ephemeris, so it
+ * is backed by one file here the same way the book bands are: the first run builds it, later runs
+ * only extend it. Nothing about the grading depends on the cache — it is only time. */
+const VRG_KEY = /^astralVrgSky\|([^|]*)\|([^|]*)\|(.*)$/;
+const vrgFile = k => { const m = VRG_KEY.exec(k); return path.join(OUT, `cache_vrg_${m[1]}_${m[2]}.json`); };
+function vrgCacheLoad(key) { try { const p = vrgFile(key);
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null; } catch (e) { return null; } }
+function vrgCacheSave(key, val) { try { fs.mkdirSync(OUT, { recursive: true }); fs.writeFileSync(vrgFile(key), val); } catch (e) {} }
 const bandFile = (cls, ay) => path.join(OUT, `cache_bands_${String(cls).replace(/[^A-Za-z0-9]+/g, '_')}_${ay}.json`);
 function bandLoad(key) {
   const m = BAND_KEY.exec(key); if (!m) return null;
@@ -116,8 +127,8 @@ function loadPage() {
     Int32Array, Uint8Array, Uint32Array, Int16Array, Uint16Array, Int8Array, ArrayBuffer, DataView, BigInt, Reflect, Proxy, TextDecoder, TextEncoder,
     URL, URLSearchParams, AbortController, document: doc, navigator: { userAgent: 'node', language: 'en', clipboard: {} },
     location: { href: 'http://localhost/', search: '', hash: '', origin: 'http://localhost', pathname: '/', protocol: 'http:' },
-    localStorage: { getItem: k => { if (!(k in store) && BAND_KEY.test(k)) store[k] = bandLoad(k); return store[k] == null ? null : store[k]; },
-      setItem: (k, v) => { store[k] = String(v); if (BAND_KEY.test(k)) bandSave(k, store[k]); }, removeItem: k => { delete store[k]; } },
+    localStorage: { getItem: k => { if (!(k in store)) { if (BAND_KEY.test(k)) store[k] = bandLoad(k); else if (VRG_KEY.test(k)) store[k] = vrgCacheLoad(k); } return store[k] == null ? null : store[k]; },
+      setItem: (k, v) => { store[k] = String(v); if (BAND_KEY.test(k)) bandSave(k, store[k]); else if (VRG_KEY.test(k)) vrgCacheSave(k, store[k]); }, removeItem: k => { delete store[k]; } },
     sessionStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     setTimeout: () => 0, clearTimeout() {}, setInterval() { return 0; }, clearInterval() {}, requestAnimationFrame() { return 0; }, cancelAnimationFrame() {},
     fetch: fetchLocal, matchMedia: () => ({ matches: false, addEventListener() {}, addListener() {} }), addEventListener() {}, removeEventListener() {},
@@ -337,6 +348,31 @@ async function predictDaily(P, inst, hist, target, made) {
       days: a.bias.n, avgMovePct: a.bias.avgPct == null ? null : r2(a.bias.avgPct), medMovePct: a.bias.medPct == null ? null : r2(a.bias.medPct) } : null,
     graded: null }));
 }
+/* ── 2c. proven VYAPAAR RATNA rules (the merged ★ tab): the ones firing on the next session ──
+ * Same entry shape and same grader as "Proven daily" — study 'dir' or 'big', a `lean`, the walk-forward
+ * numbers, and the base rate as of the prediction — so gradeDaily() and the scoreboard read it unchanged.
+ * Only rules that passed the tab's walk-forward test (in-sample AND 2019+, >=30 firings out of sample,
+ * p<0.05 and BH q<0.05 across all rules tested) are logged. */
+async function predictVR(P, inst, hist, target, made) {
+  P.ctx.__q = { k: inst.k, target };
+  const R = await P.E(`vrgBuild(__q.k,'lahiri')`);
+  if (!R || R.status !== 'ready') throw new Error(String(R && R.err || 'build failed'));
+  const act = P.E(`(()=>{ const R=window.VRG.res[vrgKey(__q.k,'lahiri')], F=vrgToday(R,__q.target);
+    if(!F) return [];
+    return R.proven.filter(r=>F[r.id]).map(r=>({id:r.id,name:r.rule.name,vol:r.rule.vol,chap:r.rule.chap,
+      study:r.rule.target, s:F[r.id], claim:(r.rule.target==='big'?'Big-move day likely':(F[r.id]>0?'Up day more likely':'Up day less likely'))+': '+tnPct(r.oos.rate)+' vs '+tnPct(r.oos.base),
+      tr:{n:r.tr.n,rate:r.tr.rate,base:r.tr.base}, oos:{n:r.oos.n,rate:r.oos.rate,base:r.oos.base,p:r.oos.p,ci:r.oos.ci}, bh:r.bh})); })()`);
+  P.ctx.__b = hist;
+  const base = P.E(`dpBaseAsOf(__b)`);   // same baselines and big-move cut the Proven daily entries use
+  const last = hist[hist.length - 1], rd = v => Math.round(v * 10000) / 10000;
+  return act.map(a => ({ id: [target, inst.k, 'vr', a.id].join('|'), source: 'Vyapaar Ratna', inst: inst.k, target, made,
+    lastClose: last.c, lastDate: last.date, study: a.study, pattern: a.id, plain: 'Vyapaar Ratna volume ' + a.vol + ' — ' + a.name + ' (' + a.chap + ')',
+    claim: a.claim, lean: a.study === 'big' ? 'more' : (a.s > 0 ? 'more' : 'less'), volume: a.vol, rule: a.name, citation: a.chap,
+    backtest: { in: { n: a.tr.n, rate: rd(a.tr.rate), base: rd(a.tr.base) },
+      out: { n: a.oos.n, rate: rd(a.oos.rate), base: rd(a.oos.base), p: a.oos.p, bhQ: a.bh,
+             ci95: [rd(a.oos.ci[0]), rd(a.oos.ci[1])] } },
+    base: base[a.study], bigThrPct: base.bigThr, confirmedOn: [], bias: null, graded: null }));
+}
 function gradeDaily(e, B) {
   const b = B.find(x => x.date === e.target);
   if (!b) { if (B.length && B[B.length - 1].date > e.target) return { date: e.target, noSession: true }; return null; }
@@ -384,7 +420,7 @@ function summarise(log, B, SW) {
   const days = log.entries.filter(e => e.graded && !e.graded.noSession);
   const S = { version: VERSION, generated: new Date().toISOString(), since: log.since || null,
     lastGraded: days.reduce((m, e) => e.graded.date > m ? e.graded.date : m, '') || null,
-    nDays: new Set(days.map(e => e.target)).size, flatBandPct: FLAT, astroMin: ASTRO_MIN, direction: {}, volatility: {}, turns: {}, chance: {}, provenDaily: {} };
+    nDays: new Set(days.map(e => e.target)).size, flatBandPct: FLAT, astroMin: ASTRO_MIN, direction: {}, volatility: {}, turns: {}, chance: {}, provenDaily: {}, vyapaarRatna: {} };
   S.insts = INSTS.map(i => ({ k: i.k, grp: i.grp, target: (log.runs.length && (log.runs[log.runs.length - 1].targets || {})[i.k]) || null }));
   S.skyNote = 'the book engine reads the sky at 09:15 IST of the session date for every instrument, US and commodities included; no US-session time is modelled';
   const CALLS = ['astroOnly', 'techOnly', 'techWithAstroFilter', 'astroAndTech'];
@@ -422,7 +458,7 @@ function summarise(log, B, SW) {
     }
     S.turns[inst] = T;
     // proven daily patterns: hit rate vs the chance of the claimed outcome (base rate as of each prediction)
-    const PD = {}, DL = (log.daily || []).filter(f => f.inst === inst);
+    const PD = {}, DL = (log.daily || []).filter(f => f.inst === inst && f.source !== 'Vyapaar Ratna');
     for (const st of ['dir', 'big', 'gap']) {
       const all = DL.filter(f => f.study === st), g = all.filter(f => f.graded && f.graded.result && f.graded.result !== 'ungradable');
       const hits = g.filter(f => f.graded.result === 'hit').length, ci = wilson(hits, g.length);
@@ -446,6 +482,20 @@ function summarise(log, B, SW) {
         lastPrediction: lastD ? { target: lastD.target, base: lastD.base, bigThrPct: lastD.bigThrPct } : null };
     }
     S.provenDaily[inst] = PD;
+    // the merged Vyapaar Ratna tab's proven rules, scored the same way and kept in their own bucket
+    { const VR = {}, VL = (log.daily || []).filter(f => f.inst === inst && f.source === 'Vyapaar Ratna');
+      for (const st of ['dir', 'big']) {
+        const all = VL.filter(f => f.study === st), g = all.filter(f => f.graded && f.graded.result && f.graded.result !== 'ungradable');
+        const hits = g.filter(f => f.graded.result === 'hit').length, ci = wilson(hits, g.length);
+        const exp = g.length ? g.reduce((a, f) => a + (f.lean === 'more' ? f.base : 1 - f.base), 0) / g.length : null;
+        VR[st] = { made: all.length, graded: g.length, pending: all.filter(f => !f.graded).length, hits, hitPct: pct(hits, g.length),
+          ci95: [r2(ci[0] * 100), r2(ci[1] * 100)], chancePct: exp == null ? null : r2(exp * 100),
+          p: g.length && exp != null ? Math.round(binomUpper(g.length, hits, exp) * 1000) / 1000 : null }; }
+      VR.byVolume = {}; for (const v of [1, 2, 0]) { const g = VL.filter(f => f.volume === v && f.graded && f.graded.result && f.graded.result !== 'ungradable');
+        VR.byVolume['vol' + v] = { graded: g.length, hits: g.filter(f => f.graded.result === 'hit').length }; }
+      VR.rules = [...new Set(VL.map(f => f.pattern))];
+      VR.rule = 'only rules the tab proved out of sample are logged; a rule that claims volatility is graded on the big-move target, not on direction';
+      S.vyapaarRatna[inst] = VR; }
     if (B[inst] && SW[inst]) S.chance[inst] = { window5: r2(chanceFor(B[inst], SW[inst], 5) * 100), window3: r2(chanceFor(B[inst], SW[inst], 3) * 100),
       pivots: SW[inst].length, from: B[inst][0].date, to: B[inst][B[inst].length - 1].date, rule: `>=${SW_MIN}% swing, >=${SW_MAJ}% major` };
   }
@@ -458,7 +508,7 @@ function summarise(log, B, SW) {
   const logP = path.join(OUT, 'log.json');
   const log = readJSON(logP, null) || { version: VERSION, since: null, entries: [], reversals: [], runs: [] };
   log.version = VERSION; log.entries = log.entries || []; log.reversals = log.reversals || []; log.runs = log.runs || []; log.daily = log.daily || [];
-  const run = { at: made, target: null, added: 0, turnsAdded: 0, graded: 0, turnsGraded: 0, dailyAdded: 0, dailyGraded: 0, errors: [] };
+  const run = { at: made, target: null, added: 0, turnsAdded: 0, graded: 0, turnsGraded: 0, dailyAdded: 0, dailyGraded: 0, vrAdded: 0, errors: [] };
   let P = null;
   try { P = loadPage(); if (P.errs.length) run.errors.push('page load: ' + P.errs.slice(0, 3).join(' | ')); }
   catch (e) { run.errors.push('page load failed: ' + e.message); }
@@ -484,9 +534,10 @@ function summarise(log, B, SW) {
       P.ctx.__q = { plan: inst.plan };
       try { await P.E(`tnLfBuild(tnLfKey(__q.plan,'lat'),__q.plan,'lat')`); } catch (e) {} ms.latlon = tick() - t; t = tick();
       P.ctx.__q = { k: inst.k };
-      try { await P.E(`dpBuild(__q.k,'lahiri')`); } catch (e) {} ms.daily = tick() - t;
+      try { await P.E(`dpBuild(__q.k,'lahiri')`); } catch (e) {} ms.daily = tick() - t; t = tick();
+      try { await P.E(`vrgBuild(__q.k,'lahiri')`); } catch (e) {} ms.vr = tick() - t;
       built.add(inst.k);
-      console.log(`  built ${inst.k.padEnd(9)} astral ${(ms.astral / 1000).toFixed(1)}s · lat/lon ${(ms.latlon / 1000).toFixed(1)}s · daily ${(ms.daily / 1000).toFixed(1)}s · total ${((Date.now() - T0) / 1000).toFixed(0)}s`);
+      console.log(`  built ${inst.k.padEnd(9)} astral ${(ms.astral / 1000).toFixed(1)}s · lat/lon ${(ms.latlon / 1000).toFixed(1)}s · daily ${(ms.daily / 1000).toFixed(1)}s · vyapaar ratna ${(ms.vr / 1000).toFixed(1)}s · total ${((Date.now() - T0) / 1000).toFixed(0)}s`);
     }
     // (2) predict: each instrument's next session is the weekday after ITS OWN last bar
     run.ahead = SESSIONS; run.aheadTargets = {};
@@ -515,6 +566,11 @@ function summarise(log, B, SW) {
           D = await predictDaily(P, inst, hist, tg, made);
           for (const f of D) { f.seq = j + 1; if (haveD.has(f.id)) continue; haveD.add(f.id); log.daily.push(f); run.dailyAdded++; }
         } catch (e) { run.errors.push(inst.k + ' proven daily ' + tg + ': ' + e.message); }
+        let VRD = [];
+        try {
+          VRD = await predictVR(P, inst, hist, tg, made);
+          for (const f of VRD) { f.seq = j + 1; if (haveD.has(f.id)) continue; haveD.add(f.id); log.daily.push(f); run.vrAdded++; }
+        } catch (e) { run.errors.push(inst.k + ' vyapaar ratna ' + tg + ': ' + e.message); }
         // never overwrite: a prediction is frozen once written, whichever run first reached that session
         if (have.has(tg + '|' + inst.k)) continue;
         have.add(tg + '|' + inst.k);
@@ -550,13 +606,15 @@ function summarise(log, B, SW) {
   put(path.join(OUT, 'summary.json'), S);
 
   // concise console report
-  console.log(`forward test · ${((Date.now() - T0) / 1000).toFixed(0)}s · targets ${Object.entries(run.targets || {}).map(([k, t]) => k + ' ' + t).join(', ')} · +${run.added} day forecasts (${SESSIONS} sessions ahead) · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded}`);
+  console.log(`forward test · ${((Date.now() - T0) / 1000).toFixed(0)}s · targets ${Object.entries(run.targets || {}).map(([k, t]) => k + ' ' + t).join(', ')} · +${run.added} day forecasts (${SESSIONS} sessions ahead) · +${run.turnsAdded} turn windows · graded ${run.graded} days / ${run.turnsGraded} turns · proven daily +${run.dailyAdded} / graded ${run.dailyGraded} · vyapaar ratna +${run.vrAdded}`);
   const ahead = new Set(Object.values(run.aheadTargets || {}).flat());
   for (const e of log.entries.filter(e => ahead.has(e.target) && !e.graded))
     console.log(`  ${e.inst.padEnd(9)} ${e.target} s${e.seq || 1} astro ${String(e.astro.score).padStart(4)} ${e.astro.band.padEnd(18)} tech ${String(e.tech.net).padStart(5)} → astroOnly ${e.calls.astroOnly} techOnly ${e.calls.techOnly} filter ${e.calls.techWithAstroFilter} both ${e.calls.astroAndTech} vol ${e.vol} - turns ${(e.turns || []).length} - proven daily ${(e.daily || []).length}`);
   for (const [k, r] of Object.entries(S.direction))
     console.log(`  ${k.padEnd(9)} astroOnly ${r.astroOnly.hits}/${r.astroOnly.n} · techOnly ${r.techOnly.hits}/${r.techOnly.n} · always-bull ${r.alwaysBullish.hits}/${r.alwaysBullish.n} · turns ${Object.entries(S.turns[k]).map(([s, t]) => `${s} ${t.hits}/${t.graded} (${t.pending} pending)`).join(', ')}`);
-  for (const f of log.daily.filter(f => (run.targets || {})[f.inst] === f.target)) console.log(`  ${f.inst.padEnd(9)} Proven daily ${f.study}: ${f.claim} — ${f.plain}`);
+  for (const f of log.daily.filter(f => (run.targets || {})[f.inst] === f.target)) console.log(`  ${f.inst.padEnd(9)} ${f.source} ${f.study}: ${f.claim} — ${f.plain}`);
+  for (const [k, r] of Object.entries(S.vyapaarRatna)) { if (!r.rules.length && !r.dir.made && !r.big.made) continue;
+    console.log(`  ${k.padEnd(9)} vyapaar ratna ${['dir', 'big'].map(x => `${x} ${r[x].hits}/${r[x].graded} vs ${r[x].chancePct == null ? '—' : r[x].chancePct + '%'} (${r[x].pending} pending)`).join(', ')}`); }
   for (const [k, r] of Object.entries(S.provenDaily)) console.log(`  ${k.padEnd(9)} proven daily ${['dir', 'big', 'gap'].map(s => `${s} ${r[s].hits}/${r[s].graded} vs ${r[s].chancePct == null ? '—' : r[s].chancePct + '%'} (${r[s].pending} pending)`).join(', ')}`);
   if (run.errors.length) console.log('  errors: ' + run.errors.join(' | '));
   process.exit(0);
