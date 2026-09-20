@@ -27085,10 +27085,466 @@ function reBacktestBodyHTML(){
     <div class="pb">${reCrossHTML()}</div></div>`;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   BIG-MOVE ANATOMY  (bm*)  — sessions that moved more than 1%
+   ---------------------------------------------------------------------------
+   One question, answered honestly: across 2000 → today, on every session an
+   index or commodity closed more than 1% away from its previous close, which
+   planetary degrees leaned bullish and which leaned bearish, and what else was
+   in the sky that day?
+
+   Conventions this block obeys (they are the page's, not new ones):
+     · reading instant = the venue's own open — 09:15 IST for NIFTY and BANK
+       NIFTY, 09:30 New York for the other eight (see istHourFor / VENUE in
+       scripts/forward_log.js). usEtTz() supplies EDT/EST.
+     · Lahiri sidereal by default (taAy); the tropical read of the same degree
+       table is reported alongside so the answer never depends on the zodiac.
+     · the sky itself is NOT re-implemented: reFeat() is the research engine's
+       own feature extractor (sign, nakshatra, pada, retrograde, stationary,
+       combust, the full aspect matrix, declination, tithi, yoga, karana) and
+       reBook() is the Tech-Astro book engine's own daily band.
+     · "proven" = beats the instrument's OWN big-move baseline in BOTH
+       2000–2018 and 2019 → last bar, ≥30 out-of-sample firings spread over
+       ≥8 separate EPISODES in each period, and survives Benjamini–Hochberg
+       across everything tested here. Nothing else may be called a signal, and
+       nothing here feeds a score.
+     · the significance test is on episodes, never on days. Big moves cluster,
+       and a slow planet holds one degree, one sign or one aspect for a single
+       unbroken stretch of calendar time — so a configuration spanning the 2020
+       crash is ONE observation, not three hundred. Testing days instead of
+       episodes is exactly how this study would manufacture a discovery.
+   Built in the background with a progress %, cached per instrument × ayanamsa.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const BM_START='2000-01-01', BM_TRAIN_END='2018-12-31';
+const BM_MOVE=1.0;             // |close vs previous close| > 1%
+const BM_MIN_OOS=30;           // out-of-sample firings a row must have to be provable
+const BM_MIN_EP=8;             // …spread over ≥8 SEPARATE episodes, in and out of sample
+const BM_Q=0.05;               // Benjamini–Hochberg false-discovery rate
+const BM_MIN_N=40;             // a feature must be present on ≥40 sessions to be ranked
+const BM_BODIES=['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'];
+const BM_INST=(typeof DP_INST!=='undefined')?DP_INST:[['NIFTY','Nifty 50']];
+const BM_INDIA=new Set(['NIFTY','BANKNIFTY','SENSEX','FINNIFTY','MIDCPNIFTY','NIFTYNXT50']);
+const BM_DEG='° ';             // degree-token prefix
+
+window.BM = window.BM || {res:{}, busy:0};
+
+function bmAy(){ try{ return taAy(); }catch(e){ return 'lahiri'; } }
+function bmInst(){ const k=S.bmInst; return BM_INST.some(x=>x[0]===k)?k:BM_INST[0][0]; }
+function bmInstName(k){ const r=BM_INST.find(x=>x[0]===k); return r?r[1]:k; }
+function bmKey(k,ay){ return k+'|'+(ay||bmAy()); }
+function bmGrp(k){ return BM_INDIA.has(k)?'india':'us'; }
+/* the venue's own open, expressed as an IST hour — the same convention as
+   istHourFor()/VENUE in scripts/forward_log.js */
+function bmTod(ds,k){
+  if(bmGrp(k)==='india') return 9.25;
+  let z=-5; try{ z=usEtTz(ds); }catch(e){}
+  return Math.round((9.5-z+5.5)*12)/12;         // 09:30 ET → 19:00 IST (EDT) / 20:00 IST (EST)
+}
+function bmDegTok(b,d){ return BM_DEG+b+' '+d+'°'; }
+function bmIsDeg(t){ return String(t).slice(0,2)===BM_DEG; }
+function bmProg(){ const R=window.BM.res[bmKey(bmInst())]; if(!R) return;
+  try{ const e=document.getElementById('bm-prog'); if(e) e.textContent=(R.prog||0)+'%';
+       const m=document.getElementById('bm-phase'); if(m) m.textContent=R.msg||''; }catch(e){} }
+function bmPct(v){ return v==null||!isFinite(v)?'—':(v*100).toFixed(2)+'%'; }
+function bmPP(v){ return v==null||!isFinite(v)?'—':(v>=0?'+':'−')+Math.abs(v*100).toFixed(2)+' pp'; }
+function bmPf(p){ return p==null?'—':(p<1e-6?'<1e-6':p<0.001?p.toExponential(1):p.toFixed(3)); }
+/* two-sided binomial p — the deviation may be in either direction, and both
+   directions are ranked here, so a one-sided p would understate the family */
+function bmP2(k,n,p0){
+  if(!(n>0)) return 1;
+  const hi=reBinomTail(k,n,p0), lo=reBinomTail(n-k,n,1-p0);
+  return Math.max(0,Math.min(1,2*Math.min(hi,lo)));
+}
+
+/* ── build ──────────────────────────────────────────────────────────────── */
+function bmEnsure(){ const k=bmInst(), ay=bmAy(), key=bmKey(k,ay), C=window.BM.res;
+  if(C[key]) return C[key].prom||Promise.resolve(C[key]);
+  const R=C[key]={status:'loading',prog:0,k,ay,key,msg:'loading price history…'};
+  R.prom=bmBuild0(R,k,ay); return R.prom; }
+function bmRetry(){ delete window.BM.res[bmKey(bmInst())]; bmPaint(); bmEnsure().then(bmPaint,bmPaint); }
+function bmPick(v){ S.bmInst=v; bmPaint(); bmEnsure().then(bmPaint,bmPaint); }
+function bmToggleDeg(){ S.bmAllDeg=(S.bmAllDeg==='1')?'':'1'; bmPaint(); }
+window.bmPick=bmPick; window.bmRetry=bmRetry; window.bmToggleDeg=bmToggleDeg; window.bmEnsure=bmEnsure;
+
+function bmPaint(){ try{ const e=document.getElementById('bm-body');
+  if(e) e.innerHTML=bmPanelHTML(); setTimeout(collapsibleInit,10); }catch(err){} }
+window.bmPaint=bmPaint;
+
+async function bmBuild0(R,k,ay){
+  try{
+    const u=RE_UNIV[k]; if(!u) throw new Error('unknown instrument '+k);
+    const rows = dsHasBake(k) ? await dsBars(k,'days','1',BM_START,tnToday(),()=>reFetchOHLCYahoo(u.sym,'max'))
+                              : await reFetchOHLC(u.sym,'max',k);
+    const seen=new Set(), bars=[];
+    (rows||[]).map(r=>({date:r.date||reISO(r.ts), c:+r.c}))
+      .filter(b=>b.date&&isFinite(b.c)&&b.c>0)
+      .sort((x,y)=>x.date<y.date?-1:1)
+      .forEach(b=>{ if(!seen.has(b.date)){ seen.add(b.date); bars.push(b); } });
+    if(bars.length<600) throw new Error('only '+bars.length+' daily bars for '+bmInstName(k));
+
+    const SS=[];
+    for(let i=1;i<bars.length;i++){ const b=bars[i], p=bars[i-1].c;
+      if(b.date<BM_START || !(p>0)) continue;
+      SS.push({date:b.date, mv:(b.c-p)/p*100}); }
+    if(!SS.length) throw new Error('no sessions since '+BM_START+' for '+bmInstName(k));
+
+    /* pass 1 — the sky at each session's own reading instant */
+    R.phase='sky'; R.msg='reading the sky at every session since 2000…';
+    const N=SS.length;
+    for(let i=0;i<N;i++){
+      const s=SS[i], tod=bmTod(s.date,k);
+      try{
+        const ft=reFeat(s.date,ay,tod);
+        const toks=[]; for(let j=0;j<ft.ids.length;j++) toks.push(reTokName(ft.ids[j]));
+        const P=ft.meta&&ft.meta.planets;
+        const dg={}, dgT={};
+        if(P){
+          let an=0; try{ an=getAyanamsa(reJD(s.date,tod),ay); }catch(e){ an=0; }
+          for(const b of BM_BODIES){ const p=P[b]; if(!p||p.deg==null||!isFinite(p.deg)) continue;
+            const d=Math.floor(p.deg)%30; dg[b]=d; toks.push(bmDegTok(b,d));
+            if(p.lon!=null&&isFinite(p.lon)) dgT[b]=Math.floor(n360(p.lon+an)%30)%30; }
+        }
+        s.toks=toks; s.dg=dg; s.dgT=dgT;
+      }catch(e){ s.toks=null; }
+      if(i%40===39){ R.prog=Math.round(i/N*62); bmProg(); await reYield(); }
+    }
+
+    /* pass 2 — the book engine's own daily band, at the 09:15 IST reading the
+       rest of the app uses for the band (taRead / dpSky), cached by reBook */
+    if(window.BM.bookOff!==true){
+      R.phase='book'; R.msg='running the Tech-Astro book engine for every session (cached after the first run)…';
+      for(let i=0;i<N;i++){ const s=SS[i]; if(!s.toks) continue;
+        try{ const bd=reBook(s.date,ay,9.25).band; if(bd) s.toks.push('Book band: '+bd); }catch(e){}
+        if(i%8===7){ R.prog=62+Math.round(i/N*33); bmProg(); await reYield(); } }
+    }
+
+    R.phase='count'; R.msg='counting…'; R.prog=96; bmProg(); await reYield();
+    Object.assign(R, bmTally(SS,k,ay), {status:'ready',prog:100,msg:'',
+      lastBar:bars[bars.length-1].date, firstBar:SS[0].date, nBars:bars.length,
+      book:window.BM.bookOff!==true});
+  }catch(e){
+    R.status='error'; R.err=(e&&e.message)||String(e); R.prog=100;
+  }
+  bmProg();
+  try{ if(typeof S!=='undefined' && S.tab==='backtest') bmPaint(); }catch(e){}
+  return R;
+}
+
+/* ── tally ──────────────────────────────────────────────────────────────── */
+function bmTally(SS,k,ay){
+  const use=SS.filter(s=>s.toks);
+  const nAll=use.length;
+  const isBig=s=>Math.abs(s.mv)>BM_MOVE, isUp=s=>s.mv>BM_MOVE, isDn=s=>s.mv<-BM_MOVE;
+  const per=s=>s.date<=BM_TRAIN_END?0:1;
+  const big=use.filter(isBig), up=use.filter(isUp), dn=use.filter(isDn);
+
+  const cnt={nAll, nBig:big.length, nUp:up.length, nDn:dn.length,
+    share:nAll?big.length/nAll:0,
+    upShare:big.length?up.length/big.length:0,
+    allUpRate:nAll?use.filter(s=>s.mv>0).length/nAll:0,
+    tr:{}, oo:{}};
+  [0,1].forEach(p=>{ const a=use.filter(s=>per(s)===p), b=a.filter(isBig);
+    const o=(p?cnt.oo:cnt.tr);
+    o.nAll=a.length; o.nBig=b.length; o.nUp=b.filter(s=>s.mv>0).length;
+    o.share=a.length?b.length/a.length:0; o.upShare=b.length?o.nUp/b.length:0;
+    o.nUpAll=a.filter(isUp).length; o.nDnAll=a.filter(isDn).length; });
+
+  /* One row per token. Days are NOT independent: big moves cluster, and a slow
+     planet sits in one degree, one sign or one aspect for a single unbroken
+     stretch of calendar time — so "Jupiter ☌ Saturn" covering the 2020 crash is
+     ONE observation, not 300. Every token is therefore also cut into EPISODES
+     (contiguous runs of sessions on which it is present, exactly the RE_MIN_EP
+     idea the research engine already uses), and the p-value that reaches
+     Benjamini–Hochberg is the episode-level one. The day-level rate is still
+     shown, because it is what the reader is looking at — but it never decides
+     whether something is proven. */
+  const T=new Map();
+  const get=t=>{ let o=T.get(t); if(!o) T.set(t,o={t, ix:[]}); return o; };
+  for(let i=0;i<use.length;i++){ const s=use[i], seen=new Set();
+    for(const t of s.toks){ if(seen.has(t)) continue; seen.add(t); get(t).ix.push(i); } }
+  const runsOf=ix=>{ const R=[]; let a=0;
+    for(let j=1;j<=ix.length;j++) if(j===ix.length||ix[j]!==ix[j-1]+1){ R.push(ix.slice(a,j)); a=j; }
+    return R; };
+
+  const bigBase=cnt.share, upBase=nAll?up.length/nAll:0, dnBase=nAll?dn.length/nAll:0;
+  const tests=[];   // everything tested, for one Benjamini–Hochberg family
+
+  const bs={BIG :[bigBase, cnt.tr.share, cnt.oo.share],
+            UP  :[upBase,  cnt.tr.nAll?cnt.tr.nUpAll/cnt.tr.nAll:0, cnt.oo.nAll?cnt.oo.nUpAll/cnt.oo.nAll:0],
+            DOWN:[dnBase,  cnt.tr.nAll?cnt.tr.nDnAll/cnt.tr.nAll:0, cnt.oo.nAll?cnt.oo.nDnAll/cnt.oo.nAll:0]};
+
+  /* THE NULL — the part that decides whether anything here is real.
+     A binomial over DAYS is the wrong null and it manufactures discoveries:
+     big moves arrive in clusters, so a feature whose days happen to fall inside
+     one volatile stretch scores an astronomically small p while its lift is
+     0.99×. reEpNull is wrong here too — it assumes independent days inside an
+     episode, which for a target that occurs on a third of all sessions makes
+     "this episode contained a big move" a near-certainty and any shortfall
+     look overwhelming.
+     What is used instead: windows of the SAME lengths as this row's own
+     episodes, dropped at random positions in THIS instrument's own outcome
+     series. That null carries the real clustering with it, and for a window
+     length L its probabilities are computed EXACTLY by sliding the window once
+     over the whole series — no sampling, and cheap enough to do for every row:
+       qB / qU / qD(L) = P(a random window of L sessions contains a big /
+                          big-up / big-down day)
+       qLean(L)        = P(it contains a big move AND those big moves lean up)
+     Episodes are independent placements, so means and variances add and the
+     observed count becomes a z against that null. */
+  const NU=use.length;
+  const aB=new Uint8Array(NU), aU=new Uint8Array(NU), aD=new Uint8Array(NU);
+  for(let i=0;i<NU;i++){ const s=use[i]; if(isBig(s)) aB[i]=1; if(isUp(s)) aU[i]=1; if(isDn(s)) aD[i]=1; }
+  const WMEMO=new Map();
+  const WIN=L=>{ let w=WMEMO.get(L); if(w) return w;
+    const LL=Math.max(1,Math.min(L,NU));
+    let b=0,u=0,d=0;
+    for(let i=0;i<LL;i++){ b+=aB[i]; u+=aU[i]; d+=aD[i]; }
+    let nW=0,hB=0,hU=0,hD=0,lean=0;
+    for(let a=0;;a++){ nW++;
+      if(b>0){ hB++; if(u*2>b) lean++; }
+      if(u>0) hU++;
+      if(d>0) hD++;
+      if(a+LL>=NU) break;
+      b-=aB[a]; u-=aU[a]; d-=aD[a]; b+=aB[a+LL]; u+=aU[a+LL]; d+=aD[a+LL]; }
+    w={qB:hB/nW, qU:hU/nW, qD:hD/nW, qLean:lean/nW};
+    WMEMO.set(L,w); return w; };
+  /* two-sided z of an observed episode count against that null */
+  const bmZ=(k,mu,va)=>{ const sd=Math.sqrt(Math.max(va,1e-12));
+    if(sd<1e-9) return 1;
+    return Math.max(0,Math.min(1, 1-reErf(Math.abs(k-mu)/sd/Math.SQRT2))); };
+
+  const deg=[], feat={BIG:[],UP:[],DOWN:[]};
+  for(const o of T.values()){
+    const ix=o.ix, runs=runsOf(ix);
+    /* per-period day counts */
+    const nAllP=[0,0], nBigP=[0,0], nUpP=[0,0], nDnP=[0,0];
+    for(const i of ix){ const s=use[i], p=per(s); nAllP[p]++;
+      if(isBig(s)) nBigP[p]++; if(isUp(s)) nUpP[p]++; if(isDn(s)) nDnP[p]++; }
+
+    /* (a) DEGREE rows — direction ON big-move sessions, against this
+           instrument's own big-move up-share (NOT its all-session up-rate).
+           Episodes: one vote per contiguous run that contains a big move, the
+           vote being the majority direction of that run's big-move days. The
+           vote count is then compared with what randomly-placed windows of the
+           very same lengths produce on this same series. */
+    if(bmIsDeg(o.t)){
+      const n=nBigP[0]+nBigP[1], kk=nUpP[0]+nUpP[1];
+      if(n){
+        let nEp=0,kEp=0,trEp=0,ooEp=0,mu=0,va=0;
+        for(const R of runs){ const w=WIN(R.length); mu+=w.qLean; va+=w.qLean*(1-w.qLean);
+          let b=0,u=0;
+          for(const i of R){ const s=use[i]; if(isBig(s)){ b++; if(s.mv>0) u++; } }
+          if(!b) continue; nEp++; if(u*2>b) kEp++;
+          if(per(use[R[0]])===0) trEp++; else ooEp++; }
+        const share=kk/n, pEp=bmZ(kEp,mu,va);
+        const r={t:o.t, n, k:kk, share, edge:share-cnt.upShare, ci:reWilson(kk,n),
+          pDay:bmP2(kk,n,cnt.upShare), p:pEp, nEp, kEp, trEp, ooEp,
+          trN:nBigP[0], trU:nUpP[0], trShare:nBigP[0]?nUpP[0]/nBigP[0]:null,
+          trEdge:nBigP[0]?nUpP[0]/nBigP[0]-cnt.tr.upShare:null,
+          ooN:nBigP[1], ooU:nUpP[1], ooShare:nBigP[1]?nUpP[1]/nBigP[1]:null,
+          ooEdge:nBigP[1]?nUpP[1]/nBigP[1]-cnt.oo.upShare:null, kind:'deg'};
+        deg.push(r); tests.push(r);
+      }
+    }
+
+    /* (b) FEATURE rows — how often the feature is present on big-move days vs
+           on ordinary days (lift), for three targets. The p asks: do THIS
+           feature's episodes contain the target more (or less) often than
+           randomly-placed windows of the very same lengths do on this same
+           series? The lift stays the descriptive number the reader wants; it is
+           the z that decides whether anything is claimed. */
+    const n=nAllP[0]+nAllP[1];
+    if(n>=BM_MIN_N){
+      const nEp=runs.length, EL=n/Math.max(1,nEp);
+      const wn=runs.map(R=>WIN(R.length));
+      for(const tgt of ['BIG','UP','DOWN']){
+        const hit=tgt==='BIG'?isBig:tgt==='UP'?isUp:isDn;
+        const cP=tgt==='BIG'?nBigP:tgt==='UP'?nUpP:nDnP;
+        const qk=tgt==='BIG'?'qB':tgt==='UP'?'qU':'qD';
+        const base=bs[tgt][0], bTr=bs[tgt][1], bOo=bs[tgt][2];
+        const kk=cP[0]+cP[1], rate=kk/n, lift=base>0?rate/base:0;
+        let kEp=0,trEp=0,ooEp=0,kEpOo=0,mu=0,va=0;
+        for(let ri=0;ri<runs.length;ri++){ const R=runs[ri], q=wn[ri][qk];
+          mu+=q; va+=q*(1-q);
+          const h=R.some(i=>hit(use[i])), oos=per(use[R[0]])===1;
+          if(h) kEp++; if(oos){ ooEp++; if(h) kEpOo++; } else trEp++; }
+        const trR=nAllP[0]?cP[0]/nAllP[0]:null, ooR=nAllP[1]?cP[1]/nAllP[1]:null;
+        const r={t:o.t, tgt, n, k:kk, rate, base, lift, ci:reWilson(kk,n),
+          pDay:bmP2(kk,n,base), p:bmZ(kEp,mu,va), epMu:mu, nEp, kEp, trEp, ooEp, kEpOo, epLen:EL,
+          trN:nAllP[0], trK:cP[0], trR, trLift:(trR!=null&&bTr>0)?trR/bTr:null,
+          ooN:nAllP[1], ooK:cP[1], ooR, ooLift:(ooR!=null&&bOo>0)?ooR/bOo:null, kind:'feat'};
+        feat[tgt].push(r); tests.push(r);
+      }
+    }
+  }
+
+  /* one Benjamini–Hochberg family over EVERYTHING tested for this instrument */
+  reBH(tests, tests.length);
+  const luck=tests.length*0.05;
+  const raw=tests.filter(r=>r.p<0.05).length;
+  const rawDay=tests.filter(r=>r.pDay<0.05).length;
+  const bhPass=tests.filter(r=>r.q!=null&&r.q<=BM_Q).length;
+
+  /* the full standard: survives BH on the EPISODE test, ≥30 out-of-sample
+     firings spread over ≥8 out-of-sample episodes, and the same direction in
+     BOTH 2000–2018 and 2019 → last bar */
+  const provenDeg=r=>r.q!=null&&r.q<=BM_Q&&r.ooN>=BM_MIN_OOS&&r.ooEp>=BM_MIN_EP&&r.trEp>=BM_MIN_EP&&
+                     r.trEdge!=null&&r.ooEdge!=null&&r.edge!==0&&
+                     Math.sign(r.trEdge)===Math.sign(r.edge)&&Math.sign(r.ooEdge)===Math.sign(r.edge);
+  const provenFeat=r=>r.q!=null&&r.q<=BM_Q&&r.ooK>=BM_MIN_OOS&&r.ooEp>=BM_MIN_EP&&r.trEp>=BM_MIN_EP&&
+                     r.trLift!=null&&r.ooLift!=null&&
+                     ((r.lift>1&&r.trLift>1&&r.ooLift>1)||(r.lift<1&&r.trLift<1&&r.ooLift<1));
+  deg.forEach(r=>{ r.proven=provenDeg(r); });
+  ['BIG','UP','DOWN'].forEach(t=>feat[t].forEach(r=>{ r.proven=provenFeat(r); }));
+  const provenList=deg.filter(r=>r.proven).concat(
+    ['BIG','UP','DOWN'].reduce((a,t)=>a.concat(feat[t].filter(r=>r.proven)),[]));
+  const nProven=provenList.length;
+
+  deg.sort((a,b)=>b.edge-a.edge);
+  ['BIG','UP','DOWN'].forEach(t=>feat[t].sort((a,b)=>b.lift-a.lift));
+
+  /* the tropical read of the same degree table, reported alongside */
+  const degT=bmDegTrop(use,cnt);
+
+  return {cnt, deg, degT, feat, provenList, tests:tests.length, luck, raw, rawDay, bhPass, nProven,
+          bases:bs, degBins:BM_BODIES.length*30};
+}
+
+/* same degree table, tropical — a second read of the same sessions so the
+   answer never rests on one ayanamsa */
+function bmDegTrop(use,cnt){
+  const M=new Map();
+  for(const s of use){ if(!s.dgT) continue; if(!(Math.abs(s.mv)>BM_MOVE)) continue;
+    for(const b of BM_BODIES){ const d=s.dgT[b]; if(d==null) continue;
+      const t=bmDegTok(b,d); let o=M.get(t); if(!o) M.set(t,o={t,n:0,k:0});
+      o.n++; if(s.mv>0) o.k++; } }
+  const out=[];
+  for(const o of M.values()){ if(!o.n) continue;
+    out.push({t:o.t, n:o.n, k:o.k, share:o.k/o.n, edge:o.k/o.n-cnt.upShare, p:bmP2(o.k,o.n,cnt.upShare)}); }
+  reBH(out,out.length);
+  out.sort((a,b)=>b.edge-a.edge);
+  return out;
+}
+
+/* ── panel ──────────────────────────────────────────────────────────────── */
+function bmSummaryLine(R){
+  const nm=bmInstName(R.k);
+  if(R.nProven>0) return `<b style="color:var(--bull)">${R.nProven}</b> of the ${R.tests.toLocaleString()} things tested on ${reEsc(nm)} passed the full standard — beat the big-move baseline in 2000–2018 <i>and</i> again on 2019 → ${R.lastBar}, on at least ${BM_MIN_OOS} out-of-sample days over at least ${BM_MIN_EP} separate episodes, and survived Benjamini–Hochberg: <b>Proven in backtest ✓</b>. They are flagged in the tables below.`;
+  const fewer=R.raw<=R.luck;
+  return `<b>Nothing passed.</b> ${R.tests.toLocaleString()} degree bins and sky features were tested on ${reEsc(nm)}'s big-move sessions; about <b>${R.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck alone and <b>${R.raw}</b> actually did${fewer?' — <b>fewer than luck alone would hand you</b>':''}. After Benjamini–Hochberg <b>${R.bhPass}</b> survived, and of those <b>none</b> also held the same direction in both 2000–2018 and 2019 → ${R.lastBar} with at least ${BM_MIN_OOS} out-of-sample firings over at least ${BM_MIN_EP} separate episodes. So on this evidence neither the planetary degree a big move lands on nor anything else in the sky that day is <b>proven — past hits ≈ random chance</b>. Nothing here is wired into a forecast, nothing is graded forward on it, and no number on this panel reaches a score.`;
+}
+function bmFlag(r){
+  if(r.proven) return rePill('Proven in backtest ✓','var(--bull)','var(--bull3)');
+  if(r.nEp<BM_MIN_EP||r.trEp<BM_MIN_EP||r.ooEp<BM_MIN_EP)
+    return rePill('ONE-OFF — '+r.nEp+' episode'+(r.nEp===1?'':'s')+', not '+r.n+' independent days','var(--neut)','var(--neut3)');
+  if((r.kind==='deg'?r.ooN:r.ooK)<BM_MIN_OOS) return rePill('too few out of sample','var(--tx3)','var(--bg3)');
+  if(r.q!=null&&r.q<=BM_Q) return rePill('survived BH, direction flips','var(--neut)','var(--neut3)');
+  return rePill('not proven — past hits ≈ random chance','var(--tx3)','var(--bg3)');
+}
+function bmDegRow(r){
+  return `<tr><td style="white-space:nowrap">${reEsc(r.t)}</td>
+    <td style="text-align:right">${r.n}</td>
+    <td style="text-align:right;font-weight:700;color:${r.edge>0?'var(--bull)':r.edge<0?'var(--bear)':'var(--tx2)'}">${bmPct(r.share)}</td>
+    <td style="text-align:right;color:${r.edge>0?'var(--bull)':'var(--bear)'}">${bmPP(r.edge)}</td>
+    <td style="text-align:right;font-size:10px;color:var(--tx3)">[${bmPct(r.ci[0])}, ${bmPct(r.ci[1])}]</td>
+    <td style="text-align:right" title="episodes = contiguous runs of sessions in which this bin is occupied; a slow planet sits in one degree for a single unbroken stretch, so its days are one observation, not many">${r.kEp}/${r.nEp}</td>
+    <td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)} · day-p ${bmPf(r.pDay)}</div></td>
+    <td style="text-align:right;font-size:10.5px">${r.trShare==null?'—':bmPct(r.trShare)} <span style="color:var(--tx3)">(${r.trN}d/${r.trEp}ep)</span></td>
+    <td style="text-align:right;font-size:10.5px">${r.ooShare==null?'—':bmPct(r.ooShare)} <span style="color:var(--tx3)">(${r.ooN}d/${r.ooEp}ep)</span></td>
+    <td>${bmFlag(r)}</td></tr>`;
+}
+function bmFeatRow(r){
+  let cat=''; try{ cat=reCatOf(r.t); }catch(e){ cat=''; }
+  if(String(r.t).slice(0,11)==='Book band: ') cat='Book engine';
+  return `<tr><td style="max-width:300px">${reEsc(r.t)}<div style="font-size:9.5px;color:var(--tx3)">${reEsc(cat)}</div></td>
+    <td style="text-align:right">${r.n}</td>
+    <td style="text-align:right">${bmPct(r.rate)}<div style="font-size:9.5px;color:var(--tx3)">base ${bmPct(r.base)}</div></td>
+    <td style="text-align:right;font-weight:700;color:${r.lift>=1.15?'var(--bull)':r.lift<=0.87?'var(--bear)':'var(--tx2)'}">${r.lift.toFixed(2)}×</td>
+    <td style="text-align:right;font-size:10px;color:var(--tx3)">[${bmPct(r.ci[0])}, ${bmPct(r.ci[1])}]</td>
+    <td style="text-align:right" title="episodes = contiguous runs of sessions on which this feature is present, and how many of those runs contained the target at all. A slow-planet aspect that spans one crash is ONE observation, not 300 — so this, not the day count, is what the p-value and the Benjamini–Hochberg correction use.">${r.kEp}/${r.nEp}</td>
+    <td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)} · day-p ${bmPf(r.pDay)}</div></td>
+    <td style="text-align:right;font-size:10.5px">${r.trLift==null?'—':r.trLift.toFixed(2)+'×'} <span style="color:var(--tx3)">(${r.trK}/${r.trN}d, ${r.trEp}ep)</span></td>
+    <td style="text-align:right;font-size:10.5px">${r.ooLift==null?'—':r.ooLift.toFixed(2)+'×'} <span style="color:var(--tx3)">(${r.ooK}/${r.ooN}d, ${r.ooEp}ep)</span></td>
+    <td>${bmFlag(r)}</td></tr>`;
+}
+function bmDegTable(R){
+  const all=S.bmAllDeg==='1', L=R.deg;
+  const head=`<thead><tr><th>Degree bin</th><th>n big-move</th><th>closed up</th><th>edge vs ${bmPct(R.cnt.upShare)}</th><th>95% Wilson CI</th><th title="episodes with a big move / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>2000–2018</th><th>2019+</th><th>Verdict</th></tr></thead>`;
+  const body = all
+    ? L.map(bmDegRow).join('')
+    : L.slice(0,15).map(bmDegRow).join('')
+      +`<tr><td colspan="10" style="font-size:10.5px;color:var(--tx3);white-space:normal">… ${Math.max(0,L.length-30)} bins in the middle hidden — the most bearish 15 follow …</td></tr>`
+      +L.slice(-15).map(bmDegRow).join('');
+  return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">${head}<tbody>${body}</tbody></table></div>
+    <div style="margin-top:5px"><a style="cursor:pointer;color:var(--acc);font-size:11px" onclick="bmToggleDeg()">${all?'▴ show only the most bullish / most bearish 15':'▾ show all '+L.length+' degree bins'}</a></div>`;
+}
+function bmFeatTable(R,tgt,n){
+  const L=R.feat[tgt]; if(!L.length) return `<div style="font-size:11px;color:var(--tx3)">No feature was present on at least ${BM_MIN_N} sessions.</div>`;
+  const head=`<thead><tr><th>Feature</th><th>days present</th><th>of which ${tgt==='BIG'?'big-move':tgt==='UP'?'&gt; +1%':'&lt; −1%'}</th><th>lift</th><th>95% Wilson CI</th><th title="episodes containing the target / total episodes">episodes</th><th>p (2-sided, episodes)</th><th>2000–2018</th><th>2019+</th><th>Verdict</th></tr></thead>`;
+  const top=L.slice(0,n), bot=L.slice(-n);
+  return `<div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px">${head}<tbody>
+    <tr><td colspan="10" style="font-size:10.5px;color:var(--tx2);font-weight:700">MOST OVER-REPRESENTED (top ${top.length} by lift)</td></tr>
+    ${top.map(bmFeatRow).join('')}
+    <tr><td colspan="10" style="font-size:10.5px;color:var(--tx2);font-weight:700">MOST UNDER-REPRESENTED (bottom ${bot.length} by lift)</td></tr>
+    ${bot.map(bmFeatRow).join('')}</tbody></table></div>`;
+}
+function bmCountsHTML(R){
+  const C=R.cnt;
+  return `<div style="display:flex;gap:18px;flex-wrap:wrap;font-size:11.5px;color:var(--tx2);margin:6px 0">
+    <div>Sessions since 2000: <b style="color:var(--tx1)">${C.nAll.toLocaleString()}</b> (${R.firstBar} → ${R.lastBar})</div>
+    <div>Moved more than ${BM_MOVE}%: <b style="color:var(--acc)">${C.nBig.toLocaleString()}</b> — ${bmPct(C.share)} of all sessions</div>
+    <div>Of those: <b style="color:var(--bull)">${C.nUp.toLocaleString()} up</b> / <b style="color:var(--bear)">${C.nDn.toLocaleString()} down</b></div>
+    <div title="This is the honest baseline for every direction row below — NOT the all-session up-rate.">Big-move up-share: <b style="color:var(--tx1)">${bmPct(C.upShare)}</b> <span style="color:var(--tx3)">(all-session up-rate ${bmPct(C.allUpRate)})</span></div>
+    <div>2000–2018: ${C.tr.nBig} big of ${C.tr.nAll} · ▲ ${bmPct(C.tr.upShare)}</div>
+    <div>2019+: ${C.oo.nBig} big of ${C.oo.nAll} · ▲ ${bmPct(C.oo.upShare)}</div></div>`;
+}
+function bmTropHTML(R){
+  const L=R.degT; if(!L||!L.length) return '';
+  const row=r=>`<tr><td style="white-space:nowrap">${reEsc(r.t)}</td><td style="text-align:right">${r.n}</td><td style="text-align:right;color:${r.edge>0?'var(--bull)':'var(--bear)'}">${bmPct(r.share)}</td><td style="text-align:right;color:${r.edge>0?'var(--bull)':'var(--bear)'}">${bmPP(r.edge)}</td><td style="text-align:right">${bmPf(r.p)}<div style="font-size:9.5px;color:var(--tx3)">q ${bmPf(r.q)}</div></td></tr>`;
+  const pass=L.filter(r=>r.q!=null&&r.q<=BM_Q).length;
+  return `<div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">THE SAME TABLE, TROPICAL ZODIAC <span style="font-weight:400;color:var(--tx3)">— the table above is sidereal (${reEsc(R.ay)}); this is the identical measurement on the tropical degree, so the answer does not rest on one ayanamsa. ${pass} of ${L.length} bins survive Benjamini–Hochberg here.</span></div>
+    <div class="ts" style="overflow-x:auto"><table class="tbl" style="font-size:11px"><thead><tr><th>Degree bin</th><th>n big-move</th><th>closed up</th><th>edge</th><th>p (2-sided)</th></tr></thead><tbody>
+    ${L.slice(0,10).map(row).join('')}<tr><td colspan="5" style="font-size:10.5px;color:var(--tx3)">… most bearish 10 …</td></tr>${L.slice(-10).map(row).join('')}</tbody></table></div></div>`;
+}
+function bmPanelHTML(){
+  const k=bmInst(), ay=bmAy(), R=window.BM.res[bmKey(k,ay)];
+  const sel=`<select onchange="bmPick(this.value)" style="font-size:11px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 5px">
+    ${BM_INST.map(x=>`<option value="${reEsc(x[0])}"${x[0]===k?' selected':''}>${reEsc(x[1])}</option>`).join('')}</select>`;
+  const head=`<div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px">
+    <span><span class="dot" style="background:var(--acc)"></span>BIG-MOVE ANATOMY — sessions that moved more than ${BM_MOVE}%</span>
+    <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${sel}${reNoEdgePill()}</span></div>`;
+  if(!R||R.status==='loading'){ if(!R) setTimeout(()=>{ try{ bmEnsure().then(bmPaint,bmPaint); }catch(e){} },0);
+    return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--tx3)">
+      Measuring every session of ${reEsc(bmInstName(k))} since 2000 that closed more than ${BM_MOVE}% from the previous close, and the sky at each one read at that venue's own open …
+      <b id="bm-prog" style="color:var(--acc)">${R?R.prog||0:0}%</b>
+      <div id="bm-phase" style="font-size:10.5px;margin-top:3px">${reEsc((R&&R.msg)||'')}</div>
+      <div style="font-size:10.5px;margin-top:3px">The first run also evaluates the book engine for every session, which takes a few minutes; the rest of this tab keeps working meanwhile and the result is cached per instrument and ayanamsa.</div></div></div>`; }
+  if(R.status==='error') return `<div class="pnl">${head}<div class="pb" style="font-size:11.5px;color:var(--bear)">Could not build the big-move study: ${reEsc(R.err||'error')} · <a style="cursor:pointer;color:var(--acc)" onclick="bmRetry()">retry</a></div></div>`;
+
+  return `<div class="pnl">${head}<div class="pb">
+    <div style="padding:6px 9px;border:1px solid var(--bd2);border-left:3px solid ${R.nProven?'var(--bull)':'var(--bd2)'};background:var(--bg2);font-size:12px;color:var(--tx1);line-height:1.6">${bmSummaryLine(R)}</div>
+    ${bmCountsHTML(R)}
+    <div style="margin-top:10px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">① DEGREE TABLE — every planet × whole degree-in-sign, on big-move sessions only
+      <span style="font-weight:400;color:var(--tx3)">— ${BM_BODIES.length} bodies × 30 degrees = ${R.degBins} bins, sidereal (${reEsc(R.ay)}), read at ${bmGrp(k)==='india'?'09:15 IST':'09:30 New York'}. "Edge" is against this instrument's own big-move up-share (${bmPct(R.cnt.upShare)}), never against its all-session up-rate. At 5%, roughly <b>${(R.degBins*0.05).toFixed(0)}</b> of the ${R.degBins} bins on ONE instrument — about <b>${(R.degBins*BM_INST.length*0.05).toFixed(0)}</b> across all ${BM_INST.length} — would look significant by luck alone, which is why every row carries a Benjamini–Hochberg q.</span></div>
+      ${bmDegTable(R)}
+      ${bmTropHTML(R)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">② WHAT ELSE WAS PRESENT — every other sky feature the app already computes, on big-move days vs ordinary days
+      <span style="font-weight:400;color:var(--tx3)">— planet sign, nakshatra and pada, retrograde / stationary / combust, the full aspect matrix, declination, tithi / yoga / karana (all from the research engine's own reFeat) and the book engine's own daily band (reBook, 09:15 IST). Lift = how much more often the feature is present on a big-move day than on an ordinary one. Minimum ${BM_MIN_N} days present.</span></div>
+      ${bmFeatTable(R,'BIG',25)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">③ UP-MOVES ONLY (&gt; +${BM_MOVE}%) <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(R.bases.UP[0])} of all sessions. "What moves the market" and "which way" are different questions, so they get different tables.</span></div>
+      ${bmFeatTable(R,'UP',15)}</div>
+    <div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:var(--tx1)">④ DOWN-MOVES ONLY (&lt; −${BM_MOVE}%) <span style="font-weight:400;color:var(--tx3)">— base ${bmPct(R.bases.DOWN[0])} of all sessions</span></div>
+      ${bmFeatTable(R,'DOWN',15)}</div>
+    <div style="font-size:10px;color:var(--tx3);margin-top:10px;line-height:1.55">${R.tests.toLocaleString()} tests were run for ${reEsc(bmInstName(k))} (${R.deg.length} degree bins + ${R.feat.BIG.length+R.feat.UP.length+R.feat.DOWN.length} feature × target rows). About <b>${R.luck.toFixed(0)}</b> would reach p &lt; 0.05 by luck; <b>${R.raw}</b> did on the episode test (<b>${R.rawDay}</b> would have on the naïve day-level test, which is why the day test is not the one used); <b>${R.bhPass}</b> survived Benjamini–Hochberg at q = ${BM_Q}. Every p here is computed on EPISODES — contiguous runs of sessions on which the feature is present — because big moves cluster and a slow planet holds one degree or one aspect for a single unbroken stretch, so its days are one observation and not hundreds. "Proven in backtest ✓" additionally requires the same direction on 2000–2018 <i>and</i> on 2019 → ${R.lastBar}, with at least ${BM_MIN_OOS} out-of-sample firings spread over at least ${BM_MIN_EP} separate episodes in each period; everything else reads "not proven — past hits ≈ random chance". ${R.book?'':'The book band was omitted in this run. '}A study aid — nothing here is a recommendation, and no number on this panel reaches a score.</div>
+  </div></div>`;
+}
+
 function tREBacktest(){
   setTimeout(collapsibleInit,20);
   return `<div class="pnl"><div class="ph" data-noco><span class="dot"></span>⟲ BACKTESTING — statistical swing-reversal research engine</div>
       <div class="pb"><div id="re-head">${reHeadHTML()}</div></div></div>
+    <div id="bm-body">${(()=>{ try{ return bmPanelHTML(); }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Big-move anatomy unavailable: ${reEsc((e&&e.message)||'error')}</div></div>`; } })()}</div>
     <div id="re-body">${reBacktestBodyHTML()}</div>`;
 }
 
