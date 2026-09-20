@@ -71,6 +71,24 @@ INDICES = {
     "MIDCPNIFTY": "NSE_INDEX|NIFTY MID SELECT",
     "NIFTYNXT50": "NSE_INDEX|Nifty Next 50",
     "SENSEX":     "BSE_INDEX|SENSEX",
+    # NSE sectoral indices — the same per-instrument studies the app runs on
+    # Nifty and Bank Nifty are only honest if each sector has its own history.
+    "NIFTYIT":       "NSE_INDEX|Nifty IT",
+    "NIFTYPHARMA":   "NSE_INDEX|Nifty Pharma",
+    "NIFTYAUTO":     "NSE_INDEX|Nifty Auto",
+    "NIFTYFMCG":     "NSE_INDEX|Nifty FMCG",
+    "NIFTYMETAL":    "NSE_INDEX|Nifty Metal",
+    "NIFTYREALTY":   "NSE_INDEX|Nifty Realty",
+    "NIFTYENERGY":   "NSE_INDEX|Nifty Energy",
+    "NIFTYPSUBANK":  "NSE_INDEX|Nifty PSU Bank",
+    "NIFTYPVTBANK":  "NSE_INDEX|Nifty Pvt Bank",
+    "NIFTYMEDIA":    "NSE_INDEX|Nifty Media",
+    "NIFTYINFRA":    "NSE_INDEX|Nifty Infra",
+    "NIFTYCOMMOD":   "NSE_INDEX|Nifty Commodities",
+    "NIFTYCONSUM":   "NSE_INDEX|Nifty Consumption",
+    "NIFTYHEALTH":   "NSE_INDEX|Nifty Healthcare",
+    "NIFTYOILGAS":   "NSE_INDEX|Nifty Oil and Gas",
+    "NIFTYSERV":     "NSE_INDEX|Nifty Serv Sector",
 }
 
 
