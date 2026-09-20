@@ -18086,6 +18086,7 @@ function dfBodyHTML(){
   <div class="pnl"><div class="ph" data-noco style="justify-content:space-between;flex-wrap:wrap;gap:6px"><span><span class="dot" style="background:${dfCol(ev.score)}"></span>DAY FORECAST — ${ds} ${taEsc((ev.sky||{}).dayName||'')} · Tech-Astro rulebook · 09:15 IST read${picked?` <a href="#" onclick="dfPickDay('${S.date}');return false" style="color:var(--acc);font-weight:400">← back to ${S.date}</a>`:''}</span>${dfPill()}</div>
     <div class="pb">${dfHeadlineHTML(ds,ev,st,tv,k)}</div></div>
   ${(()=>{ try{ return dpPanelHTML(); }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Proven daily patterns unavailable: ${taEsc((e&&e.message)||'error')}</div></div>`; } })()}
+  ${(()=>{ try{ return dfSunDegHTML(); }catch(e){ return ''; } })()}
   ${dfStagesHTML(st,cy,u?u.label:k)}
   ${dfTithiVaarHTML(ev,tv,chg)}
   ${dfCardsHTML(ev,st)}
@@ -18426,6 +18427,43 @@ function dpPanelHTML(){
     return `<span title="${taEsc(L.map(o=>(o.border?'(borderline) ':'')+dpClaim(o.tg,o.r)+' — '+o.r.plain).join(' | ')||'no proven pattern active')}" style="padding:2px 6px;border-radius:3px;border:1px solid ${pv.length?'var(--acc)':'var(--bd)'};background:${pv.length?'var(--bg3)':'var(--bg2)'};color:${pv.length?'var(--tx0)':'var(--tx3)'};cursor:help">${fmtD(d,false)} ${pv.length?'★'+pv.length:L.length?'·?':'·'}</span>`; }).join('')}<span style="color:var(--tx3);align-self:center">next 10 sessions · ★ = proven pattern active</span></div>`;
   return `<div class="pnl">${head}<div class="pb">${note}${line}${today}${look}${DP_TGT.map(tg=>dpTableHTML(R,tg,dS,todayOk)).join('')}
     <div style="font-size:10px;color:var(--tx3);margin-top:6px;line-height:1.5">Proven = (i) Benjamini–Hochberg q &lt; 0.05 on 2000–2018 only; (ii) 2019 → last bar in the same direction, ≥${DP_MIN} active days, one-sided binomial p &lt; 0.05 ÷ (number that passed i), and p &lt; 0.05 on ISO-week blocks (each week's active days = one block, majority outcome); (iii) ≥3 points out of sample. CONFIRMED = the same pattern also passes (i) and (ii) at p &lt; 0.05 on another of the ${DP_INST.length} baked instruments (${DP_INST.map(x=>x[1]).join(' / ')}), each learned separately, never pooled. A study aid — nothing here is a recommendation.</div></div></div>`;
+}
+
+/* == SUN-DEGREE CLAIM: measured, NOT wired as a rule ==================
+   The owner's observation was "the market normally stays positive when the
+   Sun's degree is at 11, 13, 18 or 21" (degree within its sign). It was
+   measured over every session since 2000 on all ten baked instruments, in
+   both zodiacs, at each venue's own open, with five readings of the claim.
+   It did not beat chance, so nothing fires on it. The numbers below are
+   baked constants from that run so the answer stays visible.           */
+const DFSD_SET=[11,13,18,21];
+const DFSD={ tests:3100, rawHits:120, byLuck:155, bhPass:0,
+  nifty:{ full:[896,52.23,49.28], tr:[643,53.19,49.64], oos:[253,49.80,48.38],
+          deg:{11:[214,57.01],13:[227,55.07],18:[227,48.02],21:[228,49.12]}, base:49.28 },
+  pooled:{ full:[8716,49.84,48.69], oos:[2527,50.73,49.58] } };
+function dfSunDegNow(){
+  try{
+    const ds=dfDate(), ay=dpAy();
+    const J=JD(+ds.slice(0,4),+ds.slice(5,7),+ds.slice(8,10),DF_HOUR);
+    const lon=n360(sunLon(J)-getAyanamsa(J,ay));
+    const d=lon%30;
+    return { sign:SIGNS[Math.floor(lon/30)%12], deg:d, floor:Math.floor(d), hit:DFSD_SET.indexOf(Math.floor(d))>=0 };
+  }catch(e){ return null; }
+}
+function dfSunDegHTML(){
+  const N=dfSunDegNow(), D=DFSD;
+  const row=(lab,a)=>`<tr><td style="padding:2px 8px 2px 0">${lab}</td><td style="text-align:right;padding:2px 8px">${a[0]}</td><td style="text-align:right;padding:2px 8px"><b>${a[1].toFixed(2)}%</b></td><td style="text-align:right;padding:2px 8px;color:var(--tx3)">${a[2].toFixed(2)}%</td><td style="text-align:right;padding:2px 0 2px 8px;color:${a[1]-a[2]>0?'var(--tx2)':'var(--tx3)'}">${a[1]-a[2]>=0?'+':'&minus;'}${Math.abs(a[1]-a[2]).toFixed(2)} pp</td></tr>`;
+  const today=N?`<div style="margin:6px 0;padding:5px 8px;border:1px solid var(--bd2);border-left:3px solid var(--bd2);background:var(--bg2)">Sun today is at <b>${N.deg.toFixed(2)}&deg; ${taEsc(N.sign)}</b> (degree ${N.floor}) &mdash; ${N.hit?'one of the four claimed degrees. <b>No forecast changes because of it</b>; the four did not beat chance.':'not one of the four claimed degrees.'}</div>`:'';
+  return `<div class="pnl"><div class="ph" data-noco><span class="dot" style="background:var(--tx3)"></span>SUN DEGREE 11 / 13 / 18 / 21 &mdash; TESTED, DID NOT BEAT CHANCE</div><div class="pb" style="font-size:11.5px;color:var(--tx1)">
+  <div style="margin-bottom:6px">Owner's observation, measured here (not a book rule): <i>"the market normally stays positive when the Sun's degree is at 11, 13, 18 or 21"</i> &mdash; the Sun's degree within its sign at each exchange's own open. Every session since 2000, all ten baked instruments, sidereal (Lahiri) and tropical, five readings of the claim (degree floored, degree rounded, &plusmn;0.5&deg; around the integer, same-day open&rarr;close, and the next session). <b>It was tested and it did not beat chance, so nothing in this app fires on it.</b></div>
+  ${today}
+  <div style="font-size:10.5px;color:var(--tx3);margin:6px 0 2px">NIFTY, sidereal, the four degrees together &mdash; up day = close above the previous close by more than 0.1%:</div>
+  <table style="font-size:11px;border-collapse:collapse"><tr style="color:var(--tx3);font-size:10px"><td style="padding-right:8px">period</td><td style="text-align:right;padding:0 8px">sessions</td><td style="text-align:right;padding:0 8px">up-rate</td><td style="text-align:right;padding:0 8px">baseline</td><td style="text-align:right;padding-left:8px">edge</td></tr>
+  ${row('2000&ndash;2026 (all)',D.nifty.full)}${row('2000&ndash;2018 (in sample)',D.nifty.tr)}${row('2019&rarr;last bar (out of sample)',D.nifty.oos)}</table>
+  <div style="margin-top:6px">Out of sample the set gained <b>${(D.nifty.oos[1]-D.nifty.oos[2]).toFixed(2)} pp</b> on NIFTY over ${D.nifty.oos[0]} sessions &mdash; well inside what ${D.nifty.oos[0]} coin flips wander. Taken one at a time, degree ${11} was ${D.nifty.deg[11][1].toFixed(2)}% and degree ${13} was ${D.nifty.deg[13][1].toFixed(2)}% over the full period, but degree ${18} (${D.nifty.deg[18][1].toFixed(2)}%) and degree ${21} (${D.nifty.deg[21][1].toFixed(2)}%) were <b>below</b> the ${D.nifty.base.toFixed(2)}% baseline, and neither 18 nor 21 held up in either period. On NIFTY the best degree of the thirty was <b>17</b>, which the claim does not name &mdash; the mark of noise, not of a rule.</div>
+  <div style="margin-top:6px">Pooled over all ten instruments, sidereal: ${D.pooled.full[0].toLocaleString()} sessions at ${D.pooled.full[1].toFixed(2)}% against a ${D.pooled.full[2].toFixed(2)}% baseline (+${(D.pooled.full[1]-D.pooled.full[2]).toFixed(2)} pp), and out of sample ${D.pooled.oos[0].toLocaleString()} sessions at ${D.pooled.oos[1].toFixed(2)}% against ${D.pooled.oos[2].toFixed(2)}% (+${(D.pooled.oos[1]-D.pooled.oos[2]).toFixed(2)} pp). The set was positive out of sample on 15 of the 20 instrument&times;zodiac pairs and negative on 5 &mdash; and it was negative out of sample on GOLD, SILVER, COPPER and DOW.</div>
+  <div style="margin-top:6px;font-size:10.5px;color:var(--tx3);line-height:1.5">Multiple testing: ${D.tests.toLocaleString()} out-of-sample tests were run here (2 zodiacs &times; 10 instruments &times; 5 readings &times; 30 degree bins plus the set). About <b>${D.byLuck}</b> of them would reach a one-sided p &lt; 0.05 by luck alone; <b>${D.rawHits}</b> actually did &mdash; fewer than luck would give. After Benjamini&ndash;Hochberg at a 5% false-discovery rate, <b>${D.bhPass}</b> survived. By this app's own standard for a proven signal (beats the instrument's baseline in both periods, &ge;30 out-of-sample firings, BH-adjusted p &lt; 0.05 out of sample) <b>no instrument, zodiac or reading of the claim passed</b>. Nothing was wired into the forecast and nothing is graded forward on it.</div>
+  </div></div>`;
 }
 
 /* ══ DF-END ══ */
