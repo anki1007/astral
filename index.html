@@ -591,13 +591,13 @@ let IST=5.5;                  // mutable: UTC offset (hours) of the selected loc
 const LOCATIONS={
   // deshPanchak: वर्णादि पञ्चक of the city from its first Hindi letter (book pp.34-36)
   // मुम्बई→म · दिल्ली→द · कोलकाता→क · चेन्नई→च · न्यूयॉर्क→न · शिकागो→श
-  'Mumbai':   {lat:19.0760, lon:72.8777,  tz:5.5, abbr:'IST', mkt:'NSE/BSE',     open:9.25, close:15.5,
+  'Mumbai':   {lat:19.0760, lon:72.8777,  tz:5.5, abbr:'IST', mkt:'NSE/BSE', seg:'NSE',     open:9.25, close:15.5,
                deshPanchak:{letter:'म', varnaCell:'2,7', svara:'अ', svaraCell:'1,2', tithiGrp:'NANDA', nakRing:0,  nakPada:2, rashi:3}},
-  'Delhi':    {lat:28.6139, lon:77.2090,  tz:5.5, abbr:'IST', mkt:'NSE/BSE',     open:9.25, close:15.5,
+  'Delhi':    {lat:28.6139, lon:77.2090,  tz:5.5, abbr:'IST', mkt:'NSE/BSE', seg:'NSE',     open:9.25, close:15.5,
                deshPanchak:{letter:'द', varnaCell:'1,6', svara:'ई', svaraCell:'1,2', tithiGrp:'BHADRA', nakRing:14, nakPada:1, rashi:5}},
-  'Kolkata':  {lat:22.5726, lon:88.3639,  tz:5.5, abbr:'IST', mkt:'NSE/BSE',     open:9.25, close:15.5,
+  'Kolkata':  {lat:22.5726, lon:88.3639,  tz:5.5, abbr:'IST', mkt:'NSE/BSE', seg:'NSE',     open:9.25, close:15.5,
                deshPanchak:{letter:'क', varnaCell:'1,4', svara:'अ', svaraCell:'1,2', tithiGrp:'NANDA', nakRing:4,  nakPada:1, rashi:1}},
-  'Chennai':  {lat:13.0827, lon:80.2707,  tz:5.5, abbr:'IST', mkt:'NSE/BSE',     open:9.25, close:15.5,
+  'Chennai':  {lat:13.0827, lon:80.2707,  tz:5.5, abbr:'IST', mkt:'NSE/BSE', seg:'NSE',     open:9.25, close:15.5,
                deshPanchak:{letter:'च', varnaCell:'3,1', svara:'ओ', svaraCell:'3,3', tithiGrp:'PURNA', nakRing:26, nakPada:3, rashi:11}},
   // Kathmandu — Nepal Standard Time UTC+5:45. NEPSE trades 11:00–15:00 local.
   // काठमाडौं → first letter क (same varṇa row as Kolkata's क).
@@ -612,6 +612,87 @@ const LOCATIONS={
   'London':   {lat:51.5074, lon:-0.1278,  tz:1,   abbr:'BST', mkt:'LSE',         open:8,    close:16.5,
                deshPanchak:{letter:'ल', varnaCell:'2,7', svara:'अ', svaraCell:'1,2', tithiGrp:'NANDA', nakRing:0, nakPada:2, rashi:3}},
 };
+/* ---- THE INDIAN TRADING DAY, IN PHASES -------------------------------
+   Since 3 Aug 2026 NSE/BSE run a Closing Auction Session. Phase 1 covers cash
+   stocks that have derivatives, so their day is no longer one open/close pair:
+       09:00-09:15  pre-open call auction        (one equilibrium print)
+       09:15-15:15  continuous trading
+       15:15-15:20  CAS transition               (no orders, no trades)
+       15:20-15:25  CAS order entry I            (market + limit)
+       15:25-15:30  CAS order entry II           (limit only, random close)
+       15:30-15:35  CAS matching                 (closing price ~15:35)
+   Non-CAS cash and the published index level run continuously to 15:30; the
+   derivatives segment runs to 15:40 and has no auction.
+
+   MINUTES from local midnight, never decimal hours: 15:20 is 920, while 15:20
+   as a decimal is 15.3333... and every (close-open)/0.25 grid in this file
+   would round it into the wrong slot.
+
+   LOCATIONS.open/close are deliberately NOT touched. They stay 9.25/15.5 and
+   now mean 'the continuous leg', which is exactly what every graded engine in
+   this file already measures. Nothing in this block widens a graded window.
+
+   trade: is there order flow in this phase?
+   grade: may a bar printed here be scored against a forecast? Only continuous
+          two-sided trading qualifies - a pre-open or auction print is one
+          equilibrium number, not an open-to-close return. */
+const MKT_CAS_FROM='2026-08-03';        // CAS phase-1 go-live
+const MKT_PREOPEN_FROM='2010-10-18';    // NSE pre-open call auction go-live
+const NSE_PRE={id:'pre',name:'Pre-open call auction',short:'PRE-OPEN',s:540,e:555,trade:true,grade:false,
+  note:'Order collection and one equilibrium print - no continuous price, so nothing here can be graded.'};
+const _nseCont=(e)=>({id:'cont',name:'Continuous trading',short:'CONTINUOUS',s:555,e:e,trade:true,grade:true,note:''});
+const NSE_CAS_TAIL=[
+  {id:'casT',name:'CAS transition',    short:'NO TRADE',s:915,e:920,trade:false,grade:false,note:'Reference price computed. No orders, no trades.'},
+  {id:'casA',name:'CAS order entry I', short:'AUCTION', s:920,e:925,trade:true, grade:false,note:'Market and limit orders collected. There is no continuous price here.'},
+  {id:'casB',name:'CAS order entry II',short:'AUCTION', s:925,e:930,trade:true, grade:false,note:'Limit orders only. The close is randomised inside this window, so 15:30 is nominal.'},
+  {id:'casM',name:'CAS matching',      short:'MATCHING',s:930,e:935,trade:false,grade:false,note:'Equilibrium determined; the closing price is published by about 15:35.'}];
+const NSE_PHASE_DAY={
+  index:[NSE_PRE,_nseCont(930)],                      // the index level is published to the cash close
+  cash: [NSE_PRE,_nseCont(930)],                      // non-derivative cash: no auction, day unchanged
+  cas:  [NSE_PRE,_nseCont(915)].concat(NSE_CAS_TAIL),
+  fno:  [NSE_PRE,_nseCont(940)]                       // derivatives. Nothing selects this yet.
+};
+/* Pre-2010 variants: the pre-open auction did not exist and this app backtests
+   to 1998, so a 2005 date must not be shown a 09:00 phase. Built once, because
+   callers hold these arrays by reference. */
+const NSE_PHASE_DAY_NOPRE={};
+Object.keys(NSE_PHASE_DAY).forEach(k=>{ NSE_PHASE_DAY_NOPRE[k]=NSE_PHASE_DAY[k].filter(p=>p.id!=='pre'); });
+/* Which row an instrument belongs to. NULL for every non-Indian venue AND for
+   any key this file cannot classify, because null means 'behave exactly as
+   before' and that is the no-regression guarantee. Failing CLOSED is the point:
+   the stock list is a quarterly snapshot of the F&O universe, and two names in
+   the instrument dropdown (EXIDEIND, NUVAMA) are F&O stocks missing from it
+   today - defaulting them to 'index' would grade an auction window as if it
+   were continuous. */
+function nsePhaseSeg(instKey){
+  try{
+    if(typeof mktVenueOf==='function' && mktVenueOf(instKey)) return null;   // US / London / commodity
+    const L=LOCATIONS[(typeof S!=='undefined'&&S.loc)||'Mumbai'];
+    if(!L||L.seg!=='NSE') return null;                                       // Kathmandu, anything new
+    let u=(typeof RE_UNIV!=='undefined')?RE_UNIV[instKey]:null;              // Astral speaks RE_UNIV keys
+    if(!u && typeof PLAN_INST!=='undefined' && typeof dsKeyForYahooSym==='function' && typeof RE_UNIV!=='undefined'){
+      const k=dsKeyForYahooSym(PLAN_INST[instKey]); if(k) u=RE_UNIV[k];      // the Overview speaks display names
+    }
+    if(!u) return null;                                                      // unclassifiable: keep today's behaviour
+    return u.kind==='stock'?'cas':u.kind==='index'?'index':null;
+  }catch(e){ return null; }
+}
+function nsePhases(instKey,dateStr){
+  const seg=nsePhaseSeg(instKey); if(!seg) return null;
+  const ds=dateStr||((typeof S!=='undefined'&&S.date)||'');
+  const row=(seg==='cas'&&ds&&ds<MKT_CAS_FROM)?'cash':seg;   // before go-live the old day is the true one
+  const pre=!(ds&&ds<MKT_PREOPEN_FROM);
+  return (pre?NSE_PHASE_DAY:NSE_PHASE_DAY_NOPRE)[row]||null;
+}
+function nsePhaseAt(ph,m){ return (ph||[]).find(p=>m>=p.s&&m<p.e)||null; }
+/* The session a venue should default to. ONE helper, because four places write
+   S.session (the initial state, the India/US toggle, mktVenuePatch and the
+   LOCATION picker) and a '24h' left behind by any of them on an Indian venue is
+   what made the 15-min Timing tab start at 00:00. */
+function mktDefaultSession(loc){
+  try{ const L=LOCATIONS[loc||((typeof S!=='undefined'&&S.loc)||'Mumbai')];
+       return (L&&L.seg==='NSE')?'in':'mkt'; }catch(e){ return 'mkt'; }
+}
 // ── SEASONAL DST ───────────────────────────────────────────────────
 // The static tz above is the summer value; these return the correct
 // offset for any date. US: 2nd Sun Mar → 1st Sun Nov. UK/EU: last Sun
@@ -645,6 +726,9 @@ function locAbbrFor(locName,dateStr){
 //          crypto / GIFT-Nifty style continuous forecasting).
 // Every intraday engine (15-min slots, 5-min lagna grid, header time
 // picker, planetary-hour schedule, overview bias chart) reads this.
+// 'in' (the Indian trading day in phases) is deliberately NOT honoured here:
+// this function stays the CONTINUOUS LEG, which is what every graded engine
+// and the header time picker already measure. Phases ride on ovSessionRange.
 function sessionRange(){
   const L=LOCATIONS[(typeof S!=='undefined'&&S.loc)||'Mumbai']||LOCATIONS['Mumbai'];
   if(typeof S!=='undefined' && S.session==='24h')
@@ -4492,7 +4576,7 @@ let S={date:todayStr(),time:nowTimeIST(),
        dowPDH:'',dowPDL:'',dowPWH:'',dowPWL:'',dowPMH:'',dowPML:'',
        spxPDH:'',spxPDL:'',spxPWH:'',spxPWL:'',spxPMH:'',spxPML:'',
        tab:'overview',ayMode:'lahiri',gannAnchor:'open',loc:'Mumbai',
-       session:'mkt',ovInt:'15',ovInst:'NIFTY 50',
+       session:'in',ovInt:'15',ovInst:'NIFTY 50',
        gannInst:'NIFTY 50',gannGRange:'5y',gannCycle:0,gannFromY:null,gannToY:null,panchakInst:'',
        gannPlanets:'Sun,Mars,Jupiter,Saturn',gannAspBodies:'Sun,Mars,Jupiter,Saturn',
        gannShowAsp:true,gannHelio:false,
@@ -4598,6 +4682,12 @@ function rHdr(){
   // Time picker: 5-min steps across the active session — market hours,
   // or 00:00→23:55 when SESSION = 24H (US markets / commodities / crypto).
   const _SR=sessionRange();
+  // The instrument's own trading day, when it has one (Indian venue only).
+  const _ph=(typeof nsePhases==='function')
+    ? nsePhases((typeof ovInstKey==='function')?ovInstKey():'',S.date) : null;
+  const _phTip=_ph?('The real trading day, phase by phase: '
+    +_ph.map(p=>p.short+' '+mtt(p.s)+'-'+mtt(p.e)).join(' · ')
+    +'. Only continuous trading is graded against price.'):'';
   const times=(()=>{ const out=[]; for(let m=_SR.startMin;m<=_SR.endMin;m+=5){ out.push([String(Math.round(m/60*1e6)/1e6), mtt(m)]); } return out; })();
   const ayLabel = ayanamsaLabel(S.ayMode);
   // top-right corner: the Upcoming link and the one-tap India <-> US switch,
@@ -4635,7 +4725,8 @@ function rHdr(){
       </div>
       <div class="cg"><span class="cl">SESSION</span>
         <select id="iSES" class="ci w130">
-          <option value="mkt" ${(S.session||'mkt')==='mkt'?'selected':''}>Market hours (${mtt(Math.round(_loc.open*60))}–${mtt(Math.round(_loc.close*60))})</option>
+          ${_ph?`<option value="in" ${S.session==='in'?'selected':''} title="${_phTip}">Indian trading day (${mtt(_ph[0].s)}–${mtt(_ph[_ph.length-1].e)})</option>`:''}
+          <option value="mkt" ${(S.session!=='24h'&&!(_ph&&S.session==='in'))?'selected':''} title="Continuous trading only - today's behaviour, and the control to compare the phased day against.">Market hours (${mtt(Math.round(_loc.open*60))}–${mtt(Math.round(_loc.close*60))})</option>
           <option value="24h" ${S.session==='24h'?'selected':''}>24H round-the-clock</option>
         </select>
       </div>
@@ -5053,7 +5144,10 @@ function mktSwitchSide(){
   for(const k of ['ovInst','planInst','taInst','dfInst']) if(S[k]!=null) keep[from][k]=S[k];
   const venue=MKT_SIDE_VENUE[to], L=LOCATIONS[venue]||LOCATIONS['Mumbai'], oldL=LOCATIONS[S.loc]||LOCATIONS['Mumbai'];
   LAT=L.lat; LON=L.lon; IST=locTzFor(venue,S.date);
-  const upd={loc:venue, session:(S.session==='24h'?'24h':'mkt')};
+  // Going to the US keeps whatever you had. Coming back to India re-bases the
+  // session, because a '24h' carried in is exactly what showed 00:00-23:55 on
+  // the Timing tab. 24H stays one click away in the SESSION dropdown.
+  const upd={loc:venue, session:(to==='in'?mktDefaultSession(venue):(S.session==='24h'?'24h':'mkt'))};
   // TIME: on the venue's own today, go to its clock now (clamped into the
   // session); on any other date, hold the same distance into the session, else
   // that venue's open.
@@ -10999,7 +11093,9 @@ function ovMkt(){
   if(typeof RE_UNIV!=='undefined' && RE_UNIV[k] && RE_UNIV[k].kind==='usstock')
     return {tz:usEtTz(S.date),open:9.5,close:16,label:k+' MARKET HOURS (ET)',venue:'New York'};
   const L=LOCATIONS[S.loc]||LOCATIONS['Mumbai'];
-  return {tz:L.tz,open:L.open,close:L.close,label:L.mkt+' MARKET HOURS'};
+  // Hours stay location-derived (unchanged). Phases are INSTRUMENT-derived,
+  // because CAS eligibility is a property of what you trade, not of the city.
+  return {tz:L.tz,open:L.open,close:L.close,label:L.mkt+' MARKET HOURS',phases:nsePhases(k,S.date)};
 }
 const OV_CMDTY=new Set(['XAUUSD · GOLD','XAGUSD · SILVER','XNGUSD · NAT GAS','USOIL · WTI CRUDE','XCUUSD · COPPER']);
 // Instrument selection with automatic venue: picking a US index or a
@@ -11019,9 +11115,13 @@ window.ovSelInst=function(v,auto){
   gs(upd);
 };
 function ovSessionRange(){
-  if(S.session==='24h') return {startMin:0,endMin:23*60+55,is24:true,label:'24H ROUND-THE-CLOCK'};
+  if(S.session==='24h') return {startMin:0,endMin:23*60+55,is24:true,label:'24H ROUND-THE-CLOCK',phases:null};
   const mk=ovMkt();
-  return {startMin:Math.round(mk.open*60),endMin:Math.round(mk.close*60),is24:false,label:mk.label};
+  // startMin/endMin are untouched, so every Overview consumer is byte-identical.
+  // Phases ride alongside and ONLY on the explicit 'in' session, which keeps
+  // 'Market hours' as exactly today's behaviour and as the A/B control.
+  return {startMin:Math.round(mk.open*60),endMin:Math.round(mk.close*60),is24:false,label:mk.label,
+          phases:(S.session==='in'?(mk.phases||null):null)};
 }
 function ovPriceKey(){ return [S.date,ovInstKey(),Math.max(1,parseInt(S.ovInt,10)||15),S.loc||'Mumbai',ovMkt().tz].join('|'); }
 window.OVBC={key:null,bars:null,status:'idle',err:'',note:''};
@@ -11195,7 +11295,11 @@ function ovAutoVenue(){
     const ds=now.getUTCFullYear()+'-'+String(now.getUTCMonth()+1).padStart(2,'0')+'-'+String(now.getUTCDate()).padStart(2,'0');
     if(S.date!==ds) return;                                       // don't touch backtest views
     const m=now.getUTCHours()*60+now.getUTCMinutes();
-    if(m<=Math.round((L.close||15.5)*60)){ window._ovAutoUS=false; return; }
+    // The Indian day can now run past L.close: a CAS name is still matching
+    // until ~15:35. Hand over to the US only once the last phase has ended.
+    const _ph=(typeof nsePhases==='function')?nsePhases((typeof ovInstKey==='function')?ovInstKey():'',S.date):null;
+    const _endM=_ph?_ph[_ph.length-1].e:Math.round((L.close||15.5)*60);
+    if(m<=_endM){ window._ovAutoUS=false; return; }
     if(window._ovAutoUS) return;
     window._ovAutoUS=true;
     ovSelInst('DOW');
@@ -12141,7 +12245,7 @@ function mktVenuePatch(key){
   }else if(S.loc==='New York'||S.loc==='Chicago'||S.loc==='London'){
     const L=LOCATIONS['Mumbai'];
     LAT=L.lat; LON=L.lon; IST=locTzFor('Mumbai',S.date);
-    upd.loc='Mumbai'; upd.session='mkt'; upd.time='9.25';
+    upd.loc='Mumbai'; upd.session=mktDefaultSession('Mumbai'); upd.time='9.25';
   }
   return upd;
 }
@@ -15327,7 +15431,35 @@ window.TMX=window.TMX||{key:null};
 window.TMPX=window.TMPX||{key:null,status:'idle',bars:null,note:'',err:''};
 function tmIv(){ return (parseInt(S.tmIv,10)===5&&S.session!=='24h')?5:15; }   // 24h sessions stay on 15-min (288 engine reads otherwise)
 function tmTz(){ try{ return ovMkt().tz; }catch(e){ return IST; } }
-function tmSR(){ return (typeof ovSessionRange==='function')?ovSessionRange():sessionRange(); }
+/* The Timing tab is the one engine that reads the WHOLE trading day rather
+   than the continuous leg: pre-open and the closing auction are part of the
+   session a trader sits through. Every other consumer of ovSessionRange keeps
+   the untouched startMin/endMin. */
+/* This tab reads the TRADING DAY by default, whatever the header's SESSION
+   says: a 15-minute book reading for 02:30 IST is not a thing anyone trades,
+   and a '24h' left in the header (the US switch sets it) made the strip start
+   at 00:00. S.tmSess='24h' still gives the round-the-clock view on request. */
+function tmSess(){ return S.tmSess==='24h' ? '24h' : 'day'; }
+function tmSR(){
+  if(tmSess()==='24h') return {startMin:0,endMin:23*60+55,is24:true,label:'24H ROUND-THE-CLOCK',phases:null};
+  const _sv=S.session; if(_sv==='24h'){ try{ S.session=(typeof mktDefaultSession==='function')?mktDefaultSession(S.loc):'mkt'; }catch(e){ S.session='mkt'; } }
+  const SRd=(typeof ovSessionRange==='function')?ovSessionRange():sessionRange();
+  S.session=_sv;                                   // the header's own setting is left alone
+  return tmSRPhases(SRd);
+}
+function tmSRPhases(SR){
+  if(!SR.phases) return SR;                       // every other venue: exactly as before
+  const ph=SR.phases;
+  return Object.assign({},SR,{startMin:ph[0].s,endMin:ph[ph.length-1].e,
+                              label:SR.label+' · FULL DAY'});
+}
+/* the switch, drawn in the panel head */
+function tmSessBtns(){
+  const b=(k,lab,tip)=>`<button onclick="gs({tmSess:'${k}',tmSel:null})" title="${reEsc(tip)}" style="background:${tmSess()===k?'var(--acc3)':'var(--bg3)'};color:${tmSess()===k?'#001318':'var(--tx2)'};border:1px solid ${tmSess()===k?'var(--acc)':'var(--bd2)'};border-radius:3px;padding:2px 8px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer">${lab}</button>`;
+  return `<span style="display:inline-flex;gap:4px;margin-left:8px">${
+    b('day','TRADING DAY','Only the session that trades — for NSE that is pre-open 09:00, continuous 09:15–15:30 and the closing auction')}${
+    b('24h','24H','Every slot round the clock, including hours when nothing trades')}</span>`;
+}
 function tmNum(v,d){ return (typeof v==='number'&&isFinite(v))?v.toFixed(d==null?1:d):'-'; }
 // local session minute -> {ds,h} on the engine's IST clock
 function tmAt(ds,m,tz){
@@ -15337,26 +15469,44 @@ function tmAt(ds,m,tz){
 }
 function tmBuildSlots(ds,ay,iv,SR,tz){
   const step=(SR.is24&&iv<15)?15:iv, out=[];
-  for(let m=SR.startMin;m<SR.endMin;m+=step){
-    const at=tmAt(ds,m+step/2,tz), hr=Math.round(at.h*12)/12;   // read at the slot midpoint, 5-min grid (cache friendly)
+  const mk=(m,m1,p)=>{                                           // one slot, shared by both branches
+    const at=tmAt(ds,(m+m1)/2,tz), hr=Math.round(at.h*12)/12;    // read at the slot midpoint, 5-min grid (cache friendly)
     let ev=null; try{ ev=taRead(at.ds,hr,ay,'intraday'); }catch(e){ ev=null; }
-    if(!ev) continue;
+    if(!ev) return;
     const live=(ev.rules||[]).filter(r=>!r.sectorOnly&&!r.info&&r.dir);
-    out.push({m,m1:Math.min(m+step,SR.endMin+5),time:mtt(m),ev,score:Math.round(ev.score||0),band:ev.band||taBand(ev.score||0),
-      vol:!!ev.volatility,turn:!!ev.turning,live,sky:ev.sky||null});
+    out.push({m,m1,time:mtt(m),ev,score:Math.round(ev.score||0),band:ev.band||taBand(ev.score||0),
+      vol:!!ev.volatility,turn:!!ev.turning,live,sky:ev.sky||null,
+      ph:p?p.id:null, phName:p?p.name:'', phShort:p?p.short:'', phNote:p?p.note:'',
+      grade:p?p.grade!==false:true});
+  };
+  if(!SR.phases){
+    for(let m=SR.startMin;m<SR.endMin;m+=step) mk(m,Math.min(m+step,SR.endMin+5),null);   // ORIGINAL, unchanged
+  }else{
+    // A no-trade window gets no slot at all, and a slot never straddles a phase
+    // boundary - so a 5-minute auction phase yields one 5-minute slot even at iv=15.
+    SR.phases.forEach(p=>{ if(!p.trade) return;
+      for(let m=p.s;m<p.e;m+=step) mk(m,Math.min(m+step,p.e),p); });
   }
-  // split the rules into the day backdrop (present in every slot) and the part that actually moves intraday
+  /* Split the rules into the day backdrop (present in every slot) and the part
+     that actually moves intraday. Measured over the GRADEABLE slots only: adding
+     a pre-open slot must not push a rule that holds all day out of the backdrop
+     and into the intraday delta, which would change a printed number on an
+     ordinary index day where nothing else moves. */
   const kOf=r=>r.id+'|'+r.dir, cnt=new Map();
-  out.forEach(s=>new Set(s.live.map(kOf)).forEach(k=>cnt.set(k,(cnt.get(k)||0)+1)));
+  const base=out.filter(s=>s.grade!==false), baseN=base.length||out.length;
+  base.forEach(s=>new Set(s.live.map(kOf)).forEach(k=>cnt.set(k,(cnt.get(k)||0)+1)));
   let prev=null;
   out.forEach(s=>{
-    s.varRules=s.live.filter(r=>cnt.get(kOf(r))<out.length).sort((a,b)=>b.w-a.w);
+    s.varRules=s.live.filter(r=>(cnt.get(kOf(r))||0)<baseN).sort((a,b)=>b.w-a.w);
     s.varNet=s.varRules.reduce((t,r)=>t+r.dir*r.w,0);
     s.constNet=s.live.reduce((t,r)=>t+r.dir*r.w,0)-s.varNet;
     const now=new Map(s.varRules.map(r=>[kOf(r),r]));
-    s.on=prev?[...now.keys()].filter(k=>!prev.has(k)).map(k=>now.get(k)):[];
-    s.off=prev?[...prev.keys()].filter(k=>!now.has(k)).map(k=>prev.get(k)):[];
-    prev=now;
+    // Ungradeable slots (pre-open, auction) sit outside the on/off walk, so the
+    // first continuous slot still reports an empty cell, as it does today.
+    const inWalk=s.grade!==false;
+    s.on=(prev&&inWalk)?[...now.keys()].filter(k=>!prev.has(k)).map(k=>now.get(k)):[];
+    s.off=(prev&&inWalk)?[...prev.keys()].filter(k=>!now.has(k)).map(k=>prev.get(k)):[];
+    if(inWalk) prev=now;
   });
   return out;
 }
@@ -15445,7 +15595,9 @@ function tmBhadraSpans(ev,lo,hi){
   if(a!=null) out.push([a,hi]);
   return out;
 }
-function tmKey(){ const SR=tmSR(); return [S.date,taAy(),tmIv(),SR.startMin,SR.endMin,tmTz(),S.loc||'',(typeof LAT!=='undefined'?LAT:0)].join('|'); }
+function tmKey(){ const SR=tmSR(); return [S.date,taAy(),tmIv(),SR.startMin,SR.endMin,tmTz(),S.loc||'',
+  (SR.phases?SR.phases.map(p=>p.id+p.s).join(''):''),   // an index and a CAS stock share an envelope but not a split
+  (typeof LAT!=='undefined'?LAT:0)].join('|'); }
 function tmGet(lazy){
   const key=tmKey(); if(window.TMX.key===key) return window.TMX;
   if(lazy){      // first read of a new period builds the engine baseline (seconds): paint first, compute after
@@ -15530,11 +15682,18 @@ function tmChartSVG(T,bars){
     <div style="position:relative;height:14px;font-size:9.5px;color:var(--tx3);font-family:monospace">${ticks.map(m=>`<span style="position:absolute;left:${((m-lo)/(hi-lo)*100).toFixed(1)}%;transform:translateX(-50%)">${mtt(m)}</span>`).join('')}</div></div>`;
 }
 function tmGrade(T,bars){      // descriptive only: slot band sign vs the bar that actually printed
-  const by=new Map((bars||[]).map(b=>[b.m,b])), FLAT=0.03; let n=0,hit=0,bull=0,neut=0;
-  T.slots.forEach(s=>{ const b=by.get(s.m); s.bar=b||null; s.ret=null; if(!b||!(b.o>0)) return;
+  const by=new Map((bars||[]).map(b=>[b.m,b])), FLAT=0.03; let n=0,hit=0,bull=0,neut=0,skipPh=0,skipBar=0;
+  let gLo=null,gHi=null;
+  T.slots.forEach(s=>{ const b=by.get(s.m); s.bar=b||null; s.ret=null;
+    /* A pre-open or auction print is ONE equilibrium number, not an open-to-close
+       return. Scoring it would quietly inflate the flat/neutral bucket, so it is
+       excluded by construction and counted so the header can say so. */
+    if(s.grade===false){ skipPh++; return; }
+    if(gLo===null||s.m<gLo) gLo=s.m; if(gHi===null||s.m1>gHi) gHi=s.m1;
+    if(!b||!(b.o>0)){ skipBar++; return; }
     const r=(b.c-b.o)/b.o*100, act=Math.abs(r)<FLAT?0:Math.sign(r), call=s.score>=7?1:s.score<=-7?-1:0;
     s.ret=r; n++; if(call===act) hit++; if(act===1) bull++; if(act===0) neut++; });
-  return {n,hit,bull,neut};
+  return {n,hit,bull,neut,skipPh,skipBar,gLo,gHi};
 }
 function tmHTML(){
   const T0=tmGet(true);
@@ -15567,7 +15726,7 @@ function tmHTML(){
   return `
   <div class="pnl">
     <div class="ph" style="flex-wrap:wrap;gap:6px">
-      <span><span class="dot"></span>BOOK READING PER ${iv}-MIN SLOT · ${S.date} · ${reEsc(T.SR.label)} ${mtt(T.SR.startMin)}→${mtt(T.SR.endMin)}</span>
+      <span><span class="dot"></span>BOOK READING PER ${iv}-MIN SLOT · ${S.date} · ${reEsc(T.SR.label)} ${mtt(T.SR.startMin)}→${mtt(T.SR.endMin)}${tmSessBtns()}</span>
       <span style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
         <select class="ci" style="font-size:11px;padding:2px 4px;max-width:170px" onchange="ovSelInst(this.value)">${instSel}</select>
         <select class="ci" style="font-size:11px;padding:2px 4px" onchange="gs({tmIv:+this.value,tmSel:null})">${[5,15].map(o=>`<option value="${o}" ${iv===o?'selected':''}>${o} min</option>`).join('')}</select>
@@ -22874,7 +23033,11 @@ function tGann(){
 // ═══════════════════════════════════════════════════════════════════
 function rEvents(){
   const b=(id,evt,k)=>{const e=document.getElementById(id);if(e)e.addEventListener(evt,ev=>gs({[k]:ev.target.value}));};
-  b('iD','change','date');b('iT','change','time');b('iSES','change','session');
+  b('iD','change','date');b('iT','change','time');
+  // S.tmSel is a positional index into the Timing tab's slot array, and the
+  // session decides how many slots there are - so changing it must clear the
+  // selection rather than silently point at a different slot.
+  {const e=document.getElementById('iSES'); if(e)e.addEventListener('change',ev=>gs({session:ev.target.value,tmSel:null}));}
   b('iNO','change','niftyOpen');b('iNC','change','niftyPC');
   b('iBO','change','bnOpen');b('iBC','change','bnPC');
   b('iNQO','change','nasdaqOpen');b('iNQC','change','nasdaqPC');
@@ -22891,7 +23054,13 @@ function rEvents(){
   b('iA','change','ayMode');b('iGA','change','gannAnchor');
   // Location → sets lat/lon + UTC offset, snaps the time picker to that market's open
   const eLOC=document.getElementById('iLOC');
-  if(eLOC)eLOC.addEventListener('change',ev=>{const L=LOCATIONS[ev.target.value];if(!L)return;LAT=L.lat;LON=L.lon;IST=locTzFor(ev.target.value,S.date);gs({loc:ev.target.value,time:String(L.open)});});
+  if(eLOC)eLOC.addEventListener('change',ev=>{const L=LOCATIONS[ev.target.value];if(!L)return;LAT=L.lat;LON=L.lon;IST=locTzFor(ev.target.value,S.date);
+    // Crossing between the Indian venue and a foreign one re-bases the session:
+    // a '24h' left behind by the after-close auto-switch to DOW must not follow
+    // you back into Mumbai. Moving Mumbai->Delhi keeps whatever you chose.
+    const upd={loc:ev.target.value,time:String(L.open)};
+    if((LOCATIONS[S.loc]||{}).seg!==L.seg){ upd.session=mktDefaultSession(ev.target.value); upd.tmSel=null; }
+    gs(upd);});
   // Lat/Lon binding — these mutate the module-level constants and re-render
   const eLA=document.getElementById('iLA');
   if(eLA)eLA.addEventListener('change',ev=>{const v=parseFloat(ev.target.value);if(!isNaN(v)&&v>=-90&&v<=90){LAT=v;render();}else{ev.target.value=LAT.toFixed(4);}});
