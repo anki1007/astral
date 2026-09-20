@@ -4968,14 +4968,12 @@ function upcSimpleHTML(E, R, DL, cols, today){
   const nU=[...turnsU.values()].length;
   return `<div class="pnl"><div class="ph" style="justify-content:space-between">
       <span><span class="dot"></span>📅 IN PLAIN ENGLISH — the next ${cols.length} session${cols.length===1?'':'s'}</span>
-      <button onclick="gs({upcFull:S.upcFull?'':'1'})" style="background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:3px 10px;font-family:inherit;font-size:11px;cursor:pointer">${S.upcFull?'▴ hide the numbers':'▾ show the numbers'}</button></div>
+      <span style="font-size:10.5px;color:var(--tx3)">detail is in the two drawers below</span></div>
     <div class="pb" style="font-size:12px;line-height:1.75">
       <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:4px;padding:8px 10px;margin-bottom:9px">
-        <b>What this page can and cannot tell you.</b> Nothing here predicts whether a market goes up or down: every
-        direction pattern tested since 2000 failed on later data, and the book's own daily call grades 49.0% against
-        53.9% for simply saying "up" every day. What did survive testing are <b>size</b> patterns — days that tend to
-        move more, or less, than usual — and <b>turn windows</b>, dates near which a ≥5% swing has formed more often
-        than chance. Those are marked ✓ below; everything else is shown because you asked to see it, not because it works.
+        <b>Read this first.</b> No direction pattern here is proven — every one tested since 2000 failed on later
+        data. Take the daily lean as the book's own call, nothing more. Only the two lists on the right passed their
+        tests.
       </div>
       <div class="g2" style="gap:10px">
         <div><div style="font-size:10.5px;color:var(--tx3);letter-spacing:.06em;margin-bottom:3px">DAY BY DAY — the book's own lean</div>
@@ -4994,11 +4992,21 @@ function upcSimpleHTML(E, R, DL, cols, today){
    NOT on data/forward/log.json, so it renders on every exit of upcHTML —
    including the ones that report the log missing. */
 function upcDayMapMount(){
-  return `<div id="bm-daymap">${(()=>{ try{
-      setTimeout(()=>{ try{ bmDMEnsure(); }catch(e){} },0);
-      return bmDayMapHTML();
-    }catch(e){ return `<div class="pnl"><div class="pb" style="font-size:11px;color:var(--tx3)">Day map unavailable: ${fwdEsc((e&&e.message)||'error')}</div></div>`; } })()}</div>`;
+  // Closed by default and inert until opened: each market's study costs 20-30s
+  // in the browser, and thirty of them is not something to start unasked.
+  return `<details class="pnl" ${S.upcMap?'open':''} ontoggle="upcMapToggle(this)">
+    <summary style="padding:8px 10px;cursor:pointer;font-size:11px;letter-spacing:.06em">DAY MAP — THE NEXT 30 SESSIONS, EVERY MARKET <span style="color:var(--tx3);letter-spacing:0">· builds one market at a time, slow</span></summary>
+    <style>#bm-daymap>.pnl>.ph:first-child{display:none}</style>
+    <div id="bm-daymap">${S.upcMap?bmDayMapHTML():''}</div></details>`;
 }
+function upcMapToggle(el){
+  S.upcMap = el.open ? '1' : '';
+  if(!el.open) return;
+  const h=document.getElementById('bm-daymap');
+  if(h && !h.innerHTML.trim()){ try{ h.innerHTML=bmDayMapHTML(); }catch(e){ h.innerHTML='<div class="pb" style="font-size:11px;color:var(--tx3)">Day map unavailable: '+fwdEsc((e&&e.message)||'error')+'</div>'; } }
+  setTimeout(()=>{ try{ bmDMEnsure(); }catch(e){} },0);
+}
+window.upcMapToggle=upcMapToggle;
 function upcHTML(){
   const U=window.UPC, S=U.sum||{}, L=U.log||{}, E=(L.entries||[]), R=(L.reversals||[]), DL=(L.daily||[]);
   const today=fwdToday();
@@ -5125,7 +5133,11 @@ function upcHTML(){
      calendar, each cell the strongest TESTABLE lean the BIG-MOVE ANATOMY study's
      own bins imply, coloured only where that bin passed the full standard */
   const daymap=upcDayMapMount();
-  return S.upcFull ? simple+daymap+head+grid+turns+proven+foot : simple+daymap+foot;
+  const more=`<details class="pnl" ${S.upcFull?'open':''} ontoggle="S.upcFull=this.open?'1':''">
+      <summary style="padding:8px 10px;cursor:pointer;font-size:11px;letter-spacing:.06em">THE NUMBERS — PER-MARKET GRID, EVERY LOGGED TURN WINDOW, AND THE EVIDENCE</summary>
+      <div style="display:flex;flex-direction:column;gap:10px;padding:0 8px 8px">${head+grid+turns+proven}</div>
+    </details>`;
+  return simple+daymap+more+foot;
 }
 window.tUpcoming=tUpcoming;
 
