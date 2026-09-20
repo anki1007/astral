@@ -16,3 +16,7 @@ Updated_Tech_Astro_Analysis.md
 .DS_Store
 Thumbs.db
 *.swp
+
+# python bytecode
+__pycache__/
+*.pyc
