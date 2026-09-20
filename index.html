@@ -485,7 +485,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body.hdr-open .hdr-mini{display:none}
 }
 @media(max-width:480px){          /* no room for the words — the icons still say it */
-  .hdr{padding-right:88px}
+  .hdr{padding-right:112px}
   .hdr-cbtn-t{display:none}
   .hdr-cbtn{padding:5px 6px}
 }
@@ -4608,6 +4608,7 @@ function rHdr(){
   const _corner=`<div class="hdr-corner">
     <button class="hdr-cbtn" onclick="mktSwitchSide()" title="${_swTip.replace(/"/g,'&quot;')}" aria-label="Switch market to ${_to}">⇄ <span class="hdr-cbtn-t">${_to}</span></button>
     <a class="hdr-cbtn${S.tab==='upcoming'?' on':''}" href="#tab=upcoming" onclick="return navGo(event,'upcoming')" title="The next 5 sessions across all 10 markets, the upcoming turn dates, and what the evidence actually supports" aria-label="Upcoming">📅<span class="hdr-cbtn-t">UPCOMING</span></a>
+    <a class="hdr-cbtn${S.tab==='fwd'?' on':''}" href="#tab=fwd" onclick="return navGo(event,'fwd')" title="The graded record: every logged call, scored against the trivial callers once its session closed">✓ <span class="hdr-cbtn-t">FORWARD TEST</span></a>
   </div>`;
   document.getElementById('HDR').innerHTML=`
 <header class="hdr">
@@ -5013,7 +5014,7 @@ window.mktSwitchSide=mktSwitchSide;
 // NAV
 // ═══════════════════════════════════════════════════════════════════
 function rNav(){
-  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['fwd','✓ Forward Test'],['upcoming','📅 Upcoming'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
+  const tabs=[['overview','▦ Overview'],['forecast','◎ Forecasting'],['backtest','⟲ Backtesting'],['astral','✦ Astral Forecast'],['dayfc','☉ Day Forecast'],['panchak','◔ Panchak'],['shar','⟐ Shar'],['kranti','◓ Kranti'],['transit','⊞ Transit Cal'],['kundali','◇ Natal·Intraday'],['bhav','⌂ Bhav Phal'],['rulebook','⚜ Rule Book'],['ashtaka','⊡ Ashtakavarga'],['vr','★ Vyapaar Ratna'],['vr2','★★ Vyapaar Ratna V2'],['rules','⚖ Astro Rules'],['kp','⊕ KP Planets'],['charts','◈ D1·D9'],['sbc','⬡ SBC Grid'],['planlat','🪐 Planet Lat'],['planlon','🛰 Planet Lon'],['timing','⏱ 15-min Timing'],['gann','⌇ Gann SQ9'],['sector','◭ Sector Forecast']];
   const closeRow=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 8px 14px;border-bottom:1px solid var(--bd);background:var(--bg1);flex-shrink:0">
     <span style="font-size:11.5px;color:var(--tx3);letter-spacing:.08em">MENU</span>
     <button onclick="closeNav()" style="background:none;border:none;color:var(--tx2);font-size:20px;line-height:1;cursor:pointer;padding:2px 6px">✕</button>
