@@ -4700,6 +4700,7 @@ function rHdr(){
     <a class="hdr-cbtn${S.tab==='forecast'?' on':''}" href="#tab=forecast" onclick="return navGo(event,'forecast')" title="Future reversal calendar — the fitted model replayed forward">◎ <span class="hdr-cbtn-t">FORECASTING</span></a>
     <a class="hdr-cbtn${S.tab==='backtest'?' on':''}" href="#tab=backtest" onclick="return navGo(event,'backtest')" title="Swing-reversal research — which astro signatures actually preceded reversals">⟲ <span class="hdr-cbtn-t">BACKTESTING</span></a>
     <a class="hdr-cbtn${S.tab==='upcoming'?' on':''}" href="#tab=upcoming" onclick="return navGo(event,'upcoming')" title="The next 5 sessions across all 10 markets, the upcoming turn dates, and what the evidence actually supports" aria-label="Upcoming">📅<span class="hdr-cbtn-t">UPCOMING</span></a>
+    <a class="hdr-cbtn${S.tab==='cal'?' on':''}" href="#tab=cal" onclick="return navGo(event,'cal')" title="Month calendar — any month from 2000 to two years out, each day carrying its strongest testable lean and, in the past, what the day actually did" aria-label="Calendar">📆<span class="hdr-cbtn-t">CALENDAR</span></a>
     <a class="hdr-cbtn${S.tab==='fwd'?' on':''}" href="#tab=fwd" onclick="return navGo(event,'fwd')" title="The graded record: every logged call, scored against the trivial callers once its session closed">✓ <span class="hdr-cbtn-t">FORWARD TEST</span></a>
   </div>`;
   document.getElementById('HDR').innerHTML=`
@@ -4992,21 +4993,13 @@ function upcSimpleHTML(E, R, DL, cols, today){
    NOT on data/forward/log.json, so it renders on every exit of upcHTML —
    including the ones that report the log missing. */
 function upcDayMapMount(){
-  // Closed by default and inert until opened: each market's study costs 20-30s
-  // in the browser, and thirty of them is not something to start unasked.
-  return `<details class="pnl" ${S.upcMap?'open':''} ontoggle="upcMapToggle(this)">
-    <summary style="padding:8px 10px;cursor:pointer;font-size:11px;letter-spacing:.06em">DAY MAP — THE NEXT 30 SESSIONS, EVERY MARKET <span style="color:var(--tx3);letter-spacing:0">· builds one market at a time, slow</span></summary>
-    <style>#bm-daymap>.pnl>.ph:first-child{display:none}</style>
-    <div id="bm-daymap">${S.upcMap?bmDayMapHTML():''}</div></details>`;
+  // The map itself now lives on the CALENDAR tab, beside the month grid.
+  // Carrying a second copy here is what made this page a wall of tables.
+  return `<div class="pnl"><div class="pb" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px">
+    <a class="hdr-cbtn" href="#tab=cal" onclick="return navGo(event,'cal')" style="font-size:11px">📆 Calendar — any month, bullish / bearish / reversal per day</a>
+    <span style="color:var(--tx3)">— the month grid back to 2000 and forward two years, and the 30-session day map across every market.</span>
+    </div></div>`;
 }
-function upcMapToggle(el){
-  S.upcMap = el.open ? '1' : '';
-  if(!el.open) return;
-  const h=document.getElementById('bm-daymap');
-  if(h && !h.innerHTML.trim()){ try{ h.innerHTML=bmDayMapHTML(); }catch(e){ h.innerHTML='<div class="pb" style="font-size:11px;color:var(--tx3)">Day map unavailable: '+fwdEsc((e&&e.message)||'error')+'</div>'; } }
-  setTimeout(()=>{ try{ bmDMEnsure(); }catch(e){} },0);
-}
-window.upcMapToggle=upcMapToggle;
 function upcHTML(){
   const U=window.UPC, S=U.sum||{}, L=U.log||{}, E=(L.entries||[]), R=(L.reversals||[]), DL=(L.daily||[]);
   const today=fwdToday();
@@ -5222,7 +5215,7 @@ window.navGo=navGo;
 addEventListener('hashchange',()=>{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m && m[1]!==S.tab) gs({tab:m[1]}); });
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,cal:tCalendar,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();
@@ -28578,6 +28571,233 @@ function bmHistoryHTML(){
 window.bmDayMapHTML=bmDayMapHTML; window.bmHistoryHTML=bmHistoryHTML;
 window.bmDMRow=bmDMRow; window.bmDMDates=bmDMDates; window.bmHBRows=bmHBRows;
 window.bmDMCell=bmDMCell; window.bmDMSky=bmDMSky;
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CALENDAR (cal*) — one market, one month, any month from 2000 to two years out
+   ---------------------------------------------------------------------------
+   A third reader's view over the SAME bm* study as the DAY MAP and the DAY
+   LIST. It computes no statistic of its own. For every day of the month on
+   display it reads the sky at that venue's own open, bins each body in the
+   framing selected on the Backtesting tab, and asks the study's own feature
+   rows what such a day has historically done:
+
+       category '>1% move',  target UP   → BULLISH
+       category '>1% move',  target DOWN → BEARISH
+       category 'rev-from-high'          → REVERSAL FROM HIGH
+       category 'rev-from-low'           → REVERSAL FROM LOW
+
+   Backward, the sky is not recomputed at all: R._SS already carries the
+   sidereal longitudes of the very session the study tallied, so a past cell
+   is read from the same bytes the statistics were built from, and the day's
+   ACTUAL outcome is printed beside the lean with a ✓ or ✗. That comparison is
+   the only honest thing a calendar of unproven leans can offer, so the month
+   footer states it as a fraction and does not round it away.
+
+   The heat is the size of the historical match (rate ÷ baseline), NOT
+   evidence. A cell is only saturated, bordered and ★-marked when its bin
+   passed the full standard; everything else is a pale tint over grey text
+   that says so. Nothing here reaches a score.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const CAL_MIN_YM='2000-01';
+const CAL_FWD_YEARS=2;
+const CAL_DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+function calInst(){ const L=bmInsts(), k=S.calInst; return L.some(x=>x[0]===k)?k:bmInst(); }
+function calMaxYM(){ const t=tnToday(); return (parseInt(t.slice(0,4),10)+CAL_FWD_YEARS)+'-'+t.slice(5,7); }
+function calYM(){
+  let v=String(S.calYM||'');
+  if(!/^\d{4}-\d{2}$/.test(v)) v=tnToday().slice(0,7);
+  if(v<CAL_MIN_YM) v=CAL_MIN_YM;
+  const mx=calMaxYM(); if(v>mx) v=mx;
+  return v;
+}
+function calShiftYM(ym,n){
+  let y=+ym.slice(0,4), m=+ym.slice(5,7)-1+n;
+  y+=Math.floor(m/12); m=((m%12)+12)%12;
+  return y+'-'+String(m+1).padStart(2,'0');
+}
+function calSet(o){ Object.assign(S,o||{}); calPaint(); calEnsure(); }
+function calGo(n){ calSet({calYM:calShiftYM(calYM(),n)}); }
+function calGoYM(v){ calSet({calYM:String(v||'').slice(0,7)}); }
+function calToday(){ calSet({calYM:tnToday().slice(0,7)}); }
+function calPick(v){ calSet({calInst:v}); }
+function calEnsure(){ const k=calInst(), R=window.BM.res[bmKey(k,bmAy())];
+  if(!R||R.status!=='ready'){ try{ bmEnsureK(k).then(calPaint,calPaint); }catch(e){} } }
+function calPaint(){ try{ const e=document.getElementById('cal-body'); if(e) e.innerHTML=calGridHTML(); }catch(e){} }
+window.calPick=calPick; window.calGo=calGo; window.calGoYM=calGoYM;
+window.calToday=calToday; window.calPaint=calPaint;
+
+/* the study's own sessions, indexed by date — built once per result */
+function calByDate(R){
+  if(R._byDate) return R._byDate;
+  const m=new Map();
+  for(const s of (R._SS||[])) m.set(s.date,s);
+  R._byDate=m; return m;
+}
+/* every calendar day of a month, with its weekday column (Mon=0) */
+function calDays(ym){
+  const y=+ym.slice(0,4), m=+ym.slice(5,7);
+  const n=new Date(Date.UTC(y,m,0)).getUTCDate();
+  const out=[];
+  for(let d=1; d<=n; d++){
+    const ds=ym+'-'+String(d).padStart(2,'0');
+    out.push({ds:ds, d:d, col:(new Date(reMs(ds)).getUTCDay()+6)%7});
+  }
+  return out;
+}
+/* did the day actually do what the lean said? null when it cannot be judged */
+function calHit(lab,s){
+  if(!s) return null;
+  if(lab==='BULLISH') return s.mv>BM_MOVE;
+  if(lab==='BEARISH') return s.mv<-BM_MOVE;
+  if(lab==='REVERSAL FROM HIGH') return s.gbHi!=null&&s.gbHi>=BM_REV;
+  if(lab==='REVERSAL FROM LOW') return s.gbLo!=null&&s.gbLo>=BM_REV;
+  return null;
+}
+/* the tint. Alpha tracks lift, capped low while the bin is unproven, because
+   a strong-looking colour is a claim and an unproven bin has not earned one. */
+function calTint(b){
+  const lift=(b&&b.r&&isFinite(b.r.lift))?b.r.lift:1;
+  const up=(b.lab==='BULLISH'||b.lab==='REVERSAL FROM LOW');
+  const a=Math.max(.06, Math.min(b.r.proven?.55:.26, (lift-1)*(b.r.proven?.5:.28)));
+  return 'rgba('+(up?'34,197,94':'239,68,68')+','+a.toFixed(3)+')';
+}
+function calShort(lab){
+  return lab==='BULLISH'?'Bullish':lab==='BEARISH'?'Bearish'
+       : lab==='REVERSAL FROM HIGH'?'Rev ↓ from high':lab==='REVERSAL FROM LOW'?'Rev ↑ from low':lab;
+}
+/* one day cell */
+function calCell(k,R,fr,day,today){
+  const ds=day.ds, past=ds<today, S_=calByDate(R).get(ds);
+  const wknd=day.col>=5;
+  const sl = S_ ? S_.sl : (wknd?null:bmDMSky(ds,k,bmAy()));
+  let cells=[];
+  try{ cells=bmDMCell(R,fr,sl)||[]; }catch(e){ cells=[]; }
+  const b=cells[0], b2=cells[1];
+  const tint=b?calTint(b):'transparent';
+  const bord=(b&&b.r.proven)?'2px solid '+b.col:'1px solid var(--bd)';
+  /* what the day actually did — printed for every past session, lean or no lean */
+  let act='';
+  if(S_){
+    const mv=S_.mv, col=mv>0?'var(--bull)':mv<0?'var(--bear)':'var(--tx3)';
+    const rev=[]; if(S_.gbHi!=null&&S_.gbHi>=BM_REV) rev.push('rev ↓'+S_.gbHi.toFixed(1)+'%');
+    if(S_.gbLo!=null&&S_.gbLo>=BM_REV) rev.push('rev ↑'+S_.gbLo.toFixed(1)+'%');
+    act='<div style="font-size:10px;margin-top:2px"><b style="color:'+col+'">'+(mv>0?'+':'')+mv.toFixed(2)+'%</b>'
+      +(rev.length?' <span style="color:var(--tx3)">'+rev.join(' ')+'</span>':'')+'</div>';
+  } else if(past && !wknd){
+    act='<div style="font-size:10px;margin-top:2px;color:var(--tx3)">no session</div>';
+  }
+  const one=(x,first)=>{
+    if(!x) return '';
+    const h=calHit(x.lab,S_);
+    const mark=h===null?'':(h?' <span style="color:var(--bull)">✓</span>':' <span style="color:var(--bear)">✗</span>');
+    const arg=s=>"'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')+"'";
+    const tip=x.body+' — '+String(x.t).slice(2)+' · '+x.lab+': '+bmPct(x.r.rate)+' of such days against a '
+      +bmPct(x.r.base)+' baseline (lift '+x.r.lift.toFixed(2)+'×), n '+x.r.n+' over '+x.r.nEp+' episodes. '
+      +(x.r.proven?'Proven in backtest ✓.':'Not proven — past hits ≈ random chance.')
+      +' Click for the DAY LIST on this bin.';
+    return '<div title="'+reEsc(tip)+'" onclick="event.stopPropagation();bmHBFrom('+reEsc(arg(k))+','+reEsc(arg(x.cat))+','+reEsc(arg(x.t))+')"'
+      +' style="cursor:pointer;margin-top:3px;font-size:'+(first?'11px':'10px')+';line-height:1.3;'
+      +'color:'+(x.r.proven?x.col:'var(--tx1)')+';font-weight:'+(x.r.proven?700:600)+'">'
+      +(x.r.proven?'★ ':'')+reEsc(calShort(x.lab))+mark
+      +'<div style="font-size:9px;color:var(--tx3);font-weight:400">'+reEsc(x.body)+' '+reEsc(String(x.t).slice(2).replace(/^[^ ]+ /,''))
+      +' · '+bmPct(x.r.rate)+' vs '+bmPct(x.r.base)+'</div></div>';
+  };
+  const none=(!b&&!wknd)?'<div style="font-size:10px;color:var(--tx3);margin-top:3px">no testable bin</div>':'';
+  const isToday=(ds===today);
+  return '<div style="min-height:104px;padding:5px 6px;border:'+bord+';border-radius:4px;background:'+tint+';'
+    +(isToday?'box-shadow:inset 0 0 0 2px var(--acc);':'')
+    +(wknd?'opacity:.45;':'')+'overflow:hidden">'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline">'
+      +'<b style="font-size:12px'+(isToday?';color:var(--acc)':'')+'">'+day.d+'</b>'
+      +'<span style="font-size:9px;color:var(--tx3)">'+(isToday?'today':past?'':'·')+'</span></div>'
+    +act+one(b,true)+one(b2,false)+none+'</div>';
+}
+function calGridHTML(){
+  const k=calInst(), ay=bmAy(), R=window.BM.res[bmKey(k,ay)];
+  const ym=calYM(), today=tnToday(), fr=bmFr();
+  if(!R||R.status!=='ready')
+    return '<div class="pb" style="font-size:11.5px;color:var(--tx3)">building '+reEsc(bmInstName(k))
+      +'\u2019s study — every session since '+BM_START.slice(0,4)+' has to be binned before a single day can be read…'
+      +(R&&R.msg?' <span style="color:var(--acc)">'+reEsc(R.msg)+'</span>':'')+'</div>';
+  const days=calDays(ym);
+  const lead=days.length?days[0].col:0;
+  const pad=new Array(lead).fill('<div></div>').join('');
+  const cells=days.map(d=>calCell(k,R,fr,d,today)).join('');
+  /* the month's own record: how often the top lean matched what happened */
+  let nJ=0, nH=0, nLean=0;
+  for(const d of days){
+    const s=calByDate(R).get(d.ds); if(!s) continue;
+    let cs=[]; try{ cs=bmDMCell(R,fr,s.sl)||[]; }catch(e){}
+    if(!cs.length) continue;
+    nLean++;
+    const h=calHit(cs[0].lab,s); if(h===null) continue;
+    nJ++; if(h) nH++;
+  }
+  const score = nJ
+    ? 'In this month the top lean matched what the day actually did on <b>'+nH+' of '+nJ+'</b> judged sessions ('
+      +((nH/nJ)*100).toFixed(0)+'%).'
+    : (ym>today.slice(0,7) ? 'This month is still ahead, so nothing here can be scored yet.'
+                           : 'No session in this month carried a testable lean.');
+  const head='<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px">'
+    +'<select onchange="calPick(this.value)" style="font-size:11.5px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:3px 6px">'
+    +BM_GROUPS.map(g=>{ const inG=bmInsts().filter(x=>x[2]===g[0]); return inG.length?
+        '<optgroup label="'+reEsc(g[1])+'">'+inG.map(x=>'<option value="'+reEsc(x[0])+'"'+(x[0]===k?' selected':'')+'>'+reEsc(x[1])+'</option>').join('')+'</optgroup>':''; }).join('')
+    +'</select>'
+    +'<button onclick="calGo(-12)" title="back one year" style="'+CAL_BTN+'">\u00ab</button>'
+    +'<button onclick="calGo(-1)" title="previous month" style="'+CAL_BTN+'">\u2039 prev</button>'
+    +'<input type="month" value="'+ym+'" min="'+CAL_MIN_YM+'" max="'+calMaxYM()+'" onchange="calGoYM(this.value)"'
+      +' style="font-size:11.5px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:2px 6px">'
+    +'<button onclick="calGo(1)" title="next month" style="'+CAL_BTN+'">next \u203a</button>'
+    +'<button onclick="calGo(12)" title="forward one year" style="'+CAL_BTN+'">\u00bb</button>'
+    +'<button onclick="calToday()" style="'+CAL_BTN+'">this month</button>'
+    +'<span style="font-size:10.5px;color:var(--tx3);margin-left:auto">framing: <b>'+reEsc(fr.short)+'</b> · change it in BIG-MOVE ANATOMY on Backtesting</span>'
+    +'</div>';
+  // seven columns is what a month is; below CAL_MIN_W the page scrolls it
+  // sideways instead of crushing each day into forty pixels
+  const G='display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;min-width:'+CAL_MIN_W+'px';
+  const dow='<div style="'+G+';margin-bottom:5px">'
+    +CAL_DOW.map(d=>'<div style="font-size:10px;color:var(--tx3);letter-spacing:.06em;text-align:center">'+d+'</div>').join('')+'</div>';
+  return '<div class="pb">'+head
+    +'<div style="overflow-x:auto">'+dow
+    +'<div style="'+G+'">'+pad+cells+'</div></div>'
+    +'<div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.6">'+score
+    +' A ✓ or ✗ beside a past lean is that one day, not evidence; the month fraction is what the leans are worth here.'
+    +' The colour is the size of the historical match (rate \u00f7 baseline), not proof \u2014 only a \u2605 cell passed the full standard.'
+    +' Weekends are dimmed; exchange holidays are not modelled, so a future weekday can turn out to be a holiday.</div>'
+    +'</div>';
+}
+const CAL_MIN_W=700;
+const CAL_BTN='background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:3px 9px;font-family:inherit;font-size:11.5px;cursor:pointer';
+
+function tCalendar(){
+  setTimeout(()=>{ try{ calEnsure(); }catch(e){} },0);
+  const banner='<div class="pnl"><div class="ph" data-noco><span class="dot" style="background:var(--acc)"></span>\ud83d\udcc6 CALENDAR \u2014 any month, backward to 2000 or forward two years</div>'
+    +'<div class="pb" style="font-size:11.5px;line-height:1.7;color:var(--tx1)">'
+    +'One market, one month at a time. Each day carries the strongest <i>testable</i> lean the BIG-MOVE ANATOMY study\u2019s own bins imply for that day\u2019s sky \u2014 <b>Bullish</b>, <b>Bearish</b>, <b>Rev \u2193 from high</b> or <b>Rev \u2191 from low</b> \u2014 with the planet, its degree, the historical rate and the baseline. '
+    +'Past months also print what the day <i>actually</i> did, so every lean is marked \u2713 or \u2717 where it can be judged. '
+    +'<b>Nothing here is proven.</b> Not one bin has beaten its baseline in both halves of the record, so every cell is a pale tint and an unstarred label; if one ever passes it turns solid and gains a \u2605.'
+    +'</div></div>';
+  return banner
+    +'<div class="pnl"><div class="ph" data-noco><span class="dot"></span>MONTH GRID</div><div id="cal-body">'
+    +(()=>{ try{ return calGridHTML(); }catch(e){ return '<div class="pb" style="font-size:11px;color:var(--tx3)">Calendar unavailable: '+reEsc((e&&e.message)||'error')+'</div>'; } })()
+    +'</div></div>'
+    +'<details class="pnl" '+(S.calMap?'open':'')+' ontoggle="calMapToggle(this)">'
+    +'<summary style="padding:8px 10px;cursor:pointer;font-size:11px;letter-spacing:.06em">DAY MAP \u2014 THE NEXT 30 SESSIONS, EVERY MARKET AT ONCE <span style="color:var(--tx3);letter-spacing:0">\u00b7 builds one market at a time, slow</span></summary>'
+    +'<style>#bm-daymap>.pnl>.ph:first-child{display:none}</style>'
+    +'<div id="bm-daymap">'+(S.calMap?bmDayMapHTML():'')+'</div></details>';
+}
+function calMapToggle(el){
+  S.calMap = el.open ? '1' : '';
+  if(!el.open) return;
+  const h=document.getElementById('bm-daymap');
+  if(h && !h.innerHTML.trim()){ try{ h.innerHTML=bmDayMapHTML(); }catch(e){ h.innerHTML='<div class="pb" style="font-size:11px;color:var(--tx3)">Day map unavailable: '+reEsc((e&&e.message)||'error')+'</div>'; } }
+  setTimeout(()=>{ try{ bmDMEnsure(); }catch(e){} },0);
+}
+window.tCalendar=tCalendar; window.calMapToggle=calMapToggle;
+window.calGridHTML=calGridHTML; window.calCell=calCell; window.calDays=calDays; window.calHit=calHit;
 
 function tREBacktest(){
   setTimeout(collapsibleInit,20);
