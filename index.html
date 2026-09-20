@@ -9654,8 +9654,8 @@ const FNO_INST = {
 Object.assign(PLAN_INST, FNO_INST);  // fold the F&O list into the instrument dropdown(s)
 const PLAN_COL = {Sun:'#ff7f0e',Moon:'#1e90ff',Mercury:'#2ca02c',Venus:'#ff69b4',Mars:'#d62728',Jupiter:'var(--neut2)',Saturn:'#1f3a93',Rahu:'var(--rahu)',Ketu:'#b5774f'};
 const PLAN_ORDER = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Rahu','Ketu'];
-const PLAN_RANGES = {'6mo':'6M','1y':'1Y','2y':'2Y','3y':'3Y','5y':'5Y'};
-const PLAN_YEARS = {'6mo':0.5,'1y':1,'2y':2,'3y':3,'5y':5};
+const PLAN_RANGES = {'6mo':'6M','1y':'1Y','2y':'2Y','3y':'3Y','5y':'5Y','10y':'10Y','15y':'15Y','max':'MAX'};
+const PLAN_YEARS = {'6mo':0.5,'1y':1,'2y':2,'3y':3,'5y':5,'10y':10,'15y':15,'max':30};   // 'max' = the whole baked history (1998/2000 →)
 const PLAN_DAYMS=86400000;
 
 function planInstKey(){ return S.planInst || 'NIFTY 50'; }
@@ -9680,7 +9680,8 @@ async function planFetchOHLC(sym, range){
     const nse=await dsNseDaily(sym, from, dsIstToday());
     if(nse) return nse.map(r=>({date:r.date, ms:planMs(r.date), o:r.o, h:r.h, l:r.l, c:r.c, live:r.live||undefined}));
   }
-  const yrs=PLAN_YEARS[range]||3; const p2=Math.floor(Date.now()/1000); const p1=p2-Math.round(yrs*365.25*86400);
+  const yrs=PLAN_YEARS[range]||3; const p2=Math.floor(Date.now()/1000);
+  const p1=Math.max(RE_HISTORY_START_TS, p2-Math.round(yrs*365.25*86400));
   const target=`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?period1=${p1}&period2=${p2}&interval=1d`;
   let lastErr='';
   for(let pi=0; pi<PROXIES.length; pi++){
