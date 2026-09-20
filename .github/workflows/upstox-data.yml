@@ -70,10 +70,14 @@ jobs:
           UPSTOX_ACCESS_TOKEN: ${{ secrets.UPSTOX_ACCESS_TOKEN }}
         run: python scripts/fetch_upstox.py --stocks "${{ inputs.stocks || 'all' }}" --intraday "${{ inputs.intraday || 'NIFTY,BANKNIFTY' }}"
 
-      - name: Bake Yahoo dailies (Gold, Silver, commodities, US indices)
-        # Public endpoint, no credential. Never fatal: the NSE bake above is
-        # what this job is for, and the page falls back to a relay if absent.
+      - name: Bake Yahoo daily + hourly + 5-minute (Gold, Silver, commodities, US indices)
+        # Public endpoint, no credential. Writes data/yahoo/<KEY>.json (full
+        # daily history), _60m.json (730d) and _5m.json (60d) — the intraday
+        # pair is what lets Overview, Timing and the intraday backtest work on
+        # DOW/SPX/NASDAQ and the commodities at all. Never fatal: the NSE bake
+        # above is what this job is for, and each interval fails on its own.
         continue-on-error: true
+        timeout-minutes: 15
         run: python scripts/fetch_yahoo.py
 
       - uses: actions/setup-node@v4

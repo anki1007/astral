@@ -14,6 +14,24 @@ same-origin and only falls back to a relay for bars newer than the bake.
 
 No credential is involved: Yahoo's chart endpoint is public.
 
+WHAT IT WRITES
+--------------
+    data/yahoo/<KEY>.json        daily,    full history, rows [date,o,h,l,c,v]
+    data/yahoo/<KEY>_60m.json    hourly,   last 730d,    rows ["YYYY-MM-DD HH:MM",o,h,l,c,v]
+    data/yahoo/<KEY>_5m.json     5-minute, last 60d,     rows ["YYYY-MM-DD HH:MM",o,h,l,c,v]
+    data/yahoo/_index.json       per instrument per interval: from / to / count
+
+Row index 5 is VOLUME, 0 when the feed does not report one. Cash indices and
+index futures routinely report 0 on intraday bars; that is "no volume", not an
+error. Every existing reader indexes [0..4] only, so appending it is safe.
+
+Intraday stamps are EXCHANGE-LOCAL wall clock (from meta.gmtoffset), matching
+the IST convention of the NSE 5-minute shards, so one client-side parser
+serves both stores.
+
+Yahoo's own ceilings, verified: interval=5m accepts range up to 60d, 60m up to
+730d, 1d the full history. Asking for more is refused outright, not truncated.
+
 USAGE
     python scripts/fetch_yahoo.py            # every instrument below
     python scripts/fetch_yahoo.py GOLD,SPX   # a subset
@@ -78,23 +96,25 @@ def get(url, tries=4):
     raise RuntimeError(f"gave up after {tries} attempts")
 
 
-def bars_for(sym):
-    now = int(time.time())
-    url = (f"https://query2.finance.yahoo.com/v8/finance/chart/{quote(sym, safe='')}"
-           f"?period1={START_TS}&period2={now}&interval=1d&events=div%2Csplit")
-    j = get(url)
-    res = ((j or {}).get("chart") or {}).get("result") or []
-    if not res:
-        err = ((j or {}).get("chart") or {}).get("error") or {}
-        raise RuntimeError(err.get("description") or "no result")
-    r = res[0]
-    # Date each bar on the exchange's own calendar, not UTC: a New York
-    # session stamped 09:30 EDT is 13:30 UTC, but futures sessions open the
-    # previous evening, so the exchange offset is what names the day.
+# interval -> (Yahoo range parameter, output filename suffix). Daily is fetched
+# with explicit period1/period2 instead, because range=max is not honoured for
+# every one of these symbols.
+INTRADAY = [("60m", "730d", "_60m"), ("5m", "60d", "_5m")]
+
+
+def _parse(r, intraday):
+    """One Yahoo chart result -> compact rows, deduped and sorted.
+
+    Every bar is named on the EXCHANGE's own calendar, not UTC: a New York
+    session stamped 09:30 EDT is 13:30 UTC, and futures sessions open the
+    previous evening, so the exchange offset is what names the day — and, for
+    intraday, the wall-clock minute a trader would recognise.
+    """
     off = int((r.get("meta") or {}).get("gmtoffset") or 0)
     ts = r.get("timestamp") or []
     q = ((r.get("indicators") or {}).get("quote") or [{}])[0]
-    out, seen = [], set()
+    vol = q.get("volume") or []
+    out, seen = [], {}
     for i, t in enumerate(ts):
         try:
             o, h, l, c = (float(q["open"][i]), float(q["high"][i]),
@@ -103,13 +123,48 @@ def bars_for(sym):
             continue
         if min(o, h, l, c) <= 0 or h < l:
             continue
-        d = datetime.fromtimestamp(t + off, tz=timezone.utc).date().isoformat()
-        if d in seen:                     # Yahoo repeats the running bar
-            out = [x for x in out if x[0] != d]
-        seen.add(d)
-        out.append([d, round(o, 4), round(h, 4), round(l, 4), round(c, 4)])
+        try:
+            v = int(vol[i] or 0)
+        except (TypeError, ValueError, IndexError):
+            v = 0                       # indices and futures often report none
+        dt = datetime.fromtimestamp(t + off, tz=timezone.utc)
+        k = dt.strftime("%Y-%m-%d %H:%M") if intraday else dt.date().isoformat()
+        row = [k, round(o, 4), round(h, 4), round(l, 4), round(c, 4), max(v, 0)]
+        if k in seen:                   # Yahoo repeats the running bar
+            out[seen[k]] = row
+            continue
+        seen[k] = len(out)
+        out.append(row)
     out.sort(key=lambda x: x[0])
     return out
+
+
+def bars_for(sym, interval="1d", rng=None):
+    base = (f"https://query2.finance.yahoo.com/v8/finance/chart/{quote(sym, safe='')}"
+            f"?interval={interval}")
+    if rng:
+        url = f"{base}&range={rng}"
+    else:
+        url = f"{base}&period1={START_TS}&period2={int(time.time())}&events=div%2Csplit"
+    j = get(url)
+    res = ((j or {}).get("chart") or {}).get("result") or []
+    if not res:
+        err = ((j or {}).get("chart") or {}).get("error") or {}
+        raise RuntimeError(err.get("description") or "no result")
+    return _parse(res[0], intraday=(interval not in ("1d", "1wk", "1mo")))
+
+
+def write_series(key, sym, interval, suffix, rows, floor):
+    if len(rows) < floor:
+        raise RuntimeError(f"only {len(rows)} bars")
+    path = os.path.join(OUT_DIR, f"{key}{suffix}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"symbol": key, "yahoo": sym, "interval": interval, "source": "yahoo",
+                   "from": rows[0][0], "to": rows[-1][0], "count": len(rows),
+                   "bars": rows}, f, separators=(",", ":"))
+    kb = os.path.getsize(path) // 1024
+    print(f"{key:<8} {interval:<4} {len(rows):>7} bars  {rows[0][0]} -> {rows[-1][0]}  ({kb} KB)")
+    return {"from": rows[0][0], "to": rows[-1][0], "count": len(rows)}
 
 
 def main():
@@ -122,26 +177,35 @@ def main():
         if not sym:
             failures.append(f"{k}: unknown key")
             continue
+        # Each interval stands alone: an intraday refusal must not cost the
+        # daily history, which is what almost every panel actually reads.
+        entry = {"yahoo": sym}
         try:
-            rows = bars_for(sym)
-            if len(rows) < 100:
-                raise RuntimeError(f"only {len(rows)} bars")
-            with open(os.path.join(OUT_DIR, f"{k}.json"), "w", encoding="utf-8") as f:
-                json.dump({"symbol": k, "yahoo": sym, "interval": "1d", "source": "yahoo",
-                           "from": rows[0][0], "to": rows[-1][0], "count": len(rows),
-                           "bars": rows}, f, separators=(",", ":"))
-            manifest[k] = {"yahoo": sym, "from": rows[0][0], "to": rows[-1][0], "count": len(rows)}
-            print(f"{k:<8} {sym:<6} {len(rows):>6} bars  {rows[0][0]} -> {rows[-1][0]}")
-        except Exception as e:                   # one bad symbol must not kill the run
-            failures.append(f"{k}: {e}")
-            print(f"{k:<8} FAILED: {e}", file=sys.stderr)
+            entry["1d"] = write_series(k, sym, "1d", "", bars_for(sym), 100)
+        except Exception as e:
+            failures.append(f"{k} 1d: {e}")
+            print(f"{k:<8} 1d   FAILED: {e}", file=sys.stderr)
+        for interval, rng, suffix in INTRADAY:
+            time.sleep(1.0)
+            try:
+                entry[interval] = write_series(k, sym, interval, suffix,
+                                               bars_for(sym, interval, rng), 50)
+            except Exception as e:
+                failures.append(f"{k} {interval}: {e}")
+                print(f"{k:<8} {interval:<4} FAILED: {e}", file=sys.stderr)
+        if len(entry) > 1:
+            manifest[k] = entry
         time.sleep(1.0)
     with open(os.path.join(OUT_DIR, "_index.json"), "w", encoding="utf-8") as f:
         json.dump({"generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                   "source": "yahoo v8 chart (daily)", "instruments": manifest,
-                   "failures": failures}, f, indent=1)
+                   "source": "yahoo v8 chart (1d full / 60m 730d / 5m 60d)",
+                   "row": ["date-or-datetime", "o", "h", "l", "c", "v"],
+                   "instruments": manifest, "failures": failures}, f, indent=1)
+    got = sum(len(v) - 1 for v in manifest.values())
+    print(f"\nbaked {got} series across {len(manifest)}/{len(keys)} instruments"
+          + (f", {len(failures)} failure(s)" if failures else ""))
     if not manifest:
-        sys.exit("nothing baked — every symbol failed")
+        sys.exit("nothing baked - every symbol failed")
 
 
 if __name__ == "__main__":

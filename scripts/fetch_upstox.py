@@ -18,6 +18,13 @@ instrument in the app.
 USAGE
     UPSTOX_ACCESS_TOKEN=... python scripts/fetch_upstox.py
     UPSTOX_ACCESS_TOKEN=... python scripts/fetch_upstox.py --stocks RELIANCE,TCS
+
+ROW SHAPE
+---------
+Daily rows are [date, o, h, l, c, v]: index 5 is VOLUME, 0 when unknown. It is
+appended, never inserted, because every reader in the page indexes [0..4] and
+must keep working untouched. scripts/fetch_yahoo.py writes the same six-column
+daily row, so the two stores are interchangeable column for column.
 """
 
 import argparse
@@ -140,6 +147,15 @@ def _ohlc(c):
     return o, h, l, cl
 
 
+def _vol(c):
+    """Upstox candles carry volume at index 5 (open interest at 6). Indices
+    report none, so an absent or unparseable figure is 0, not a failure."""
+    try:
+        return max(int(float(c[5])), 0)
+    except (TypeError, ValueError, IndexError):
+        return 0
+
+
 def intraday_rows(key: str, tok: str):
     """The CURRENT session's 5-minute candles, oldest first, as compact rows.
 
@@ -166,7 +182,7 @@ def intraday_rows(key: str, tok: str):
 
 
 def session_bar(key: str, tok: str, five=None):
-    """Today's DAILY candle [date, o, h, l, c], or None before the first print.
+    """Today's DAILY candle [date, o, h, l, c, v], or None before the first print.
 
     Asked of the intraday endpoint at days/1 first; if that unit is refused the
     same bar is rebuilt from the 5-minute candles, which is exact for OHLC.
@@ -176,7 +192,7 @@ def session_bar(key: str, tok: str, five=None):
         for c in (j.get("data") or {}).get("candles") or []:
             v = _ohlc(c)
             if v is not None:
-                return [str(c[0])[:10]] + [round(x, 2) for x in v]
+                return [str(c[0])[:10]] + [round(x, 2) for x in v] + [_vol(c)]
     except Exception:
         pass
     five = five if five is not None else intraday_rows(key, tok)
@@ -184,7 +200,9 @@ def session_bar(key: str, tok: str, five=None):
         return None
     day = five[-1][0][:10]
     rows = [r for r in five if r[0][:10] == day]
-    return [day, rows[0][1], max(r[2] for r in rows), min(r[3] for r in rows), rows[-1][4]]
+    # Rebuilt from 5-minute bars, which this script keeps OHLC-only, so the
+    # session's volume is not recoverable here: 0 means unknown, as documented.
+    return [day, rows[0][1], max(r[2] for r in rows), min(r[3] for r in rows), rows[-1][4], 0]
 
 
 def candles(key: str, unit: str, interval: str, start: str, tok: str):
@@ -225,8 +243,9 @@ def candles(key: str, unit: str, interval: str, start: str, tok: str):
             continue
         if cl <= 0:
             continue
-        # compact rows: [date, o, h, l, c] — objects would triple the file size
-        asc.append([d, round(o, 2), round(h, 2), round(l, 2), round(cl, 2)])
+        # compact rows: [date, o, h, l, c, v] — objects would triple the file
+        # size. Index 5 is volume, 0 when the feed reports none (indices do).
+        asc.append([d, round(o, 2), round(h, 2), round(l, 2), round(cl, 2), _vol(c)])
 
     # The session that is trading or has just closed - see intraday_rows().
     # Run mid-session this bar is partial; it heals itself, because the next

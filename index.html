@@ -10983,9 +10983,12 @@ async function ovbcLoadPrice(force){
   // chart resamples to the selected interval, so anything at or above 5m is
   // served without touching Yahoo; 1m is finer than the bake and still falls
   // through. Keeps the Overview on broker data for Indian instruments.
+  // Gate is dsHasBake, not dsIsNSE: Gold, the US indices and the commodities
+  // are baked too now (data/yahoo/<KEY>_5m.json), and they were the names
+  // paying the full CORS-relay cost on every Overview repaint.
   {
     const uk=dsKeyForYahooSym(syms[0]) || (RE_UNIV[ovInstKey()]?ovInstKey():null);
-    if(uk && dsIsNSE(uk) && iv>=5){
+    if(uk && dsHasBake(uk) && iv>=5){
       try{
         // The weekly shards stop at the last bake, so today and the few days
         // after it come from the 15-minute snapshot instead. Without this the
@@ -11020,7 +11023,8 @@ async function ovbcLoadPrice(force){
             }
             const bars=[...bucket.values()].sort((a,b)=>a.m-b.m);
             if(bars.length>=2){
-              window.OVBC={key,bars,status:'ready',err:'',note:'Upstox (baked 5-min)'};
+              window.OVBC={key,bars,status:'ready',err:'',
+                           note:(DS_YAHOO_ONLY.has(uk)?'Yahoo':'Upstox')+' (baked 5-min)'};
               const hh=document.getElementById('ovbcHost'); if(hh&&DATA) hh.innerHTML=ovBiasChart(DATA);
               return;
             }
@@ -12241,15 +12245,133 @@ function ovePanelHTML(){
 
 const OVV_LAMBDA = 0.80, OVV_MEDWIN = 60, OVV_TRAILWIN = 250;
 
-/* Measured on baked Upstox history, 2010-01-01 .. 2026-08-14, per instrument.
-   acc = how often the call was right; base = how often always-calling the
-   majority class would have been right. The gap between them is the skill. */
-const OVV_STATS = {
-  NIFTY:{'VERY HIGH':{n:395,acc:0.7747,lo:0.7309,hi:0.8131,base:0.7722},HIGH:{n:776,acc:0.6443,lo:0.6100,hi:0.6772,base:0.5245},MODERATE:{n:1261,acc:0.6519,lo:0.6251,hi:0.6777,base:0.5773},LOW:{n:1691,acc:0.5441,lo:0.5202,hi:0.5677,base:0.5517}},
-  BANKNIFTY:{'VERY HIGH':{n:405,acc:0.8148,lo:0.7741,hi:0.8496,base:0.8074},HIGH:{n:785,acc:0.7057,lo:0.6729,hi:0.7365,base:0.5363},MODERATE:{n:1228,acc:0.6279,lo:0.6005,hi:0.6544,base:0.5635},LOW:{n:1705,acc:0.5443,lo:0.5206,hi:0.5678,base:0.5736}},
-  SENSEX:{'VERY HIGH':{n:422,acc:0.7583,lo:0.7152,hi:0.7967,base:0.7583},HIGH:{n:757,acc:0.6499,lo:0.6153,hi:0.6831,base:0.5416},MODERATE:{n:1261,acc:0.6146,lo:0.5874,hi:0.6411,base:0.5797},LOW:{n:1683,acc:0.5330,lo:0.5091,hi:0.5567,base:0.5550}},
-  FINNIFTY:{'VERY HIGH':{n:367,acc:0.8311,lo:0.7893,hi:0.8659,base:0.8311},HIGH:{n:730,acc:0.6877,lo:0.6531,hi:0.7202,base:0.5260},MODERATE:{n:1103,acc:0.6337,lo:0.6049,hi:0.6616,base:0.5775},LOW:{n:1922,acc:0.6681,lo:0.6467,hi:0.6888,base:0.6904}}
-};
+/* The accuracy figures used to be a table of four numbers frozen from one NSE
+   study, which is why the panel could only speak about Nifty, Bank Nifty,
+   Sensex and Fin Nifty and had to refuse every other instrument. They are now
+   MEASURED, per instrument, from that instrument's own baked history, at the
+   moment the panel first asks for it, and cached for the session.
+
+   That also removes the standing risk in a frozen table: it could not tell you
+   when an instrument's edge had decayed, because it was not looking. */
+
+function ovvNormCdf(z){
+  // Abramowitz & Stegun 7.1.26 — plenty for a p-value quoted to four places.
+  const s=z<0?-1:1, x=Math.abs(z)/Math.SQRT2, t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+  return 0.5*(1+s*y);
+}
+/* Wilson score interval — behaves at the edges where the normal interval does
+   not, and is what the shipped table's CI column was. */
+function ovvWilson(k,n){
+  if(!(n>0)) return [0,0];
+  const z=1.959964, p=k/n, d=1+z*z/n;
+  const c=(p+z*z/(2*n))/d, h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/d;
+  return [Math.max(0,c-h), Math.min(1,c+h)];
+}
+/* One-sided binomial test of `k of n` against base rate p0, normal
+   approximation with a continuity correction. n here is in the hundreds to
+   thousands, where that approximation and the exact test agree to well past
+   the 0.05 the UI cares about. */
+function ovvBinomP(k,n,p0){
+  if(!(n>0) || !(p0>0) || !(p0<1)) return 1;
+  const sd=Math.sqrt(n*p0*(1-p0));
+  if(!(sd>0)) return 1;
+  return Math.max(0, Math.min(1, 1-ovvNormCdf((k-0.5-n*p0)/sd)));
+}
+
+function ovvPack(e){
+  const acc=e.hit/e.n, pv=e.vol/e.n, base=Math.max(pv,1-pv), ci=ovvWilson(e.hit,e.n);
+  return {n:e.n, acc, lo:ci[0], hi:ci[1], base, baseVol:pv,
+          edge:acc-base, p:ovvBinomP(e.hit,e.n,base)};
+}
+
+/* Walk-forward grading of the engine on one daily series.
+
+   ovvSeries is causal by construction — sig[i] is built from the EWMA through
+   bar i-1 and the median of bars i-60..i-1 — so walking the array forward IS
+   the walk-forward test: at every session the call is formed from data
+   available up to that point only. The outcome graded against it is that
+   session's own range versus its own trailing 60-session median, which is the
+   exact target the live panel names. No bar later than the one being graded is
+   read anywhere in here.
+
+   `base` is the majority class on the same sessions — the accuracy an
+   always-volatile (or always-quiet, whichever wins) rule would have scored.
+   That is the honest bar to clear, and the gap to it is the only skill. */
+function ovvGrade(bars){
+  const s=ovvSeries(bars), n=bars.length;
+  const bands={}, tot={n:0,hit:0,vol:0};
+  for(let i=OVV_MEDWIN+OVV_TRAILWIN;i<n;i++){
+    if(isNaN(s.sig[i]) || isNaN(s.pct[i]) || isNaN(s.med[i])) continue;
+    const up=s.rg[i]>s.med[i];          // what the session actually did
+    const call=s.sig[i]>0;              // what the engine said, before seeing it
+    const b=ovvBand(s.pct[i]);
+    const e=bands[b] || (bands[b]={n:0,hit:0,vol:0});
+    e.n++; tot.n++;
+    if(up){ e.vol++; tot.vol++; }
+    if(call===up){ e.hit++; tot.hit++; }
+  }
+  if(!tot.n) return null;
+  const out={total:ovvPack(tot)};
+  for(const b of ['VERY HIGH','HIGH','MODERATE','LOW']) if(bands[b]) out[b]=ovvPack(bands[b]);
+  return out;
+}
+
+/* Intraday bars -> one OHLC bar per session. Same instrument, same target, but
+   the high and low come from the bars actually traded rather than from the
+   daily feed's own print — which is the "intraday range" variant, and it is
+   labelled as such wherever it is shown because it is a different measurement,
+   not a better one. */
+function ovvDailyFromIntra(rows){
+  const out=[]; let cur=null;
+  for(const b of rows){
+    if(!(b.h>0) || !(b.l>0) || b.h<b.l) continue;
+    if(!cur || cur.date!==b.date){ cur={t:b.date, date:b.date, o:b.o, h:b.h, l:b.l, c:b.c}; out.push(cur); }
+    else { cur.h=Math.max(cur.h,b.h); cur.l=Math.min(cur.l,b.l); cur.c=b.c; }
+  }
+  return out;
+}
+
+/* Enough graded sessions for the measurement to mean anything. Below this the
+   panel says so instead of quoting a number. */
+const OVV_MIN_N = 200;
+
+const OVV_MEASURED = {};                 // instKey -> measurement | null
+async function ovvMeasure(instKey){
+  if(OVV_MEASURED[instKey]!==undefined) return OVV_MEASURED[instKey];
+  let out=null;
+  try{
+    const bars=await dsBaked(instKey);
+    if(bars && bars.length>OVV_MEDWIN+OVV_TRAILWIN+5){
+      const g=ovvGrade(bars);
+      if(g) out={bands:g, from:bars[0].date, to:bars[bars.length-1].date,
+                 nBars:bars.length, src:'daily range', intra:null};
+    }
+  }catch(e){ out=null; }
+  if(out){
+    // Intraday variant where intraday bars exist: NSE 5-minute year shards, or
+    // the Yahoo 5m / 60m bake. Take whichever yields the most graded sessions
+    // — for Yahoo that is 60m (730 days) rather than 5m (60 days).
+    try{
+      const steps=(typeof DS_YAHOO_ONLY!=='undefined' && DS_YAHOO_ONLY.has(instKey))?['60','5']:['5'];
+      let best=null;
+      for(const st of steps){
+        const rows=await dsBakedIntraday(instKey, null, st);
+        if(!rows || !rows.length) continue;
+        const d=ovvDailyFromIntra(rows);
+        if(d.length<=OVV_MEDWIN+OVV_TRAILWIN+5) continue;
+        const g=ovvGrade(d);
+        if(g && (!best || g.total.n>best.bands.total.n))
+          best={bands:g, from:d[0].date, to:d[d.length-1].date, nBars:d.length,
+                src:'intraday range', label:(st==='5'?'5-minute':'60-minute')+' bars'};
+      }
+      out.intra=best;
+    }catch(e){ out.intra=null; }
+  }
+  OVV_MEASURED[instKey]=out;
+  return out;
+}
+window.ovvMeasure=ovvMeasure;
 
 function ovvBand(pct){
   if(pct==null) return null;
@@ -12290,7 +12412,7 @@ function ovvSeries(bars){
 
 /* The live call for `dateISO`. Returns null when the date is not a session or
    there is not yet enough history behind it to rank conviction. */
-function ovvCall(bars, dateISO, instKey){
+function ovvCall(bars, dateISO, instKey, meas){
   if(!bars || bars.length<OVV_MEDWIN+OVV_TRAILWIN+5) return null;
   const s=ovvSeries(bars);
   let i=-1;
@@ -12298,7 +12420,11 @@ function ovvCall(bars, dateISO, instKey){
   if(i<0 || isNaN(s.sig[i]) || isNaN(s.pct[i])) return null;
 
   const band=ovvBand(s.pct[i]);
-  const st=(OVV_STATS[instKey]||OVV_STATS.NIFTY)[band];
+  // Band stats from THIS instrument's own walk-forward measurement; the total
+  // stands in for a band too thin to have been measured on its own.
+  const B=(meas&&meas.bands)||null;
+  const st=B ? (B[band]||B.total) : null;
+  if(!st) return null;
   const expand=s.sig[i]>0;
   return {
     date:bars[i].date, forDate:dateISO, sig:s.sig[i], pct:s.pct[i], band,
@@ -12306,31 +12432,50 @@ function ovvCall(bars, dateISO, instKey){
     label: expand?'VOLATILE — range likely above its 60-day median'
                  :'QUIET — range likely below its 60-day median',
     acc:st.acc, lo:st.lo, hi:st.hi, base:st.base, n:st.n,
-    skill: st.acc-st.base,
-    // Below the 40th percentile of conviction the measured accuracy does not
-    // beat the majority class, so the honest output is no output.
-    abstain: band==='LOW',
+    skill: st.edge, p:st.p,
+    meas, instKey,
+    instLabel: ((typeof RE_UNIV!=='undefined' && RE_UNIV[instKey] && RE_UNIV[instKey].label) || instKey),
+    thin: meas.bands.total.n < OVV_MIN_N,
+    proven: st.edge>0 && st.p<0.05,
+    // The old rule abstained in the bottom conviction band because that is
+    // where the NSE study found no skill. The band is still shown, but the
+    // reason to abstain is now this instrument's own measurement.
+    abstain: band==='LOW' || !(st.edge>0 && st.p<0.05),
     medRange:s.med[i], ewRange:s.sig[i]+s.med[i]
   };
 }
 
 /* The Overview picker speaks PLAN_INST labels; the baked store speaks RE_UNIV
-   keys. Only the four indices with a measured stats table are eligible — for
-   anything else the panel stays absent rather than quoting Nifty's numbers at
-   an instrument they were not measured on. */
-const OVV_MAP = {'NIFTY 50':'NIFTY','BANK NIFTY':'BANKNIFTY','SENSEX':'SENSEX','FINNIFTY':'FINNIFTY'};
+   keys. Every instrument with a baked daily history is now eligible, because
+   every one of them is measured on its own history — the reason to refuse
+   was never the instrument, it was the missing measurement.
+
+   A function rather than a const: PLAN_INST and the router's helpers are
+   defined further down this file, so a table built at parse time here would
+   see none of them. */
+const OVV_FIXED = {'NIFTY 50':'NIFTY','BANK NIFTY':'BANKNIFTY','SENSEX':'SENSEX','FINNIFTY':'FINNIFTY'};
+function ovvKeyFor(label){
+  if(OVV_FIXED[label]) return OVV_FIXED[label];
+  try{
+    const sym=(typeof PLAN_INST!=='undefined')&&PLAN_INST[label];
+    const k=sym&&(typeof dsKeyForYahooSym==='function')&&dsKeyForYahooSym(sym);
+    if(k && typeof dsHasBake==='function' && dsHasBake(k)) return k;
+  }catch(e){}
+  return null;
+}
+window.ovvKeyFor=ovvKeyFor;
 
 /* Fired after render: the Overview builds synchronously but bars arrive async,
    so the panel paints itself in once the history is there. */
 async function ovvEnsure(){
   const label=(typeof ovInstKey==='function')?ovInstKey():'';
-  const inst=OVV_MAP[label];
+  const inst=ovvKeyFor(label);
   const want=(inst||'?'+label)+'|'+S.date;
   if(window._OVV_KEY===want) return;
   window._OVV_KEY=want;
-  // The accuracy table was measured per instrument. Quoting Nifty's numbers on
-  // the Dow would be exactly the sin this whole exercise exists to avoid, so
-  // unsupported instruments get a reason rather than a silently missing panel.
+  // Every instrument is measured on its own history, so "unsupported" now
+  // means only that nothing is baked for it at all — never that the numbers
+  // belong to a different instrument.
   window._OVV_LAST = inst ? (await ovvFor(inst, S.date) || {unavailable:label})
                           : {unsupported:label};
   const el=document.getElementById('ovv-panel');
@@ -12345,7 +12490,8 @@ async function ovvFor(instKey, dateISO){
   let out=null;
   try{
     const bars=await dsBaked(instKey);
-    if(bars) out=ovvCall(bars, dateISO, instKey);
+    const meas=await ovvMeasure(instKey);
+    if(bars && meas) out=ovvCall(bars, dateISO, instKey, meas);
   }catch(e){ out=null; }
   OVV_CACHE[key]=out;
   return out;
@@ -12355,8 +12501,9 @@ function ovvPanelHTML(v){
   if(!v) return '';
   const note=(msg)=>`<div class="pnl"><div class="ph"><span class="dot" style="background:var(--tx3)"></span>
     ◈ VOLATILITY REGIME</div><div class="pb"><div style="font-size:11.5px;color:var(--tx3)">${msg}</div></div></div>`;
-  if(v.unsupported) return note(`Measured on Nifty 50, Bank Nifty, Sensex and Fin Nifty only —
-    the accuracy table is per-instrument and has not been established for ${reEsc(v.unsupported)}.`);
+  if(v.unsupported) return note(`No baked price history for ${reEsc(v.unsupported)}, so there is
+    nothing to measure this instrument's own accuracy on — and quoting another instrument's
+    numbers at it is exactly what this panel refuses to do.`);
   if(v.unavailable) return note(`Not enough baked history behind ${reEsc(v.unavailable)} yet —
     the call needs ${OVV_MEDWIN+OVV_TRAILWIN} prior sessions to rank its own conviction.`);
   const pc=x=>(x*100).toFixed(1)+'%';
@@ -12383,11 +12530,46 @@ function ovvPanelHTML(v){
              <div style="font-size:17px;font-weight:800;color:${skillCol}">${(v.skill*100>=0?'+':'')}${(v.skill*100).toFixed(1)} pts</div>
              <div style="font-size:10px;color:var(--tx3)">always-${v.call==='EXPANSION'?'volatile':'quiet'} = ${pc(v.base)}</div></div>
          </div>`}
+    ${ovvMeasHTML(v)}
     <div style="font-size:10.5px;color:var(--tx3);margin-top:9px;line-height:1.5">
       Driven by realised-range persistence, not by planetary aspects. The astro rulebook was
       tested against this same target and added nothing (−0.5 to −3.2 points), so it is
       deliberately not part of this call.</div>
   </div></div>`;
+}
+
+/* The provenance line. Everything in it comes from this instrument's own
+   walk-forward run, and when that run does not clear its base rate the line
+   says so in the same breath as the number — an unproven edge announced
+   quietly is the failure mode this panel exists to prevent. */
+function ovvMeasHTML(v){
+  const M=v.meas; if(!M || !M.bands) return '';
+  const pc=x=>(x*100).toFixed(1)+'%';
+  const pv=x=>x<0.0001?'&lt;0.0001':x.toFixed(4);
+  const pts=x=>((x*100>=0?'+':'')+(x*100).toFixed(1))+' pts';
+  const T=M.bands.total, name=reEsc(v.instLabel||v.instKey);
+  // Both baselines, always. "Always-volatile" is the one the target is named
+  // after; the majority class is whichever of the two constant rules scores
+  // higher, and it is the one the edge and the p-value are measured against,
+  // because beating the weaker of two constant rules is not skill.
+  const maj=(T.baseVol>=0.5?'volatile':'quiet');
+  let s=`<b style="color:var(--tx2)">${name}</b>: measured on its own history
+    (${M.from} → ${M.to}, n=${T.n}): accuracy <b>${pc(T.acc)}</b> vs always-volatile ${pc(T.baseVol)}
+    ${maj==='volatile'?'':`(majority class here is always-quiet, ${pc(T.base)})`}
+    · ${pts(T.edge)} over that majority class, p=${pv(T.p)} · ${M.src}, ${M.nBars} bars.`;
+  if(!(T.edge>0 && T.p<0.05))
+    s+=` That is <b>not above its own base rate</b> at p&lt;0.05 — on this instrument the call is
+        unproven, and should be read as a description of the recent range, not as an edge.`;
+  if(T.n<OVV_MIN_N)
+    s+=` Only ${T.n} graded sessions — under ${OVV_MIN_N}, so the accuracy table is
+        <b>not established</b> for ${name} yet.`;
+  if(M.intra){
+    const I=M.intra.bands.total;
+    s+=`<br>Intraday-range version (${M.intra.label}, ${M.intra.from} → ${M.intra.to}, n=${I.n}):
+        accuracy ${pc(I.acc)} vs always-volatile ${pc(I.baseVol)} (majority class ${pc(I.base)})
+        · ${pts(I.edge)}, p=${pv(I.p)}${(I.edge>0&&I.p<0.05)?'':' — <b>not proven</b>'}.`;
+  }
+  return `<div style="font-size:10.5px;color:var(--tx3);margin-top:9px;line-height:1.5">${s}</div>`;
 }
 
 
@@ -23316,33 +23498,59 @@ function dsChartPump(){
 }
 window.dsChartPump=dsChartPump;
 
-async function dsBakedIntraday(univKey, fromYear){
-  if(DS_INTRA[univKey]!==undefined && DS_INTRA_EP[univKey]===dsDayPart()) return DS_INTRA[univKey];
-  const oldI=DS_INTRA[univKey];
-  DS_INTRA_EP[univKey]=dsDayPart();   // shards change once a day: re-read per IST day-part, not per 5 min
+/* One baked intraday row -> the shape every intraday caller here expects.
+   The stamp is EXCHANGE-LOCAL wall clock in both stores — IST in the NSE
+   shards, New York / COMEX in the Yahoo files — so `hour` is the clock a
+   trader of that instrument reads, and `ts` is that wall clock pinned to UTC
+   so bars sort and window-clip consistently within one instrument. */
+function dsIntraRow(b){
+  const d=b[0].slice(0,10), hh=+b[0].slice(11,13)+(+b[0].slice(14,16))/60;
+  return {t:b[0], date:d, hour:hh, ts:Date.parse(d+'T'+b[0].slice(11,16)+':00Z'),
+          o:b[1],h:b[2],l:b[3],c:b[4],v:b[5]||0};
+}
+
+/* Yahoo will not serve intraday beyond 60 days at 5m or 730 at 60m, so there
+   is no long history to shard: scripts/fetch_yahoo.py writes ONE file per
+   interval, data/yahoo/<KEY>_5m.json and _60m.json. Same row shape as the NSE
+   year shards, so only the URL layout differs. */
+const DS_INTRA_SUFFIX = {'5':'_5m', '60':'_60m'};
+
+async function dsBakedIntraday(univKey, fromYear, step){
+  const st=String(step||'5');
+  // 5-minute keeps the bare key so every existing caller's cache entry, and
+  // the tail bookkeeping keyed on it, are untouched.
+  const ck=(st==='5')?univKey:univKey+'|'+st;
+  if(DS_INTRA[ck]!==undefined && DS_INTRA_EP[ck]===dsDayPart()) return DS_INTRA[ck];
+  const oldI=DS_INTRA[ck];
+  DS_INTRA_EP[ck]=dsDayPart();   // shards change once a day: re-read per IST day-part, not per 5 min
+  const yahoo=DS_YAHOO_ONLY.has(univKey), suffix=DS_INTRA_SUFFIX[st];
+  if(!suffix || (!yahoo && st!=='5')){ DS_INTRA[ck]=oldI||null; return DS_INTRA[ck]; }
   const nowY=dsIstNow().getUTCFullYear();
   const years=[]; for(let y=(fromYear||2022); y<=nowY; y++) years.push(y);
   const all=[];
   for(const src of DS_BAKED_SOURCES){
     all.length=0;
-    for(const y of years){
+    // Yahoo: one file. NSE: one file per calendar year, concatenated.
+    const urls=yahoo ? [src.url(univKey).replace(/\.json$/, suffix+'.json')]
+                     : years.map(y=>src.url(univKey).replace(/\.json$/, '_5m_'+y+'.json'));
+    for(const url of urls){
       try{
-        const url=src.url(univKey).replace(/\.json$/, '_5m_'+y+'.json');
         const r=await fetch(url,{cache:'no-cache'});
         if(!r.ok) continue;
         const j=await r.json();
-        for(const b of (j.bars||[])){
-          // "YYYY-MM-DD HH:MM" — the stamp is already IST wall clock
-          const d=b[0].slice(0,10), hh=+b[0].slice(11,13)+(+b[0].slice(14,16))/60;
-          all.push({t:b[0], date:d, hour:hh, ts:Date.parse(d+'T'+b[0].slice(11,16)+':00Z'),
-                    o:b[1],h:b[2],l:b[3],c:b[4]});
-        }
-      }catch(e){ /* try the next year */ }
+        for(const b of (j.bars||[])) all.push(dsIntraRow(b));
+      }catch(e){ /* try the next file */ }
     }
-    if(all.length>500){ window.DS.bakedFrom=src.name; DS_INTRA[univKey]=all.slice(); return DS_INTRA[univKey]; }
+    // 60 days of 5-minute US-index bars is ~4,700 rows, but a holiday-shortened
+    // window or a thin contract can come in well under the NSE shards' 500, so
+    // the single-file store is held to a floor it can actually clear.
+    if(all.length>(yahoo?200:500)){
+      all.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0);
+      window.DS.bakedFrom=src.name; DS_INTRA[ck]=all.slice(); return DS_INTRA[ck];
+    }
   }
-  DS_INTRA[univKey]=oldI||null;
-  return DS_INTRA[univKey];
+  DS_INTRA[ck]=oldI||null;
+  return DS_INTRA[ck];
 }
 window.dsBakedIntraday=dsBakedIntraday;
 
@@ -23416,13 +23624,19 @@ window.dsDailySeries=dsDailySeries;
 async function dsBars(univKey, unit, interval, fromDate, toDate, yahooFallback){
   const wantSplice = window.DS.mode!=='upstox';
   let staleRows=null;                  // baked rows that failed dsBakeCovers — last resort only
-  if(unit==='minutes' && String(interval)==='5' && window.DS.mode!=='yahoo'){
-    const intra=await dsBakedIntraday(univKey);
+  // 60-minute is served from the Yahoo bake as well as 5-minute; 'hours'/'1'
+  // is the same request spelled the other way, so both reach the same store.
+  const _step=(unit==='hours')?String((+interval||1)*60):String(interval);
+  if((unit==='minutes'||unit==='hours') && DS_INTRA_SUFFIX[_step] && window.DS.mode!=='yahoo'){
+    const intra=await dsBakedIntraday(univKey, null, _step);
     if(intra && intra.length){
       // today's 5-minute bars from the live snapshot, when later than the shard
       let full=intra;
       try{
-        const lv=await dsLiveIntraday(univKey), cutT=String(intra[intra.length-1].t).replace('T',' ').slice(0,16);
+        // Live tail is a 5-minute NSE snapshot: it has nothing to add to an
+        // hourly series, and nothing at all for a Yahoo-only instrument.
+        const lv=(_step==='5')?await dsLiveIntraday(univKey):null,
+              cutT=String(intra[intra.length-1].t).replace('T',' ').slice(0,16);
         const add=(lv||[]).filter(b=>String(b.t).replace('T',' ').slice(0,16)>cutT && b.date<=dsIstToday())
           .map(b=>({t:b.t, date:b.date, hour:b.hour, ts:Date.parse(b.date+'T'+String(b.t).slice(11,16)+':00Z'),
                     o:b.o, h:b.h, l:b.l, c:b.c, live:true}));
