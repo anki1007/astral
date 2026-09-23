@@ -28373,6 +28373,13 @@ const BM_DM_CATS=[
   ['move','DOWN','DOWN more than '+BM_MOVE+'%','var(--bear)'],
   ['revhi','BIG','CLOSED '+BM_REV+'%+ BELOW THE HIGH','var(--bear)'],
   ['revlo','BIG','CLOSED '+BM_REV+'%+ ABOVE THE LOW','var(--bull)']];
+/* the same four with the TRUE excursion in place of the closing position:
+   high down to a later low, low up to a later high, from intraday bars */
+const BM_DM_CATS_IV=[
+  ['move','UP','UP more than '+BM_MOVE+'%','var(--bull)'],
+  ['move','DOWN','DOWN more than '+BM_MOVE+'%','var(--bear)'],
+  ['ivhi','BIG','FELL '+BM_REV+'%+ FROM THE HIGH','var(--bear)'],
+  ['ivlo','BIG','ROSE '+BM_REV+'%+ OFF THE LOW','var(--bull)']];
 const BM_HB_PAGE=200;
 
 window.BM.dm = window.BM.dm || {rows:{}, done:0, want:0, busy:0, key:''};
@@ -28413,10 +28420,10 @@ function bmDMIdx(Rf){
 }
 function bmDMTestable(r){ return !!r && r.n>=BM_DM_MIN_N && r.nEp>=BM_MIN_EP; }
 /* every category's strongest testable lean for one day's sky, proven first */
-function bmDMCell(R,fr,sl){
+function bmDMCell(R,fr,sl,cats){
   const out=[];
   if(!sl) return out;
-  for(const spec of BM_DM_CATS){
+  for(const spec of (cats||BM_DM_CATS)){
     const c=spec[0], tg=spec[1], lab=spec[2], col=spec[3];
     let Rf=null; try{ Rf=bmFrBuild(R,fr,c); }catch(e){ Rf=null; }
     if(!Rf||Rf.unavail) continue;
@@ -28713,6 +28720,12 @@ const CAL_FWD_YEARS=2;
 const CAL_DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
 function calInst(){ const L=bmInsts(), k=S.calInst; return L.some(x=>x[0]===k)?k:bmInst(); }
+/* 'close' = how far price sat off the extreme at the bell, daily bars, 2000 on.
+   'swing' = the actual excursion off the extreme, intraday bars, 2022 on. */
+function calRev(){ return S.calRev==='swing' ? 'swing' : 'close'; }
+function calCats(){ return calRev()==='swing' ? BM_DM_CATS_IV : BM_DM_CATS; }
+function calPickRev(v){ S.calRev = (v==='swing'?'swing':''); calPaint(); calEnsure(); }
+window.calPickRev=calPickRev;
 function calMaxYM(){ const t=tnToday(); return (parseInt(t.slice(0,4),10)+CAL_FWD_YEARS)+'-'+t.slice(5,7); }
 function calYM(){
   let v=String(S.calYM||'');
@@ -28763,10 +28776,13 @@ function calHit(b,s){
   if(b.cat==='move') return b.tgt==='UP' ? s.mv>BM_MOVE : s.mv<-BM_MOVE;
   if(b.cat==='revhi') return s.gbHi!=null&&s.gbHi>=BM_REV;
   if(b.cat==='revlo') return s.gbLo!=null&&s.gbLo>=BM_REV;
+  /* the true excursion: only judgeable where intraday bars exist */
+  if(b.cat==='ivhi') return s.ivHi==null ? null : s.ivHi>=BM_REV;
+  if(b.cat==='ivlo') return s.ivLo==null ? null : s.ivLo>=BM_REV;
   return null;
 }
 /* does this bin point up or down, for colouring */
-function calUp(b){ return b && (b.cat==='revlo' || (b.cat==='move'&&b.tgt==='UP')); }
+function calUp(b){ return b && (b.cat==='revlo' || b.cat==='ivlo' || (b.cat==='move'&&b.tgt==='UP')); }
 /* the tint. Alpha tracks lift, capped low while the bin is unproven, because
    a strong-looking colour is a claim and an unproven bin has not earned one. */
 function calTint(b){
@@ -28783,6 +28799,8 @@ function calShort(b){
   if(b.cat==='move') return b.tgt==='UP' ? 'Up >'+BM_MOVE+'%' : 'Down >'+BM_MOVE+'%';
   if(b.cat==='revhi') return 'Closed '+BM_REV+'%+ under high';
   if(b.cat==='revlo') return 'Closed '+BM_REV+'%+ over low';
+  if(b.cat==='ivhi') return 'Fell '+BM_REV+'%+ from high';
+  if(b.cat==='ivlo') return 'Rose '+BM_REV+'%+ off low';
   return b.lab||'';
 }
 /* one day cell */
@@ -28793,7 +28811,7 @@ function calCell(k,R,fr,day,today){
   const wknd=day.col>=5;
   const sl = S_ ? S_.sl : (wknd?null:bmDMSky(ds,k,bmAy()));
   let cells=[];
-  try{ cells=bmDMCell(R,fr,sl)||[]; }catch(e){ cells=[]; }
+  try{ cells=bmDMCell(R,fr,sl,calCats())||[]; }catch(e){ cells=[]; }
   const b=cells[0], b2=cells[1];
   const tint=b?calTint(b):'transparent';
   const bord=(b&&b.r.proven)?'2px solid '+b.col:'1px solid var(--bd)';
@@ -28802,8 +28820,14 @@ function calCell(k,R,fr,day,today){
   if(S_){
     const mv=S_.mv, col=mv>0?'var(--bull)':mv<0?'var(--bear)':'var(--tx3)';
     if(!judge) act='';
-    const rev=[]; if(S_.gbHi!=null&&S_.gbHi>=BM_REV) rev.push('rev ↓'+S_.gbHi.toFixed(1)+'%');
-    if(S_.gbLo!=null&&S_.gbLo>=BM_REV) rev.push('rev ↑'+S_.gbLo.toFixed(1)+'%');
+    const rev=[];
+    if(calRev()==='swing'){
+      if(S_.ivHi!=null&&S_.ivHi>=BM_REV) rev.push('fell ↓'+S_.ivHi.toFixed(1)+'%');
+      if(S_.ivLo!=null&&S_.ivLo>=BM_REV) rev.push('rose ↑'+S_.ivLo.toFixed(1)+'%');
+    } else {
+      if(S_.gbHi!=null&&S_.gbHi>=BM_REV) rev.push('off high ↓'+S_.gbHi.toFixed(1)+'%');
+      if(S_.gbLo!=null&&S_.gbLo>=BM_REV) rev.push('off low ↑'+S_.gbLo.toFixed(1)+'%');
+    }
     act='<div style="font-size:10px;margin-top:2px"><b style="color:'+col+'">'+(mv>0?'+':'')+mv.toFixed(2)+'%</b>'
       +(rev.length?' <span style="color:var(--tx3)">'+rev.join(' ')+'</span>':'')
       +(judge?'':' <span style="color:var(--tx3)">so far</span>')+'</div>';
@@ -28851,7 +28875,7 @@ function calGridHTML(){
   let nJ=0, nH=0, nLean=0;
   for(const d of days){
     const s=calByDate(R).get(d.ds); if(!s || d.ds>=today) continue;
-    let cs=[]; try{ cs=bmDMCell(R,fr,s.sl)||[]; }catch(e){}
+    let cs=[]; try{ cs=bmDMCell(R,fr,s.sl,calCats())||[]; }catch(e){}
     if(!cs.length) continue;
     nLean++;
     const h=calHit(cs[0],s); if(h===null) continue;
@@ -28874,6 +28898,10 @@ function calGridHTML(){
     +'<button onclick="calGo(1)" title="next month" style="'+CAL_BTN+'">next \u203a</button>'
     +'<button onclick="calGo(12)" title="forward one year" style="'+CAL_BTN+'">\u00bb</button>'
     +'<button onclick="calToday()" style="'+CAL_BTN+'">this month</button>'
+    +'<select onchange="calPickRev(this.value)" title="Which definition of a reversal the cells use" style="font-size:11.5px;background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:3px;padding:3px 6px">'
+      +'<option value="close"'+(calRev()==='close'?' selected':'')+'>reversal = closed '+BM_REV+'%+ off the extreme (2000\u2192)</option>'
+      +'<option value="swing"'+(calRev()==='swing'?' selected':'')+'>reversal = swung '+BM_REV+'%+ from the extreme (2022\u2192)</option>'
+    +'</select>'
     +'<span style="font-size:10.5px;color:var(--tx3);margin-left:auto">framing: <b>'+reEsc(fr.short)+'</b> · change it in BIG-MOVE ANATOMY on Backtesting</span>'
     +'</div>';
   // seven columns is what a month is; below CAL_MIN_W the page scrolls it
@@ -28887,9 +28915,17 @@ function calGridHTML(){
     +'<div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.6">'+score
     +' <b>What the four categories actually test, since the names are easy to over-read:</b>'
     +' <i>Up >'+BM_MOVE+'%</i> and <i>Down >'+BM_MOVE+'%</i> are close against the previous close, so a session that'
-    +' ends −0.4% is NOT a "Down" day here. <i>Closed '+BM_REV+'%+ under the high</i> and <i>over the low</i> measure'
-    +' only where the close sits against the day\u2019s extreme \u2014 they say nothing about the path, so a day that'
-    +' ran up, faded and closed 0.7% off its high does not count, while a quiet drift that ends 1.1% under its high does.'
+    +' ends \u22120.4% is NOT a "Down" day here.'
+    +(calRev()==='swing'
+      ? ' <i>Fell '+BM_REV+'%+ from the high</i> is the day\u2019s high down to the lowest low recorded AFTER it, and'
+        +' <i>Rose '+BM_REV+'%+ off the low</i> is the low up to the highest high after it \u2014 the actual excursion,'
+        +' read from intraday bars, so the sequence is known. This is the stricter and more natural reading of'
+        +' \u201creversal\u201d, and it only exists from 2022, which is when the intraday history starts. Days before'
+        +' that cannot be marked and are left blank.'
+      : ' <i>Closed '+BM_REV+'%+ under the high</i> and <i>over the low</i> measure only where the close sits against'
+        +' the day\u2019s extreme \u2014 they say nothing about the path, so a day that ran up, faded and closed 0.7%'
+        +' off its high does not count, while a quiet drift that ends 1.1% under its high does. For the excursion'
+        +' instead \u2014 high down to a later low \u2014 switch the dropdown above to \u201cswung\u201d.')
     +' Today\u2019s session is shown but not marked until it closes.'
     +' A ✓ or ✗ beside a past lean is that one day, not evidence; the month fraction is what the leans are worth here.'
     +' The colour is the size of the historical match (rate \u00f7 baseline), not proof \u2014 only a \u2605 cell passed the full standard.'
