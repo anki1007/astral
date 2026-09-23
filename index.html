@@ -28365,11 +28365,14 @@ function bmPanelHTML(){
 
 const BM_DM_N=30;          // forward sessions per row
 const BM_DM_MIN_N=20;      // a bin must hold >=20 sessions before it may speak
+/* The label states the test. An earlier version said "BULLISH" for what is
+   actually "closed up more than 1%", which made a correct cross on a -0.36%
+   day look like a bug. */
 const BM_DM_CATS=[
-  ['move','UP','BULLISH','var(--bull)'],
-  ['move','DOWN','BEARISH','var(--bear)'],
-  ['revhi','BIG','REVERSAL FROM HIGH','var(--bear)'],
-  ['revlo','BIG','REVERSAL FROM LOW','var(--bull)']];
+  ['move','UP','UP more than '+BM_MOVE+'%','var(--bull)'],
+  ['move','DOWN','DOWN more than '+BM_MOVE+'%','var(--bear)'],
+  ['revhi','BIG','CLOSED '+BM_REV+'%+ BELOW THE HIGH','var(--bear)'],
+  ['revlo','BIG','CLOSED '+BM_REV+'%+ ABOVE THE LOW','var(--bull)']];
 const BM_HB_PAGE=200;
 
 window.BM.dm = window.BM.dm || {rows:{}, done:0, want:0, busy:0, key:''};
@@ -28753,31 +28756,40 @@ function calDays(ym){
   return out;
 }
 /* did the day actually do what the lean said? null when it cannot be judged */
-function calHit(lab,s){
-  if(!s) return null;
-  if(lab==='BULLISH') return s.mv>BM_MOVE;
-  if(lab==='BEARISH') return s.mv<-BM_MOVE;
-  if(lab==='REVERSAL FROM HIGH') return s.gbHi!=null&&s.gbHi>=BM_REV;
-  if(lab==='REVERSAL FROM LOW') return s.gbLo!=null&&s.gbLo>=BM_REV;
+/* Decided from the bin's own category and target, never from the words on
+   screen — matching on a display label is what let the two disagree. */
+function calHit(b,s){
+  if(!s||!b) return null;
+  if(b.cat==='move') return b.tgt==='UP' ? s.mv>BM_MOVE : s.mv<-BM_MOVE;
+  if(b.cat==='revhi') return s.gbHi!=null&&s.gbHi>=BM_REV;
+  if(b.cat==='revlo') return s.gbLo!=null&&s.gbLo>=BM_REV;
   return null;
 }
+/* does this bin point up or down, for colouring */
+function calUp(b){ return b && (b.cat==='revlo' || (b.cat==='move'&&b.tgt==='UP')); }
 /* the tint. Alpha tracks lift, capped low while the bin is unproven, because
    a strong-looking colour is a claim and an unproven bin has not earned one. */
 function calTint(b){
   const lift=(b&&b.r&&isFinite(b.r.lift))?b.r.lift:1;
-  const up=(b.lab==='BULLISH'||b.lab==='REVERSAL FROM LOW');
+  const up=calUp(b);
   // lift 1.0 -> barely there, 1.6 -> the cap. Unproven stops at .34 so a
   // proven bin, when one finally exists, still reads as a different thing.
   const a=Math.max(.05, Math.min(b.r.proven?.62:.34, (lift-1)*(b.r.proven?1.05:.58)));
   return 'rgba('+(up?'34,197,94':'239,68,68')+','+a.toFixed(3)+')';
 }
-function calShort(lab){
-  return lab==='BULLISH'?'Bullish':lab==='BEARISH'?'Bearish'
-       : lab==='REVERSAL FROM HIGH'?'Rev ↓ from high':lab==='REVERSAL FROM LOW'?'Rev ↑ from low':lab;
+/* short forms for the month grid, each still naming its threshold */
+function calShort(b){
+  if(!b) return '';
+  if(b.cat==='move') return b.tgt==='UP' ? 'Up >'+BM_MOVE+'%' : 'Down >'+BM_MOVE+'%';
+  if(b.cat==='revhi') return 'Closed '+BM_REV+'%+ under high';
+  if(b.cat==='revlo') return 'Closed '+BM_REV+'%+ over low';
+  return b.lab||'';
 }
 /* one day cell */
 function calCell(k,R,fr,day,today){
   const ds=day.ds, past=ds<today, S_=calByDate(R).get(ds);
+  /* a bar that is still forming cannot be marked right or wrong yet */
+  const judge = !!S_ && ds<today;
   const wknd=day.col>=5;
   const sl = S_ ? S_.sl : (wknd?null:bmDMSky(ds,k,bmAy()));
   let cells=[];
@@ -28789,16 +28801,18 @@ function calCell(k,R,fr,day,today){
   let act='';
   if(S_){
     const mv=S_.mv, col=mv>0?'var(--bull)':mv<0?'var(--bear)':'var(--tx3)';
+    if(!judge) act='';
     const rev=[]; if(S_.gbHi!=null&&S_.gbHi>=BM_REV) rev.push('rev ↓'+S_.gbHi.toFixed(1)+'%');
     if(S_.gbLo!=null&&S_.gbLo>=BM_REV) rev.push('rev ↑'+S_.gbLo.toFixed(1)+'%');
     act='<div style="font-size:10px;margin-top:2px"><b style="color:'+col+'">'+(mv>0?'+':'')+mv.toFixed(2)+'%</b>'
-      +(rev.length?' <span style="color:var(--tx3)">'+rev.join(' ')+'</span>':'')+'</div>';
+      +(rev.length?' <span style="color:var(--tx3)">'+rev.join(' ')+'</span>':'')
+      +(judge?'':' <span style="color:var(--tx3)">so far</span>')+'</div>';
   } else if(past && !wknd){
     act='<div style="font-size:10px;margin-top:2px;color:var(--tx3)">no session</div>';
   }
   const one=(x,first)=>{
     if(!x) return '';
-    const h=calHit(x.lab,S_);
+    const h=judge ? calHit(x,S_) : null;
     const mark=h===null?'':(h?' <span style="color:var(--bull)">✓</span>':' <span style="color:var(--bear)">✗</span>');
     const arg=s=>"'"+String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')+"'";
     const tip=x.body+' — '+String(x.t).slice(2)+' · '+x.lab+': '+bmPct(x.r.rate)+' of such days against a '
@@ -28808,7 +28822,7 @@ function calCell(k,R,fr,day,today){
     return '<div title="'+reEsc(tip)+'" onclick="event.stopPropagation();bmHBFrom('+reEsc(arg(k))+','+reEsc(arg(x.cat))+','+reEsc(arg(x.t))+')"'
       +' style="cursor:pointer;margin-top:3px;font-size:'+(first?'11px':'10px')+';line-height:1.3;'
       +'color:'+(x.r.proven?x.col:'var(--tx1)')+';font-weight:'+(x.r.proven?700:600)+'">'
-      +(x.r.proven?'★ ':'')+reEsc(calShort(x.lab))+mark
+      +(x.r.proven?'★ ':'')+reEsc(calShort(x))+mark
       +'<div style="font-size:9px;color:var(--tx3);font-weight:400">'+reEsc(x.body)+' '+reEsc(String(x.t).slice(2).replace(/^[^ ]+ /,''))
       +' · '+bmPct(x.r.rate)+' vs '+bmPct(x.r.base)+'</div></div>';
   };
@@ -28836,11 +28850,11 @@ function calGridHTML(){
   /* the month's own record: how often the top lean matched what happened */
   let nJ=0, nH=0, nLean=0;
   for(const d of days){
-    const s=calByDate(R).get(d.ds); if(!s) continue;
+    const s=calByDate(R).get(d.ds); if(!s || d.ds>=today) continue;
     let cs=[]; try{ cs=bmDMCell(R,fr,s.sl)||[]; }catch(e){}
     if(!cs.length) continue;
     nLean++;
-    const h=calHit(cs[0].lab,s); if(h===null) continue;
+    const h=calHit(cs[0],s); if(h===null) continue;
     nJ++; if(h) nH++;
   }
   const score = nJ
@@ -28871,6 +28885,12 @@ function calGridHTML(){
     +'<div style="overflow-x:auto">'+dow
     +'<div style="'+G+'">'+pad+cells+'</div></div>'
     +'<div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.6">'+score
+    +' <b>What the four categories actually test, since the names are easy to over-read:</b>'
+    +' <i>Up >'+BM_MOVE+'%</i> and <i>Down >'+BM_MOVE+'%</i> are close against the previous close, so a session that'
+    +' ends −0.4% is NOT a "Down" day here. <i>Closed '+BM_REV+'%+ under the high</i> and <i>over the low</i> measure'
+    +' only where the close sits against the day\u2019s extreme \u2014 they say nothing about the path, so a day that'
+    +' ran up, faded and closed 0.7% off its high does not count, while a quiet drift that ends 1.1% under its high does.'
+    +' Today\u2019s session is shown but not marked until it closes.'
     +' A ✓ or ✗ beside a past lean is that one day, not evidence; the month fraction is what the leans are worth here.'
     +' The colour is the size of the historical match (rate \u00f7 baseline), not proof \u2014 only a \u2605 cell passed the full standard.'
     +' Weekends are dimmed; exchange holidays are not modelled, so a future weekday can turn out to be a holiday.</div>'
