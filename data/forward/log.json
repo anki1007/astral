@@ -1936,7 +1936,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-09-23",
+    "o": 56209.65,
+    "c": 56548.9,
+    "prevClose": 56215.55,
+    "ccPct": 0.59,
+    "ocPct": 0.6,
+    "dir": 1,
+    "rangePct": 0.74,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "aside",
+     "techWithAstroFilter": "aside",
+     "astroAndTech": "aside",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 3,
    "turns": [
     {
@@ -2681,7 +2698,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-09-23",
+    "o": 23352.15,
+    "c": 23446.8,
+    "prevClose": 23329,
+    "ccPct": 0.5,
+    "ocPct": 0.41,
+    "dir": 1,
+    "rangePct": 0.5,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "aside",
+     "techWithAstroFilter": "aside",
+     "astroAndTech": "aside",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 3,
    "turns": [
     {
@@ -5349,6 +5383,190 @@
     }
    ],
    "daily": []
+  },
+  {
+   "id": "2026-09-30|BANKNIFTY",
+   "target": "2026-09-30",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-23T15:38:00.150Z",
+   "lastClose": 56548.9,
+   "lastDate": "2026-09-23",
+   "venue": {
+    "place": "Mumbai",
+    "openLocal": 9.25,
+    "hourIST": 9.25
+   },
+   "astro": {
+    "score": -51,
+    "band": "HIGH BEARISH",
+    "volatility": 1.3,
+    "turning": 4.9,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "SUN WITH VENUS",
+      "name": "Sun Semi-Sextile / Dwidwadash (2-12) Venus",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SUN WITH HERSCHEL",
+      "name": "Sun Trine (5-9) Herschel",
+      "dir": 1,
+      "w": 1.6
+     },
+     {
+      "sec": "IMPORTANT COMBINATION BETWEEN DAY AND NAKSHTRA",
+      "name": "Wednesday + Sun nakshatra (Krittika)",
+      "dir": 1,
+      "w": 1.6
+     }
+    ]
+   },
+   "tech": {
+    "net": 1,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "quiet",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "BANKNIFTY|astral|2026-09-29|2026-10-06|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-09-29",
+     "to": "2026-10-06",
+     "at": "2026-10-01..2026-10-04",
+     "proven": false
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-09-30|NIFTY",
+   "target": "2026-09-30",
+   "inst": "NIFTY",
+   "made": "2026-09-23T15:38:00.150Z",
+   "lastClose": 23446.8,
+   "lastDate": "2026-09-23",
+   "venue": {
+    "place": "Mumbai",
+    "openLocal": 9.25,
+    "hourIST": 9.25
+   },
+   "astro": {
+    "score": -51,
+    "band": "HIGH BEARISH",
+    "volatility": 1.3,
+    "turning": 4.9,
+    "top": [
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Ketu Right-Vedh: Magha → Ashlesha (MUTUAL — Strong)",
+      "dir": 1,
+      "w": 1.8
+     },
+     {
+      "sec": "SUN WITH VENUS",
+      "name": "Sun Semi-Sextile / Dwidwadash (2-12) Venus",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SUN WITH HERSCHEL",
+      "name": "Sun Trine (5-9) Herschel",
+      "dir": 1,
+      "w": 1.6
+     },
+     {
+      "sec": "IMPORTANT COMBINATION BETWEEN DAY AND NAKSHTRA",
+      "name": "Wednesday + Sun nakshatra (Krittika)",
+      "dir": 1,
+      "w": 1.6
+     }
+    ]
+   },
+   "tech": {
+    "net": 1,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level",
+     "5th day higher low formed — waiting for the previous high to break"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "quiet",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "NIFTY|astral|2026-09-29|2026-10-06|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-09-29",
+     "to": "2026-10-06",
+     "at": "2026-10-01..2026-10-04",
+     "proven": false
+    },
+    {
+     "id": "NIFTY|latlon|2026-09-22|2026-09-30|TURN",
+     "source": "latlon",
+     "type": "TURN",
+     "from": "2026-09-24",
+     "to": "2026-09-30",
+     "at": "2026-09-24..2026-09-28",
+     "proven": false
+    }
+   ],
+   "daily": []
   }
  ],
  "reversals": [
@@ -6388,6 +6606,33 @@
   {
    "source": "latlon",
    "inst": "NIFTY",
+   "made": "2026-09-23T15:38:00.150Z",
+   "asOf": "2026-09-23",
+   "at": "2026-09-24..2026-09-28",
+   "from": "2026-09-24",
+   "to": "2026-09-30",
+   "rawFrom": "2026-09-22",
+   "rawTo": "2026-09-30",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 31.7,
+   "days": [
+    "2026-09-24",
+    "2026-09-28"
+   ],
+   "reasons": [
+    "state label MAJOR TURN (not proven — past hits ≈ random chance)",
+    "Venus S-falling: 473/1485 days hit a ≥5% swing, 31.9% vs 25.4% chance, 70 of 132 swings were tops, 68 major (not proven — past hits ≈ random chance)",
+    "Mercury S-falling + Venus S-falling: 140/363 days hit a ≥5% swing, 38.6% vs 25.5% chance, 21 of 41 swings were tops, 20 major (not proven — past hits ≈ random chance)",
+    "Venus S-falling + Moon direct in Pisces: 56/130 days hit a ≥5% swing, 43.1% vs 26.7% chance, 26 of 37 swings were tops, 18 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NIFTY|latlon|2026-09-22|2026-09-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
    "made": "2026-09-19T19:58:53.970Z",
    "asOf": "2026-09-18",
    "at": "2026-09-28",
@@ -7203,6 +7448,46 @@
     "Venus S-rising + Venus in Swati: 23/44 days hit a ≥5% swing, 52.3% vs 22.9% chance, 3 of 6 swings were tops, 4 major (not proven — past hits ≈ random chance)"
    ],
    "id": "BANKNIFTY|latlon|2026-10-12|2026-11-05|MAJOR TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-23T15:38:00.150Z",
+   "asOf": "2026-09-23",
+   "at": "2026-10-14..2026-11-04",
+   "from": "2026-10-12",
+   "to": "2026-11-06",
+   "rawFrom": "2026-10-12",
+   "rawTo": "2026-11-06",
+   "type": "MAJOR TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 60,
+   "days": [
+    "2026-10-14",
+    "2026-10-15",
+    "2026-10-16",
+    "2026-10-19",
+    "2026-10-20",
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30",
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04"
+   ],
+   "reasons": [
+    "Venus S-rising + Jupiter N-rising: 161/392 days hit a ≥5% swing, 41.1% vs 29.4% chance, 20 of 44 swings were tops, 22 major",
+    "Mercury S-falling + Venus S-rising + Mars direct in Cancer: 38/55 days hit a ≥5% swing, 69.1% vs 38.5% chance, 5 of 11 swings were tops, 4 major (not proven — past hits ≈ random chance)",
+    "Venus S-rising + Venus in Swati: 23/44 days hit a ≥5% swing, 52.3% vs 22.9% chance, 3 of 6 swings were tops, 4 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "BANKNIFTY|latlon|2026-10-12|2026-11-06|MAJOR TURN",
    "graded": null
   },
   {
@@ -8512,6 +8797,52 @@
    ],
    "id": "SPX|astral|2026-10-28|2026-11-03|TURN",
    "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "BANKNIFTY",
+   "made": "2026-09-23T15:38:00.150Z",
+   "asOf": "2026-09-23",
+   "at": "2026-11-04",
+   "from": "2026-11-02",
+   "to": "2026-11-06",
+   "rawFrom": "2026-11-02",
+   "rawTo": "2026-11-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1645,
+    "rate": 0.671,
+    "base": 0.663
+   },
+   "reasons": [
+    "2026-11-04 Sun–Mercury conjunction at 17.5° Libra — a high/low within ±2 days is the book's major turning (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "BANKNIFTY|astral|2026-11-02|2026-11-06|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "NIFTY",
+   "made": "2026-09-23T15:38:00.150Z",
+   "asOf": "2026-09-23",
+   "at": "2026-11-04",
+   "from": "2026-11-02",
+   "to": "2026-11-06",
+   "rawFrom": "2026-11-02",
+   "rawTo": "2026-11-06",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1647,
+    "rate": 0.569,
+    "base": 0.568
+   },
+   "reasons": [
+    "2026-11-04 Sun–Mercury conjunction at 17.5° Libra — a high/low within ±2 days is the book's major turning (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "NIFTY|astral|2026-11-02|2026-11-06|TURN",
+   "graded": null
   }
  ],
  "runs": [
@@ -9810,6 +10141,165 @@
      "2026-09-25",
      "2026-09-28",
      "2026-09-29"
+    ],
+    "GOLD": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "SILVER": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "CRUDE": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "COPPER": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NATGAS": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "DOW": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
+  },
+  {
+   "at": "2026-09-23T15:38:00.150Z",
+   "target": "2026-09-24",
+   "added": 2,
+   "turnsAdded": 4,
+   "graded": 2,
+   "turnsGraded": 0,
+   "dailyAdded": 0,
+   "dailyGraded": 0,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-09-24",
+    "BANKNIFTY": "2026-09-24",
+    "GOLD": "2026-09-21",
+    "SILVER": "2026-09-21",
+    "CRUDE": "2026-09-21",
+    "COPPER": "2026-09-21",
+    "NATGAS": "2026-09-21",
+    "DOW": "2026-09-21",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 36619,
+     "latlon": 27402,
+     "daily": 27338,
+     "vr": 18858
+    },
+    "BANKNIFTY": {
+     "astral": 826,
+     "latlon": 2669,
+     "daily": 2606,
+     "vr": 319
+    },
+    "GOLD": {
+     "astral": 790,
+     "latlon": 2179,
+     "daily": 2670,
+     "vr": 360
+    },
+    "SILVER": {
+     "astral": 801,
+     "latlon": 2461,
+     "daily": 2547,
+     "vr": 446
+    },
+    "CRUDE": {
+     "astral": 783,
+     "latlon": 2573,
+     "daily": 2663,
+     "vr": 372
+    },
+    "COPPER": {
+     "astral": 774,
+     "latlon": 2420,
+     "daily": 3192,
+     "vr": 368
+    },
+    "NATGAS": {
+     "astral": 791,
+     "latlon": 2885,
+     "daily": 3318,
+     "vr": 375
+    },
+    "DOW": {
+     "astral": 3518,
+     "latlon": 3039,
+     "daily": 2925,
+     "vr": 386
+    },
+    "SPX": {
+     "astral": 862,
+     "latlon": 2606,
+     "daily": 3923,
+     "vr": 391
+    },
+    "NASDAQ": {
+     "astral": 878,
+     "latlon": 3586,
+     "daily": 3269,
+     "vr": 384
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-09-24",
+     "2026-09-25",
+     "2026-09-28",
+     "2026-09-29",
+     "2026-09-30"
+    ],
+    "BANKNIFTY": [
+     "2026-09-24",
+     "2026-09-25",
+     "2026-09-28",
+     "2026-09-29",
+     "2026-09-30"
     ],
     "GOLD": [
      "2026-09-21",
