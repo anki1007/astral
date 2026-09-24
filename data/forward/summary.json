@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generated": "2026-09-24T15:58:49.748Z",
+ "generated": "2026-09-24T18:24:20.648Z",
  "since": "2026-09-19",
  "lastGraded": "2026-09-24",
  "nDays": 4,
@@ -2666,11 +2666,11 @@
  ],
  "skyNote": "the book engine reads the sky at 09:15 IST of the session date for every instrument, US and commodities included; no US-session time is modelled",
  "lastRun": {
-  "at": "2026-09-24T15:55:17.021Z",
+  "at": "2026-09-24T18:21:02.347Z",
   "target": "2026-09-25",
-  "added": 2,
-  "turnsAdded": 2,
-  "graded": 2,
+  "added": 0,
+  "turnsAdded": 0,
+  "graded": 0,
   "turnsGraded": 0,
   "dailyAdded": 0,
   "dailyGraded": 0,
@@ -2690,64 +2690,64 @@
   },
   "ms": {
    "NIFTY": {
-    "astral": 36349,
-    "latlon": 27151,
-    "daily": 26820,
-    "vr": 18820
+    "astral": 36003,
+    "latlon": 27068,
+    "daily": 26887,
+    "vr": 18506
    },
    "BANKNIFTY": {
-    "astral": 867,
-    "latlon": 2666,
-    "daily": 2592,
-    "vr": 333
+    "astral": 819,
+    "latlon": 2510,
+    "daily": 2385,
+    "vr": 317
    },
    "GOLD": {
-    "astral": 780,
-    "latlon": 2167,
-    "daily": 2761,
-    "vr": 355
+    "astral": 771,
+    "latlon": 2071,
+    "daily": 2543,
+    "vr": 370
    },
    "SILVER": {
-    "astral": 793,
-    "latlon": 2510,
-    "daily": 2566,
-    "vr": 407
+    "astral": 789,
+    "latlon": 2373,
+    "daily": 2436,
+    "vr": 398
    },
    "CRUDE": {
-    "astral": 781,
-    "latlon": 2926,
-    "daily": 2537,
-    "vr": 386
+    "astral": 776,
+    "latlon": 2755,
+    "daily": 2709,
+    "vr": 418
    },
    "COPPER": {
-    "astral": 770,
-    "latlon": 2311,
-    "daily": 2888,
-    "vr": 357
+    "astral": 773,
+    "latlon": 2336,
+    "daily": 2949,
+    "vr": 380
    },
    "NATGAS": {
-    "astral": 778,
-    "latlon": 3139,
-    "daily": 2716,
-    "vr": 389
+    "astral": 775,
+    "latlon": 3148,
+    "daily": 2688,
+    "vr": 358
    },
    "DOW": {
-    "astral": 3457,
-    "latlon": 2306,
-    "daily": 3435,
-    "vr": 412
+    "astral": 3393,
+    "latlon": 2423,
+    "daily": 3457,
+    "vr": 395
    },
    "SPX": {
     "astral": 850,
-    "latlon": 2833,
-    "daily": 2834,
-    "vr": 411
+    "latlon": 2839,
+    "daily": 2816,
+    "vr": 423
    },
    "NASDAQ": {
-    "astral": 851,
-    "latlon": 2436,
-    "daily": 3512,
-    "vr": 402
+    "astral": 849,
+    "latlon": 2390,
+    "daily": 3484,
+    "vr": 368
    }
   },
   "ahead": 5,
