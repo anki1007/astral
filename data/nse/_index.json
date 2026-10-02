@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-01T19:08:13Z",
+ "generated": "2026-10-02T16:34:25Z",
  "source": "upstox v3 historical-candle",
  "instruments": {
   "NIFTY": {
@@ -1181,9 +1181,9 @@
    },
    {
     "year": 2026,
-    "count": 13875,
+    "count": 13950,
     "from": "2026-01-01 09:15",
-    "to": "2026-09-30 15:25"
+    "to": "2026-10-01 15:25"
    }
   ],
   "BANKNIFTY": [
