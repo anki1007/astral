@@ -29102,13 +29102,13 @@ window.calGridHTML=calGridHTML; window.calCell=calCell; window.calDays=calDays; 
   // ── state ───────────────────────────────────────────────────────────────
   function load() {
     let st = {};
-    try { st = JSON.parse(localStorage.getItem('asp.state') || '{}'); } catch (e) { st = {}; }
+    try { st = JSON.parse(localStorage.getItem(ASP.host.stateKey || 'asp.state') || '{}'); } catch (e) { st = {}; }
     const t = ASP.host.today;
     const dflt = ASP.host.markets.some(m => m[0] === ASP.host.defaultMk) ? ASP.host.defaultMk : ASP.host.markets[0][0];
     return Object.assign({ mk: dflt, from: iso(t, -90), to: iso(t, 180), pl: '', asp: '', ver: '',
-      view: 'occ', page: 0, sort: 'next' }, st);
+      view: ASP.host.defaultView || 'occ', page: 0, sort: 'next', fcg: '' }, st);
   }
-  function save() { try { localStorage.setItem('asp.state', JSON.stringify(ASP.st)); } catch (e) { } }
+  function save() { try { localStorage.setItem(ASP.host.stateKey || 'asp.state', JSON.stringify(ASP.st)); } catch (e) { } }
   ASP.set = function (o) {
     Object.assign(ASP.st, o || {});
     if (!('page' in (o || {}))) ASP.st.page = 0;
@@ -29170,6 +29170,7 @@ window.calGridHTML=calGridHTML; window.calCell=calCell; window.calDays=calDays; 
       + '<span style="margin-left:auto;display:flex;gap:5px">'
       + '<button onclick="ASP.set({view:\'occ\'})" style="' + BTN + (st.view === 'occ' ? ';background:var(--acc);color:var(--bg)' : '') + '">Occurrences in period</button>'
       + '<button onclick="ASP.set({view:\'rec\'})" style="' + BTN + (st.view === 'rec' ? ';background:var(--acc);color:var(--bg)' : '') + '">Record per combination</button>'
+      + (ASP.host.forecast ? '<button onclick="ASP.set({view:\'fc\'})" style="' + BTN + (st.view === 'fc' ? ';background:var(--bull);color:var(--bg)' : '') + '">Forecast \u2014 held only</button>' : '')
       + '</span></div>';
   }
   function banner(D, label) {
@@ -29263,6 +29264,89 @@ window.calGridHTML=calGridHTML; window.calCell=calCell; window.calDays=calDays; 
       + '<div style="font-size:10.5px;color:var(--tx3);margin-top:7px;line-height:1.6">"Held (p&lt;0.05)" means the learned side beat its baseline on 2019+ data '
       + 'at p&lt;0.05. With well over a hundred combinations judged, several will do that by luck alone, so even those are things to watch, not signals.</div>';
   }
+
+  /* ── forecast: upcoming aspects, held combinations only ─────────────────
+     A combination makes this list in a market only when its side, chosen on
+     2000-2018, beat that market's baseline on 2019+ occurrences at p<0.05.
+     Everything else - failed, weak, too few - is left out, as asked. */
+  const HELD = 'Held (p<0.05)';
+  function fcTable(all) {
+    const st = ASP.st, H = ASP.host, f = H.fmt, t = H.today;
+    const wk = iso(t, -7), from = st.from > wk ? st.from : wk, to = st.to;
+    const mks = H.markets.filter(m => !st.fcg || m[2] === st.fcg || m[0] === st.fcg);
+    let judged = 0, held = 0;
+    const rows = [];
+    const perMk = [];
+    for (const m of mks) {
+      const D = all[m[0]]; if (!D) continue;
+      let h = 0, j = 0;
+      for (const s of D.summ.values()) {
+        if (!s.side || !s.nL) continue;
+        if (st.pl && s.A !== st.pl && s.B !== st.pl) continue;
+        if (st.asp && s.asp !== st.asp) continue;
+        j++; if (s.verdict === HELD) h++;
+      }
+      judged += j; held += h;
+      let up = 0;
+      for (const o of D.occ) {
+        /* upcoming = not yet judged: still ahead, or exact within the last week
+           with its five sessions not yet complete */
+        if (o.ds < from || o.ds > to) continue;
+        if (o.out && o.out.dir) continue;
+        const s = D.summ.get(o.combo);
+        if (!s || s.verdict !== HELD) continue;
+        if (st.pl && s.A !== st.pl && s.B !== st.pl) continue;
+        if (st.asp && s.asp !== st.asp) continue;
+        rows.push({ o, s, m }); up++;
+      }
+      perMk.push([m, h, j, up]);
+    }
+    rows.sort((a, b) => (a.o.ds < b.o.ds ? -1 : a.o.ds > b.o.ds ? 1 : a.m[1] < b.m[1] ? -1 : 1));
+    const opts = '<option value="">all markets on this page</option>'
+      + H.groups.map(([gid, gl]) => '<option value="' + gid + '"' + (st.fcg === gid ? ' selected' : '') + '>' + esc(gl) + '</option>').join('')
+      + H.markets.map(m => '<option value="' + esc(m[0]) + '"' + (st.fcg === m[0] ? ' selected' : '') + '>' + esc(m[1]) + '</option>').join('');
+    const luck = Math.round(judged * 0.025);
+    const banner = '<div style="background:var(--bg2);border:1px solid var(--bd);border-left:3px solid var(--bull);border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.65;margin-bottom:10px">'
+      + '<b>Forecast — only the combinations that held.</b> Upcoming exact aspects from ' + f(from) + ' to ' + f(to) + ', shown only where that '
+      + 'combination’s side (chosen on 2000–2018) beat the market’s own baseline on 2019+ data at p&lt;0.05. Failed, weak and thin '
+      + 'combinations are left out. <b>' + held + '</b> of ' + judged + ' market-combinations qualify; at that bar about <b>' + luck + '</b> would qualify by luck '
+      + 'alone, and none survives correction for the whole search — so read each row as the best-supported candidate, not a certainty.'
+      + '<div style="margin-top:6px;display:flex;gap:7px;align-items:center;flex-wrap:wrap"><span style="font-size:11px;color:var(--tx3)">markets</span>'
+      + '<select onchange="ASP.set({fcg:this.value})" style="' + SEL + '">' + opts + '</select>'
+      + '<span style="font-size:10.5px;color:var(--tx3)">' + perMk.filter(x => x[1]).map(x => esc(x[0][1]) + ' ' + x[1]).join(' · ') + '</span></div></div>';
+    const th = ['Exact date', 'Combination', 'Market', 'Expected', '2019+ PASS / FAIL', 'Pass rate vs base', 'Lift', 'p', 'All-time Up / Down / Flat / Rev',
+      'Orb', 'Positions (sidereal)', 'Last 3 results'];
+    const body = rows.map(({ o, s, m }) => {
+      const D = all[m[0]];
+      const hist = D.occ.filter(x => x.combo === o.combo && x.out && x.out.dir && x.ds >= '2019-01-01').slice(-3)
+        .map(x => (isSide(x.out, s.side) ? '<b style="color:var(--bull)">✓</b>' : '<b style="color:var(--bear)">✗</b>') + ' ' + f(x.ds)).join('<br>');
+      const sideCol = s.side === 'Up' ? 'var(--bull)' : s.side === 'Down' ? 'var(--bear)' : 'var(--acc)';
+      const sideTxt = s.side === 'Up' ? '▲ rise 1%+ in 5 sessions' : s.side === 'Down' ? '▼ fall 1%+ in 5 sessions' : '⇅ 5-day trend reverses';
+      /* a recent aspect whose five sessions are still running is shown, and says so */
+      const live = o.out ? '<br><span style="color:var(--acc);font-size:10.5px">in progress — ' + o.out.sessions + ' of 5 sessions, '
+          + sg(o.out.after) + ' so far</span>'
+        : o.ds <= t ? '<br><span style="color:var(--acc);font-size:10.5px">first session still ahead</span>' : '';
+      return '<tr><td style="' + TD + ';white-space:nowrap"><b>' + f(o.ds) + '</b>' + live + '</td><td style="' + TD + ';white-space:nowrap"><b>' + esc(o.combo) + '</b></td>'
+        + '<td style="' + TD + ';white-space:nowrap">' + esc(m[1]) + '</td>'
+        + '<td style="' + TD + ';white-space:nowrap;color:' + sideCol + ';font-weight:600">' + sideTxt + '</td>'
+        + '<td style="' + TD + '">' + s.pass + ' / ' + s.fail + '</td>'
+        + '<td style="' + TD + '">' + pc(s.passRate) + ' <span style="color:var(--tx3)">vs ' + pc(s.passBase) + '</span></td>'
+        + '<td style="' + TD + '">' + (s.passBase ? (s.passRate / s.passBase).toFixed(1) + '×' : '') + '</td>'
+        + '<td style="' + TD + '">' + s.passP.toFixed(3) + '</td>'
+        + '<td style="' + TD + ';white-space:nowrap">' + s.Up + ' / ' + s.Down + ' / ' + s.Flat + ' / ' + s.Reversal + ' <span style="color:var(--tx3)">of ' + s.n + '</span></td>'
+        + '<td style="' + TD + '">' + o.orb.toFixed(2) + '°</td>'
+        + '<td style="' + TD + ';white-space:nowrap;color:var(--tx2)">' + o.A + ' ' + pos(o.sa) + '<br>' + o.B + ' ' + pos(o.sb) + '</td>'
+        + '<td style="' + TD + ';white-space:nowrap;font-size:10.5px">' + hist + '</td></tr>';
+    }).join('');
+    return banner + '<div style="font-size:11.5px;color:var(--tx2);margin-bottom:6px"><b>' + rows.length + '</b> upcoming events in this window.</div>'
+      + '<div style="overflow:auto;max-height:680px;border:1px solid var(--bd);border-radius:5px"><table style="border-collapse:collapse;width:100%">'
+      + '<thead><tr>' + th.map(h => '<th style="' + TH + '">' + h + '</th>').join('') + '</tr></thead><tbody>'
+      + (body || '<tr><td colspan="12" style="' + TD + ';color:var(--tx3)">No held combination has an exact aspect in this window. Widen the dates or the markets.</td></tr>')
+      + '</tbody></table></div>'
+      + '<div style="font-size:10.5px;color:var(--tx3);margin-top:7px;line-height:1.6">"Expected" is the side that combination took on 2000–2018 in that market. '
+      + 'Pass rate is how often 2019+ occurrences went that way; base is how often the same move follows any session; lift is the ratio. '
+      + '✓/✗ are its last three judged 2019+ occurrences. Day 0 is the first session on or after the exact date.</div>';
+  }
   ASP.render = async function () {
     const el = document.getElementById(ASP.host.mount);
     if (!el) return;
@@ -29278,10 +29362,21 @@ window.calGridHTML=calGridHTML; window.calCell=calCell; window.calDays=calDays; 
       el.innerHTML = controls(null) + '<div style="padding:12px;color:var(--bear);font-size:12px">' + esc(e.message || e) + '</div>'; return;
     }
     if (token !== ASP._tok) return;          // a newer render has started
+    if (st.view === 'fc' && ASP.host.forecast) {
+      const all = {};
+      let i = 0;
+      for (const m of ASP.host.markets) {
+        if (!ASP.cache[m[0]]) el.innerHTML = controls(D) + '<div style="padding:12px;color:var(--tx3);font-size:12px">judging every market\u2026 '
+          + (++i) + ' of ' + ASP.host.markets.length + ' (' + esc(m[1]) + ')</div>';
+        try { all[m[0]] = await ensure(m[0]); } catch (e) { /* a market without history is simply absent */ }
+        if (token !== ASP._tok) return;
+      }
+      el.innerHTML = controls(D) + fcTable(all);
+      return;
+    }
     el.innerHTML = controls(D) + banner(D, label) + (st.view === 'rec' ? recTable(D) : occTable(D));
   };
 })();
-
 /* the terminal's side of the ASPECTS tab: which markets, where their bars come
    from, and where the baked aspect list lives */
 function aspHost(){
@@ -29292,7 +29387,7 @@ function aspHost(){
     getBars: async k=>{ const r=await dsBaked(k); return (r||[]).map(b=>({date:b.date,h:b.h,l:b.l,c:b.c})); },
     getExact: async ()=>{ const r=await fetch('data/aspects/exact.json',{cache:'no-cache'});
       if(!r.ok) throw new Error('The aspect list (data/aspects/exact.json) could not be loaded.'); return r.json(); },
-    today: tnToday(), fmt: ds=>fmtD(ds), mount:'asp-body', defaultMk:'NIFTY' };
+    today: tnToday(), fmt: ds=>fmtD(ds), mount:'asp-body', defaultMk:'NIFTY', forecast:true };
 }
 function tAspects(){
   aspHost();
@@ -29304,8 +29399,10 @@ function tAspects(){
     +'Neptune and Pluto from 2000 to 2035, with what the chosen market did in the five sessions before and after each one, and every upcoming '
     +'one with that combination\u2019s record attached. Pick any period with the dates or the quick buttons. Moon is left out because it makes '
     +'every aspect about twice a month; Ketu is covered by Rahu, which it always opposes (conjunct Ketu = opposite Rahu). '
-    +'<b>Measured result:</b> judged on data each combination never saw, the aspects pass about as often as the same call on random days \u2014 '
-    +'they do not say which way the market goes.</div></div>'
+    +'<b>Forecast \u2014 held only</b> lists the upcoming aspects for just the combinations whose side, learned on 2000\u20132018, beat that '
+    +'market\u2019s baseline on 2019+ data at p&lt;0.05, across every market at once; failed and weak ones are left out. '
+    +'<b>Measured result:</b> judged on data each combination never saw, the aspects pass about as often as the same call on random days, '
+    +'and about as many clear the forecast bar as luck alone would put there \u2014 they do not say which way the market goes.</div></div>'
     +'<div class="pnl"><div class="pb"><div id="asp-body"></div></div></div>';
 }
 window.tAspects=tAspects;
