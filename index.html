@@ -4701,6 +4701,7 @@ function rHdr(){
     <a class="hdr-cbtn${S.tab==='backtest'?' on':''}" href="#tab=backtest" onclick="return navGo(event,'backtest')" title="Swing-reversal research — which astro signatures actually preceded reversals">⟲ <span class="hdr-cbtn-t">BACKTESTING</span></a>
     <a class="hdr-cbtn${S.tab==='upcoming'?' on':''}" href="#tab=upcoming" onclick="return navGo(event,'upcoming')" title="The next 5 sessions across all 10 markets, the upcoming turn dates, and what the evidence actually supports" aria-label="Upcoming">📅<span class="hdr-cbtn-t">UPCOMING</span></a>
     <a class="hdr-cbtn${S.tab==='cal'?' on':''}" href="#tab=cal" onclick="return navGo(event,'cal')" title="Month calendar — any month from 2000 to two years out, each day carrying its strongest testable lean and, in the past, what the day actually did" aria-label="Calendar">📆<span class="hdr-cbtn-t">CALENDAR</span></a>
+    <a class="hdr-cbtn${S.tab==='aspects'?' on':''}" href="#tab=aspects" onclick="return navGo(event,'aspects')" title="Every exact major aspect between ten bodies, any period from 2000 to 2035, with what the market did around each past one and the record of every upcoming one" aria-label="Aspects">✶<span class="hdr-cbtn-t">ASPECTS</span></a>
     <a class="hdr-cbtn${S.tab==='fwd'?' on':''}" href="#tab=fwd" onclick="return navGo(event,'fwd')" title="The graded record: every logged call, scored against the trivial callers once its session closed">✓ <span class="hdr-cbtn-t">FORWARD TEST</span></a>
   </div>`;
   document.getElementById('HDR').innerHTML=`
@@ -5215,7 +5216,7 @@ window.navGo=navGo;
 addEventListener('hashchange',()=>{ const m=/[#&]tab=([a-z0-9]+)/i.exec(location.hash||''); if(m && m[1]!==S.tab) gs({tab:m[1]}); });
 
 function rMain(){
-  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,cal:tCalendar,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
+  const fns={overview:tOverview,forecast:tREForecast,backtest:tREBacktest,fwd:tFwd,upcoming:tUpcoming,cal:tCalendar,aspects:tAspects,astral:tAstral,dayfc:tDayForecast,shar:()=>tSharParivartan('shar'),kranti:()=>tSharParivartan('kranti'),transit:tTransit,kundali:tKundali,bhav:tBhavphal,rulebook:tRuleBook,ashtaka:tAshtaka,vr:tVR,rules:tRules,kp:tKP,charts:tCharts,sbc:tSBC,planlat:tPlanetLat,planlon:tPlanetLon,timing:tTiming,gann:tGann,panchak:tPanchak,sector:tSector};
   document.getElementById('MAIN').innerHTML=(fns[S.tab]||tOverview)();
   if(S.tab==='sbc'&&S.sbcMode!=='bt') setTimeout(sbcFetchMonthlyPrice,100);
   collapsibleInit();
@@ -28961,6 +28962,353 @@ function calMapToggle(el){
 }
 window.tCalendar=tCalendar; window.calMapToggle=calMapToggle;
 window.calGridHTML=calGridHTML; window.calCell=calCell; window.calDays=calDays; window.calHit=calHit;
+
+/* ASPECTS — every exact major aspect between ten bodies, any period, any market.
+ *
+ * One engine shared by the terminal's ASPECTS tab and the combination study, so
+ * the two can never disagree. The host supplies the data:
+ *   ASP.host = { markets:[[key,label,group]], groups:[[id,label]],
+ *                getBars: async key -> [{date,h,l,c}],  getExact: async () -> exact.json,
+ *                today:'YYYY-MM-DD', fmt: ds -> 'DD-MMM-YY', mount:'element id' }
+ *
+ * For every exact aspect, day 0 is the first session on or after it:
+ *   before = close[0]/close[-5]-1, after = close[+5]/close[0]-1
+ *   DIRECTION  Up (after >= +1%), Down (<= -1%), Flat
+ *   REVERSAL   a separate flag: the 5-day trend coming in flipped by 1%+
+ * Every rate is set against what follows ANY session in that market, because
+ * "a rally followed the aspect" means nothing if a rally follows 40% of days.
+ *
+ * Each combination's SIDE (Up, Down or Reversal) is learned on 2000-2018 only;
+ * every 2019+ occurrence is then PASS or FAIL against it. Those occurrences took
+ * no part in choosing the side, so the pass rate is an honest out-of-sample
+ * score - and it is shown next to what the same call scores on random days.
+ */
+(function () {
+  const ASP = window.ASP = window.ASP || {};
+  const SPLIT = '2019-01-01', T = 1, WIN = 5, PAGE = 200;
+  const SIDES = ['Up', 'Down', 'Reversal'];
+  const SIGNS = ['Ari', 'Tau', 'Gem', 'Can', 'Leo', 'Vir', 'Lib', 'Sco', 'Sag', 'Cap', 'Aqu', 'Pis'];
+  ASP.cache = ASP.cache || {};
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const iso = (ds, n) => { const [y, m, d] = ds.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+  const pc = v => (v == null || !isFinite(v) ? '—' : (v * 100).toFixed(1) + '%');
+  const sg = v => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%');
+  const pos = s => SIGNS[Math.min(11, Math.floor(s / 30))] + ' ' + (s % 30).toFixed(1) + '°';
+
+  // ── statistics ──────────────────────────────────────────────────────────
+  function lg(x) {
+    const g = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+      12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - lg(1 - x);
+    x -= 1; let a = 0.99999999999980993; const t = x + 7.5;
+    for (let i = 0; i < 8; i++) a += g[i] / (x + i + 1);
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  }
+  const lc = (n, k) => lg(n + 1) - lg(k + 1) - lg(n - k + 1);
+  function pTwo(k, n, p) {
+    if (!n || p <= 0 || p >= 1) return 1;
+    const pmf = i => Math.exp(lc(n, i) + i * Math.log(p) + (n - i) * Math.log(1 - p));
+    const obs = pmf(k) * (1 + 1e-9); let s = 0;
+    for (let i = 0; i <= n; i++) { const v = pmf(i); if (v <= obs) s += v; }
+    return Math.min(1, s);
+  }
+
+  // ── engine ──────────────────────────────────────────────────────────────
+  const dirOf = a => (a >= T ? 'Up' : a <= -T ? 'Down' : 'Flat');
+  const revOf = (b, a) => (b >= T && a <= -T ? 'Top' : b <= -T && a >= T ? 'Bottom' : '');
+  const isSide = (o, side) => (side === 'Reversal' ? !!o.rev : o.dir === side);
+
+  /* the outcome around one session index; partial when the window is still open */
+  function around(bars, i) {
+    if (i == null || i - WIN < 0) return null;
+    const before = (bars[i].c / bars[i - WIN].c - 1) * 100;
+    const last = Math.min(bars.length - 1, i + WIN);
+    const partial = i + WIN > bars.length - 1;
+    let hi = -Infinity, lo = Infinity;
+    for (let j = i + 1; j <= last; j++) { hi = Math.max(hi, bars[j].h); lo = Math.min(lo, bars[j].l); }
+    const after = last > i ? (bars[last].c / bars[i].c - 1) * 100 : null;
+    return { day0: bars[i].date, close: bars[i].c, before, after, partial, sessions: last - i,
+      maxUp: isFinite(hi) ? (hi / bars[i].c - 1) * 100 : null, maxDn: isFinite(lo) ? (lo / bars[i].c - 1) * 100 : null,
+      dir: partial || after == null ? '' : dirOf(after), rev: partial || after == null ? '' : revOf(before, after) };
+  }
+  function build(exact, bars) {
+    const at = new Map(); bars.forEach((b, i) => at.set(b.date, i));
+    const firstOnOrAfter = ds => { for (let k = 0; k < 7; k++) { const i = at.get(iso(ds, k)); if (i != null) return i; } return null; };
+    const lastDate = bars.length ? bars[bars.length - 1].date : '';
+    /* baseline: what follows ANY session */
+    const base = {};
+    for (const pd of ['all', 'early', 'late']) base[pd] = { n: 0, Up: 0, Down: 0, Flat: 0, Reversal: 0 };
+    for (let i = WIN; i + WIN < bars.length; i++) {
+      if (bars[i].date < '2000-01-01') continue;
+      const o = around(bars, i); if (!o || !o.dir) continue;
+      for (const pd of ['all', bars[i].date < SPLIT ? 'early' : 'late']) {
+        const b = base[pd]; b.n++; b[o.dir]++; if (o.rev) b.Reversal++;
+      }
+    }
+    const rate = (pd, side) => (base[pd].n ? base[pd][side] / base[pd].n : NaN);
+    /* every occurrence */
+    const occ = exact.rows.map(r => {
+      const [ds, a, b, k, orb, rx, sa, sb] = r;
+      const combo = exact.bodies[a] + ' ' + exact.aspects[k] + ' ' + exact.bodies[b];
+      const o = { ds, a, b, k, orb, rx, sa, sb, combo, A: exact.bodies[a], B: exact.bodies[b], asp: exact.aspects[k], out: null };
+      if (ds <= lastDate) { const i = firstOnOrAfter(ds); if (i != null) o.out = around(bars, i); }
+      return o;
+    });
+    /* per combination */
+    const by = new Map();
+    for (const o of occ) { if (!by.has(o.combo)) by.set(o.combo, []); by.get(o.combo).push(o); }
+    const summ = new Map();
+    for (const [combo, list] of by) {
+      const done = list.filter(o => o.out && o.out.dir);
+      const s = { combo, A: list[0].A, B: list[0].B, asp: list[0].asp, n: done.length, Up: 0, Down: 0, Flat: 0, Top: 0, Bottom: 0,
+        higher: 0, meanAfter: 0, next: null, last: null };
+      for (const o of done) {
+        s[o.out.dir]++; if (o.out.rev) s[o.out.rev]++; if (o.out.after > 0) s.higher++; s.meanAfter += o.out.after;
+        s.last = o.ds;
+      }
+      s.meanAfter = s.n ? s.meanAfter / s.n : NaN;
+      s.Reversal = s.Top + s.Bottom;
+      s.next = (list.find(o => o.ds > ASP.host.today) || {}).ds || null;
+      s.tests = {};
+      for (const side of SIDES) s.tests[side] = { k: s[side], rate: s.n ? s[side] / s.n : NaN, base: rate('all', side), p: pTwo(s[side], s.n, rate('all', side)) };
+      const early = done.filter(o => o.ds < SPLIT), late = done.filter(o => o.ds >= SPLIT);
+      s.nE = early.length; s.nL = late.length;
+      if (early.length >= 4) {
+        let best = -1;
+        for (const side of SIDES) {
+          const ex = early.filter(o => isSide(o.out, side)).length / early.length - rate('early', side);
+          if (ex > best) { best = ex; s.side = side; }
+        }
+        s.pass = late.filter(o => isSide(o.out, s.side)).length; s.fail = late.length - s.pass;
+        s.passRate = late.length ? s.pass / late.length : NaN; s.passBase = rate('late', s.side);
+        s.passP = late.length ? pTwo(s.pass, late.length, s.passBase) : NaN;
+      }
+      s.verdict = s.n < 10 ? 'Too few' : !s.side ? 'No side' : !s.nL ? 'No 2019+ data'
+        : s.passRate > s.passBase && s.passP < 0.05 ? 'Held (p<0.05)' : s.passRate > s.passBase ? 'Held weakly' : 'Failed';
+      summ.set(combo, s);
+    }
+    /* correction across every combination x side */
+    const ps = []; for (const s of summ.values()) if (s.n >= 5) for (const side of SIDES) ps.push(s.tests[side].p);
+    ps.sort((x, y) => x - y);
+    let kM = -1; ps.forEach((p, r) => { if (p <= (r + 1) / ps.length * 0.10) kM = r; });
+    const learned = [...summ.values()].filter(s => s.side && s.nL);
+    const P = learned.reduce((a, s) => a + s.pass, 0), F = learned.reduce((a, s) => a + s.fail, 0);
+    const E = learned.reduce((a, s) => a + s.passBase * s.nL, 0);
+    const stats = { tests: ps.length, nominal: ps.filter(p => p < 0.05).length, survive: kM + 1, pass: P, fail: F,
+      expect: E, beat: learned.filter(s => s.passRate > s.passBase).length, learned: learned.length, lastDate };
+    return { occ, summ, base, rate, stats };
+  }
+
+  // ── state ───────────────────────────────────────────────────────────────
+  function load() {
+    let st = {};
+    try { st = JSON.parse(localStorage.getItem('asp.state') || '{}'); } catch (e) { st = {}; }
+    const t = ASP.host.today;
+    const dflt = ASP.host.markets.some(m => m[0] === ASP.host.defaultMk) ? ASP.host.defaultMk : ASP.host.markets[0][0];
+    return Object.assign({ mk: dflt, from: iso(t, -90), to: iso(t, 180), pl: '', asp: '', ver: '',
+      view: 'occ', page: 0, sort: 'next' }, st);
+  }
+  function save() { try { localStorage.setItem('asp.state', JSON.stringify(ASP.st)); } catch (e) { } }
+  ASP.set = function (o) {
+    Object.assign(ASP.st, o || {});
+    if (!('page' in (o || {}))) ASP.st.page = 0;
+    save(); ASP.render();
+  };
+  ASP.quick = function (code) {
+    const t = ASP.host.today;
+    const m = { past3: [iso(t, -91), t], past12: [iso(t, -365), t], next3: [t, iso(t, 91)], next6: [t, iso(t, 183)],
+      next12: [t, iso(t, 365)], around: [iso(t, -183), iso(t, 183)], all: ['2000-01-01', ASP.exact ? ASP.exact.to : '2035-12-31'] }[code];
+    if (m) ASP.set({ from: m[0], to: m[1] });
+  };
+
+  async function ensure(mk) {
+    if (!ASP.exact) ASP.exact = await ASP.host.getExact();
+    if (ASP.cache[mk]) return ASP.cache[mk];
+    const raw = await ASP.host.getBars(mk);
+    const bars = (raw || []).filter(b => b && b.date && isFinite(b.c) && b.c > 0)
+      .map(b => ({ date: String(b.date).slice(0, 10), h: +b.h || +b.c, l: +b.l || +b.c, c: +b.c }))
+      .sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : 0));
+    if (bars.length < 300) throw new Error('No price history could be loaded for ' + mk + '.');
+    return (ASP.cache[mk] = build(ASP.exact, bars));
+  }
+
+  // ── view ────────────────────────────────────────────────────────────────
+  const SEL = 'background:var(--bg2);color:var(--tx1);border:1px solid var(--bd2);border-radius:4px;padding:4px 7px;font:inherit;font-size:12px';
+  const BTN = 'background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:4px;padding:4px 9px;font:inherit;font-size:11.5px;cursor:pointer';
+  const TH = 'text-align:left;padding:6px 7px;border-bottom:2px solid var(--bd2);font-size:10.5px;color:var(--tx2);white-space:nowrap;position:sticky;top:0;background:var(--bg2)';
+  const TD = 'padding:5px 7px;border-bottom:1px solid var(--bd);font-size:11.5px;vertical-align:top';
+  const vcol = v => (v === 'Held (p<0.05)' ? 'var(--bull)' : v === 'Held weakly' ? 'var(--acc)' : v === 'Failed' ? 'var(--bear)' : 'var(--tx3)');
+  const dcol = d => (d === 'Up' ? 'var(--bull)' : d === 'Down' ? 'var(--bear)' : 'var(--tx3)');
+
+  function filterCombo(s) {
+    const st = ASP.st;
+    if (st.pl && s.A !== st.pl && s.B !== st.pl) return false;
+    if (st.asp && s.asp !== st.asp) return false;
+    if (st.ver && s.verdict !== st.ver) return false;
+    return true;
+  }
+  function controls(D) {
+    const st = ASP.st, H = ASP.host, f = H.fmt;
+    const groups = H.groups.map(([gid, gl]) => {
+      const inG = H.markets.filter(m => m[2] === gid);
+      return inG.length ? '<optgroup label="' + esc(gl) + '">' + inG.map(m => '<option value="' + esc(m[0]) + '"' + (m[0] === st.mk ? ' selected' : '') + '>' + esc(m[1]) + '</option>').join('') + '</optgroup>' : '';
+    }).join('');
+    const bodies = (ASP.exact ? ASP.exact.bodies : []);
+    return '<div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px">'
+      + '<select onchange="ASP.set({mk:this.value})" style="' + SEL + '">' + groups + '</select>'
+      + '<span style="font-size:11px;color:var(--tx3)">from</span><input type="date" value="' + st.from + '" min="2000-01-01" max="' + (ASP.exact ? ASP.exact.to : '') + '" onchange="ASP.set({from:this.value})" style="' + SEL + '">'
+      + '<span style="font-size:11px;color:var(--tx3)">to</span><input type="date" value="' + st.to + '" min="2000-01-01" max="' + (ASP.exact ? ASP.exact.to : '') + '" onchange="ASP.set({to:this.value})" style="' + SEL + '">'
+      + [['past3', 'last 3m'], ['past12', 'last 12m'], ['next3', 'next 3m'], ['next6', 'next 6m'], ['next12', 'next 12m'], ['around', '±6m'], ['all', 'all']]
+        .map(([k, l]) => '<button onclick="ASP.quick(\'' + k + '\')" style="' + BTN + '">' + l + '</button>').join('')
+      + '</div><div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:10px">'
+      + '<select onchange="ASP.set({pl:this.value})" style="' + SEL + '"><option value="">any planet</option>'
+      + bodies.map(b => '<option' + (st.pl === b ? ' selected' : '') + '>' + b + '</option>').join('') + '</select>'
+      + '<select onchange="ASP.set({asp:this.value})" style="' + SEL + '"><option value="">any aspect</option>'
+      + (ASP.exact ? ASP.exact.aspects : []).map(a => '<option' + (st.asp === a ? ' selected' : '') + '>' + a + '</option>').join('') + '</select>'
+      + '<select onchange="ASP.set({ver:this.value})" style="' + SEL + '"><option value="">any verdict</option>'
+      + ['Held (p<0.05)', 'Held weakly', 'Failed', 'Too few'].map(v => '<option' + (st.ver === v ? ' selected' : '') + '>' + v + '</option>').join('') + '</select>'
+      + '<span style="margin-left:auto;display:flex;gap:5px">'
+      + '<button onclick="ASP.set({view:\'occ\'})" style="' + BTN + (st.view === 'occ' ? ';background:var(--acc);color:var(--bg)' : '') + '">Occurrences in period</button>'
+      + '<button onclick="ASP.set({view:\'rec\'})" style="' + BTN + (st.view === 'rec' ? ';background:var(--acc);color:var(--bg)' : '') + '">Record per combination</button>'
+      + '</span></div>';
+  }
+  function banner(D, label) {
+    const s = D.stats, b = D.base.all;
+    return '<div style="background:var(--bg2);border:1px solid var(--bd);border-left:3px solid var(--acc);border-radius:5px;padding:9px 11px;font-size:11.5px;line-height:1.65;margin-bottom:10px">'
+      + '<b>' + esc(label) + ', out of sample:</b> each combination’s side was learned on 2000–2018 and judged only on 2019+ occurrences. '
+      + '<b>' + s.pass.toLocaleString() + ' PASS / ' + s.fail.toLocaleString() + ' FAIL = ' + pc(s.pass / (s.pass + s.fail)) + '</b>, against '
+      + pc(s.expect / (s.pass + s.fail)) + ' that the same calls score on random days. ' + s.beat + ' of ' + s.learned
+      + ' combinations beat their baseline. Of ' + s.tests.toLocaleString() + ' direction tests, ' + s.nominal + ' reach p&lt;0.05 where chance gives ~'
+      + Math.round(s.tests * 0.05) + ', and ' + s.survive + ' survive correction. <b>No aspect here reliably says which way the market goes.</b>'
+      + '<div style="color:var(--tx3);font-size:10.5px;margin-top:3px">Any 5 sessions since 2000: Up ' + pc(b.Up / b.n) + ' · Down ' + pc(b.Down / b.n)
+      + ' · Flat ' + pc(b.Flat / b.n) + ' · Reversal ' + pc(b.Reversal / b.n) + ' — every rate below is set against these. '
+      + 'Up/Down = a 1%+ move over the 5 sessions after day 0; Reversal = the 5-day trend coming in flipped by 1%+. Price data to ' + ASP.host.fmt(s.lastDate) + '.</div></div>';
+  }
+  function occTable(D) {
+    const st = ASP.st, f = ASP.host.fmt, t = ASP.host.today;
+    const rows = D.occ.filter(o => o.ds >= st.from && o.ds <= st.to && filterCombo(D.summ.get(o.combo)))
+      .sort((a, b) => (a.ds < b.ds ? -1 : a.ds > b.ds ? 1 : 0));
+    /* past = has a session to measure; the same test the status column uses */
+    const past = rows.filter(o => o.out).length;
+    const page = Math.min(st.page, Math.max(0, Math.ceil(rows.length / PAGE) - 1));
+    const slice = rows.slice(page * PAGE, page * PAGE + PAGE);
+    const head = '<div style="font-size:11.5px;color:var(--tx2);margin-bottom:6px"><b>' + rows.length.toLocaleString() + '</b> exact aspects between '
+      + f(st.from) + ' and ' + f(st.to) + ' — ' + past + ' past, ' + (rows.length - past) + ' upcoming.</div>';
+    const th = ['Exact date', 'Combination', 'Orb', 'Positions (sidereal)', 'Retro', 'Status', '5d before', '5d after', 'Max up', 'Max down',
+      'Direction', 'Reversal', 'Side learned', 'Result', 'Combination record'];
+    const body = slice.map(o => {
+      const s = D.summ.get(o.combo), O = o.out;
+      const rx = [(o.rx & 1) ? o.A + ' R' : '', (o.rx & 2) ? o.B + ' R' : ''].filter(Boolean).join(', ');
+      let status, result = '';
+      /* an aspect whose first session has not happened yet is upcoming, even if its
+         calendar date (a weekend, a holiday) is today or just past */
+      if (o.ds > t || (!O && o.ds > D.stats.lastDate)) status = '<span style="color:var(--acc)">upcoming</span>';
+      else if (!O) status = '<span style="color:var(--tx3)">no session</span>';
+      else if (O.partial) status = '<span style="color:var(--acc)">in progress (' + O.sessions + '/5)</span>';
+      else status = 'done';
+      if (O && O.dir && s && s.side) {
+        result = o.ds < '2019-01-01' ? '<span style="color:var(--tx3)">fitted</span>'
+          : isSide(O, s.side) ? '<b style="color:var(--bull)">PASS</b>' : '<b style="color:var(--bear)">FAIL</b>';
+      }
+      const rec = s ? 'n=' + s.n + ' · Up ' + s.Up + ' Dn ' + s.Down + ' Flat ' + s.Flat + ' Rev ' + s.Reversal
+        + (s.side ? ' · 2019+ ' + s.pass + '/' + (s.pass + s.fail) : '')
+        + ' · <span style="color:' + vcol(s.verdict) + '">' + esc(s.verdict) + '</span>' : '';
+      return '<tr><td style="' + TD + ';white-space:nowrap">' + f(o.ds) + '</td><td style="' + TD + ';white-space:nowrap"><b>' + esc(o.combo) + '</b></td>'
+        + '<td style="' + TD + '">' + o.orb.toFixed(2) + '°</td>'
+        + '<td style="' + TD + ';white-space:nowrap;color:var(--tx2)">' + o.A + ' ' + pos(o.sa) + '<br>' + o.B + ' ' + pos(o.sb) + '</td>'
+        + '<td style="' + TD + ';color:var(--tx3)">' + esc(rx) + '</td><td style="' + TD + ';white-space:nowrap">' + status + '</td>'
+        + '<td style="' + TD + '">' + (O ? sg(O.before) : '') + '</td><td style="' + TD + '">' + (O ? sg(O.after) : '') + '</td>'
+        + '<td style="' + TD + ';color:var(--tx3)">' + (O ? sg(O.maxUp) : '') + '</td><td style="' + TD + ';color:var(--tx3)">' + (O ? sg(O.maxDn) : '') + '</td>'
+        + '<td style="' + TD + ';color:' + dcol(O && O.dir) + ';font-weight:600">' + (O ? O.dir : '') + '</td>'
+        + '<td style="' + TD + '">' + (O && O.rev ? O.rev + ' reversal' : '') + '</td>'
+        + '<td style="' + TD + '">' + (s && s.side ? s.side : '') + '</td><td style="' + TD + '">' + result + '</td>'
+        + '<td style="' + TD + ';font-size:10.5px;color:var(--tx2);white-space:nowrap">' + rec + '</td></tr>';
+    }).join('');
+    const pager = rows.length > PAGE ? '<div style="display:flex;gap:7px;align-items:center;margin-top:8px;font-size:11px;color:var(--tx3)">'
+      + '<button ' + (page <= 0 ? 'disabled' : '') + ' onclick="ASP.set({page:' + (page - 1) + '})" style="' + BTN + '">‹ prev</button>'
+      + 'rows ' + (page * PAGE + 1) + '–' + Math.min(rows.length, page * PAGE + PAGE) + ' of ' + rows.length
+      + '<button ' + ((page + 1) * PAGE >= rows.length ? 'disabled' : '') + ' onclick="ASP.set({page:' + (page + 1) + '})" style="' + BTN + '">next ›</button></div>' : '';
+    return head + '<div style="overflow:auto;max-height:640px;border:1px solid var(--bd);border-radius:5px"><table style="border-collapse:collapse;width:100%">'
+      + '<thead><tr>' + th.map(h => '<th style="' + TH + '">' + h + '</th>').join('') + '</tr></thead><tbody>'
+      + (body || '<tr><td colspan="15" style="' + TD + ';color:var(--tx3)">No exact aspects in this period with these filters.</td></tr>')
+      + '</tbody></table></div>' + pager
+      + '<div style="font-size:10.5px;color:var(--tx3);margin-top:7px;line-height:1.6">PASS / FAIL only for 2019+ occurrences, judged against the side learned on '
+      + '2000–2018; earlier ones are marked "fitted" because they chose the side. "In progress" means fewer than 5 sessions have passed since day 0, so '
+      + 'the after-move is so far and is not scored. Orb is the gap from exact at 09:15 IST; an aspect exact in the Indian evening shows on the next morning.</div>';
+  }
+  function recTable(D) {
+    const st = ASP.st, f = ASP.host.fmt;
+    let list = [...D.summ.values()].filter(s => s.n > 0 && filterCombo(s));
+    const key = st.sort;
+    list.sort((a, b) => key === 'p' ? ((a.passP || 1) - (b.passP || 1)) : key === 'n' ? (b.n - a.n)
+      : key === 'name' ? (a.combo < b.combo ? -1 : 1) : ((a.next || '9999') < (b.next || '9999') ? -1 : 1));
+    const th = ['Combination', 'Occurrences', 'Up', 'Down', 'Flat', 'Reversal', 'Up rate vs base', 'Down rate vs base', 'Reversal rate vs base',
+      'Side learned 2000–18', '2019+ PASS / FAIL', 'Pass rate vs base', 'p', 'Verdict', 'Last', 'Next'];
+    const sortSel = '<div style="font-size:11px;color:var(--tx3);margin-bottom:6px">' + list.length + ' combinations · sort by '
+      + '<select onchange="ASP.set({sort:this.value})" style="' + SEL + '">'
+      + [['next', 'next date'], ['p', 'out-of-sample p'], ['n', 'occurrences'], ['name', 'name']].map(([k, l]) => '<option value="' + k + '"' + (key === k ? ' selected' : '') + '>' + l + '</option>').join('')
+      + '</select></div>';
+    const vs = t => pc(t.rate) + ' <span style="color:var(--tx3)">vs ' + pc(t.base) + '</span>';
+    const body = list.map(s => '<tr><td style="' + TD + ';white-space:nowrap"><b>' + esc(s.combo) + '</b></td><td style="' + TD + '">' + s.n + '</td>'
+      + '<td style="' + TD + ';color:var(--bull)">' + s.Up + '</td><td style="' + TD + ';color:var(--bear)">' + s.Down + '</td>'
+      + '<td style="' + TD + ';color:var(--tx3)">' + s.Flat + '</td><td style="' + TD + '">' + s.Reversal + '</td>'
+      + '<td style="' + TD + '">' + vs(s.tests.Up) + '</td><td style="' + TD + '">' + vs(s.tests.Down) + '</td><td style="' + TD + '">' + vs(s.tests.Reversal) + '</td>'
+      + '<td style="' + TD + '">' + (s.side || '') + '</td><td style="' + TD + '">' + (s.side ? s.pass + ' / ' + s.fail : '') + '</td>'
+      + '<td style="' + TD + '">' + (s.side && s.nL ? pc(s.passRate) + ' <span style="color:var(--tx3)">vs ' + pc(s.passBase) + '</span>' : '') + '</td>'
+      + '<td style="' + TD + '">' + (s.side && s.nL ? s.passP.toFixed(3) : '') + '</td>'
+      + '<td style="' + TD + ';color:' + vcol(s.verdict) + ';white-space:nowrap">' + esc(s.verdict) + '</td>'
+      + '<td style="' + TD + ';white-space:nowrap">' + (s.last ? f(s.last) : '') + '</td><td style="' + TD + ';white-space:nowrap;color:var(--acc)">' + (s.next ? f(s.next) : '') + '</td></tr>').join('');
+    return sortSel + '<div style="overflow:auto;max-height:640px;border:1px solid var(--bd);border-radius:5px"><table style="border-collapse:collapse;width:100%">'
+      + '<thead><tr>' + th.map(h => '<th style="' + TH + '">' + h + '</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>'
+      + '<div style="font-size:10.5px;color:var(--tx3);margin-top:7px;line-height:1.6">"Held (p&lt;0.05)" means the learned side beat its baseline on 2019+ data '
+      + 'at p&lt;0.05. With well over a hundred combinations judged, several will do that by luck alone, so even those are things to watch, not signals.</div>';
+  }
+  ASP.render = async function () {
+    const el = document.getElementById(ASP.host.mount);
+    if (!el) return;
+    if (!ASP.st) ASP.st = load();
+    const st = ASP.st;
+    if (!ASP.host.markets.some(m => m[0] === st.mk)) st.mk = ASP.host.markets.some(m => m[0] === ASP.host.defaultMk) ? ASP.host.defaultMk : ASP.host.markets[0][0];
+    const label = (ASP.host.markets.find(m => m[0] === st.mk) || [st.mk, st.mk])[1];
+    const token = (ASP._tok = (ASP._tok || 0) + 1);
+    if (!ASP.cache[st.mk] || !ASP.exact)
+      el.innerHTML = controls(null) + '<div style="padding:12px;color:var(--tx3);font-size:12px">loading the aspect list and ' + esc(label) + '’s price history…</div>';
+    let D;
+    try { D = await ensure(st.mk); } catch (e) {
+      el.innerHTML = controls(null) + '<div style="padding:12px;color:var(--bear);font-size:12px">' + esc(e.message || e) + '</div>'; return;
+    }
+    if (token !== ASP._tok) return;          // a newer render has started
+    el.innerHTML = controls(D) + banner(D, label) + (st.view === 'rec' ? recTable(D) : occTable(D));
+  };
+})();
+
+/* the terminal's side of the ASPECTS tab: which markets, where their bars come
+   from, and where the baked aspect list lives */
+function aspHost(){
+  const L=bmInsts();
+  ASP.host={
+    markets: L.map(x=>[x[0],x[1],x[2]]),
+    groups: BM_GROUPS.map(g=>[g[0],g[1]]),
+    getBars: async k=>{ const r=await dsBaked(k); return (r||[]).map(b=>({date:b.date,h:b.h,l:b.l,c:b.c})); },
+    getExact: async ()=>{ const r=await fetch('data/aspects/exact.json',{cache:'no-cache'});
+      if(!r.ok) throw new Error('The aspect list (data/aspects/exact.json) could not be loaded.'); return r.json(); },
+    today: tnToday(), fmt: ds=>fmtD(ds), mount:'asp-body', defaultMk:'NIFTY' };
+}
+function tAspects(){
+  aspHost();
+  /* the full instrument list arrives once the data indexes are read */
+  setTimeout(()=>{ try{ bmDiscover().then(()=>{ aspHost(); ASP.render(); }, ()=>ASP.render()); }catch(e){ ASP.render(); } },0);
+  return '<div class="pnl"><div class="ph" data-noco><span class="dot" style="background:var(--acc)"></span>\u2736 ASPECTS \u2014 every exact major aspect, any period, any market</div>'
+    +'<div class="pb" style="font-size:11.5px;line-height:1.7;color:var(--tx1)">'
+    +'Every exact <b>conjunction, sextile, square, trine and opposition</b> between Sun, Mercury, Venus, Mars, Jupiter, Saturn, Rahu, Uranus, '
+    +'Neptune and Pluto from 2000 to 2035, with what the chosen market did in the five sessions before and after each one, and every upcoming '
+    +'one with that combination\u2019s record attached. Pick any period with the dates or the quick buttons. Moon is left out because it makes '
+    +'every aspect about twice a month; Ketu is covered by Rahu, which it always opposes (conjunct Ketu = opposite Rahu). '
+    +'<b>Measured result:</b> judged on data each combination never saw, the aspects pass about as often as the same call on random days \u2014 '
+    +'they do not say which way the market goes.</div></div>'
+    +'<div class="pnl"><div class="pb"><div id="asp-body"></div></div></div>';
+}
+window.tAspects=tAspects;
 
 function tREBacktest(){
   setTimeout(collapsibleInit,20);
