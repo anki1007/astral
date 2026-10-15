@@ -10745,7 +10745,24 @@
     "astroAndTech": -1
    },
    "vol": "wide",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-15",
+    "o": 51858.0586,
+    "c": 52104.0781,
+    "prevClose": 51621.48,
+    "ccPct": 0.93,
+    "ocPct": 0.47,
+    "dir": 1,
+    "rangePct": 1,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "miss",
+     "techWithAstroFilter": "miss",
+     "astroAndTech": "miss",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 3,
    "turns": [
     {
@@ -15420,6 +15437,112 @@
      }
     }
    ]
+  },
+  {
+   "id": "2026-10-22|DOW",
+   "target": "2026-10-22",
+   "inst": "DOW",
+   "made": "2026-10-15T18:08:10.834Z",
+   "lastClose": 52104.0781,
+   "lastDate": "2026-10-15",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 19
+   },
+   "astro": {
+    "score": -21,
+    "band": "BEARISH",
+    "volatility": 0.5,
+    "turning": 3.9,
+    "top": [
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Square / Kendra (4-10) Jupiter",
+      "dir": -1,
+      "w": 2.24
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VENUS WITH NEPTUNE",
+      "name": "Venus Quincunx / Shadashtak (6-8) Neptune",
+      "dir": 1,
+      "w": 1.72
+     },
+     {
+      "sec": "IMPORTANT COMBINATION BETWEEN DAY AND NAKSHTRA",
+      "name": "Thursday + Rahu nakshatra (Shatabhisha)",
+      "dir": 1,
+      "w": 1.6
+     },
+     {
+      "sec": "MARS WITH JUPITER",
+      "name": "Mars Conjunction (together) Jupiter",
+      "dir": 1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 3.5,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "LIFETIME MARKET RULE - PURE NUMBERS",
+      "name": "5th day higher low + previous high broken",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Breached the Total Day Low, then crossed its High",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "quiet",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "DOW|astral|2026-10-19|2026-10-27|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-19",
+     "to": "2026-10-27",
+     "at": "2026-10-21..2026-10-24",
+     "proven": false
+    },
+    {
+     "id": "DOW|latlon|2026-10-14|2026-11-03|TURN",
+     "source": "latlon",
+     "type": "TURN",
+     "from": "2026-10-16",
+     "to": "2026-11-03",
+     "at": "2026-10-16..2026-10-30",
+     "proven": true
+    }
+   ],
+   "daily": []
   },
   {
    "id": "2026-10-22|GOLD",
@@ -23969,6 +24092,31 @@
   },
   {
    "source": "astral",
+   "inst": "DOW",
+   "made": "2026-10-15T18:08:10.834Z",
+   "asOf": "2026-10-15",
+   "at": "2026-11-24..2026-11-26",
+   "from": "2026-11-20",
+   "to": "2026-11-30",
+   "rawFrom": "2026-11-20",
+   "rawTo": "2026-11-30",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1776,
+    "rate": 0.463,
+    "base": 0.461
+   },
+   "reasons": [
+    "2026-11-24 Moon latitude at its northern extreme (+5.00°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-11-26 Venus declination maximum (−9.21°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-11-26 Moon declination maximum (+27.64°) (book TURN; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-11-20|2026-11-30|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-10-14T15:50:38.078Z",
    "asOf": "2026-10-14",
@@ -30586,6 +30734,165 @@
      "2026-10-19",
      "2026-10-20",
      "2026-10-21"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
+  },
+  {
+   "at": "2026-10-15T18:08:10.834Z",
+   "target": "2026-10-16",
+   "added": 1,
+   "turnsAdded": 1,
+   "graded": 1,
+   "turnsGraded": 0,
+   "dailyAdded": 0,
+   "dailyGraded": 0,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-10-16",
+    "BANKNIFTY": "2026-10-16",
+    "GOLD": "2026-10-16",
+    "SILVER": "2026-10-16",
+    "CRUDE": "2026-10-16",
+    "COPPER": "2026-10-16",
+    "NATGAS": "2026-10-16",
+    "DOW": "2026-10-16",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 37643,
+     "latlon": 27376,
+     "daily": 27027,
+     "vr": 19297
+    },
+    "BANKNIFTY": {
+     "astral": 823,
+     "latlon": 2424,
+     "daily": 2394,
+     "vr": 310
+    },
+    "GOLD": {
+     "astral": 784,
+     "latlon": 2056,
+     "daily": 2506,
+     "vr": 349
+    },
+    "SILVER": {
+     "astral": 795,
+     "latlon": 2313,
+     "daily": 2561,
+     "vr": 304
+    },
+    "CRUDE": {
+     "astral": 789,
+     "latlon": 2768,
+     "daily": 2442,
+     "vr": 383
+    },
+    "COPPER": {
+     "astral": 776,
+     "latlon": 2259,
+     "daily": 2867,
+     "vr": 387
+    },
+    "NATGAS": {
+     "astral": 783,
+     "latlon": 2984,
+     "daily": 2486,
+     "vr": 349
+    },
+    "DOW": {
+     "astral": 3492,
+     "latlon": 2188,
+     "daily": 3100,
+     "vr": 382
+    },
+    "SPX": {
+     "astral": 859,
+     "latlon": 2798,
+     "daily": 2623,
+     "vr": 401
+    },
+    "NASDAQ": {
+     "astral": 853,
+     "latlon": 2308,
+     "daily": 3285,
+     "vr": 365
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "BANKNIFTY": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "GOLD": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "SILVER": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "CRUDE": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "COPPER": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "NATGAS": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
+    ],
+    "DOW": [
+     "2026-10-16",
+     "2026-10-19",
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22"
     ],
     "SPX": [
      "2026-09-21",
