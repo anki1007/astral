@@ -13956,7 +13956,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-20",
+    "o": 51959.2109,
+    "c": 52459.0898,
+    "prevClose": 51966.03,
+    "ccPct": 0.95,
+    "ocPct": 0.96,
+    "dir": 1,
+    "rangePct": 1.5,
+    "results": {
+     "astroOnly": "hit",
+     "techOnly": "miss",
+     "techWithAstroFilter": "aside",
+     "astroAndTech": "aside",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -18466,6 +18483,116 @@
      }
     }
    ]
+  },
+  {
+   "id": "2026-10-27|DOW",
+   "target": "2026-10-27",
+   "inst": "DOW",
+   "made": "2026-10-20T18:28:19.430Z",
+   "lastClose": 52459.0898,
+   "lastDate": "2026-10-20",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 19
+   },
+   "astro": {
+    "score": -10,
+    "band": "MILD BEARISH",
+    "volatility": 1.6,
+    "turning": 3.7,
+    "top": [
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Square / Kendra (4-10) Jupiter",
+      "dir": -1,
+      "w": 1.99
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Mercury Right-Vedh: Vishakha → Krittika (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "SUN WITH HERSCHEL",
+      "name": "Sun Quincunx / Shadashtak (6-8) Herschel",
+      "dir": -1,
+      "w": 1.71
+     },
+     {
+      "sec": "IMPORTANT COMBINATION BETWEEN DAY AND NAKSHTRA",
+      "name": "Tuesday + Sun nakshatra (Krittika)",
+      "dir": 1,
+      "w": 1.6
+     }
+    ]
+   },
+   "tech": {
+    "net": 2,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "quiet",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "DOW|astral|2026-10-15|2026-10-27|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-21",
+     "to": "2026-10-27",
+     "at": "2026-10-19..2026-10-23",
+     "proven": false
+    },
+    {
+     "id": "DOW|astral|2026-10-22|2026-10-30|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-22",
+     "to": "2026-10-30",
+     "at": "2026-10-24..2026-10-28",
+     "proven": false
+    },
+    {
+     "id": "DOW|latlon|2026-10-19|2026-11-03|TURN",
+     "source": "latlon",
+     "type": "TURN",
+     "from": "2026-10-21",
+     "to": "2026-11-03",
+     "at": "2026-10-21..2026-10-30",
+     "proven": true
+    }
+   ],
+   "daily": []
   },
   {
    "id": "2026-10-27|GOLD",
@@ -23484,6 +23611,38 @@
     "Jupiter N-rising + Saturn in U.Bhadra: 81/89 days hit a ≥5% swing, 91.0% vs 74.7% chance, 20 of 39 swings were tops, 25 major (not proven — past hits ≈ random chance)"
    ],
    "id": "CRUDE|latlon|2026-10-21|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "DOW",
+   "made": "2026-10-20T18:28:19.430Z",
+   "asOf": "2026-10-20",
+   "at": "2026-10-21..2026-10-30",
+   "from": "2026-10-21",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-19",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 64.2,
+   "days": [
+    "2026-10-21",
+    "2026-10-22",
+    "2026-10-23",
+    "2026-10-26",
+    "2026-10-27",
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Mars N-rising + Jupiter N-rising + Jupiter direct in Cancer: 33/36 days hit a ≥5% swing, 91.7% vs 38.2% chance, 5 of 9 swings were tops, 3 major",
+    "Mars N-rising + Mars direct in Cancer + Jupiter direct in Cancer: 30/30 days hit a ≥5% swing, 100.0% vs 43.9% chance, 4 of 8 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Mars direct in Cancer + Jupiter direct in Cancer: 31/32 days hit a ≥5% swing, 96.9% vs 44.0% chance, 5 of 9 swings were tops, 4 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|latlon|2026-10-19|2026-11-03|TURN",
    "graded": null
   },
   {
@@ -35553,6 +35712,165 @@
      "2026-10-22",
      "2026-10-23",
      "2026-10-26"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
+  },
+  {
+   "at": "2026-10-20T18:28:19.430Z",
+   "target": "2026-10-20",
+   "added": 1,
+   "turnsAdded": 1,
+   "graded": 1,
+   "turnsGraded": 0,
+   "dailyAdded": 0,
+   "dailyGraded": 0,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-10-20",
+    "BANKNIFTY": "2026-10-20",
+    "GOLD": "2026-10-21",
+    "SILVER": "2026-10-21",
+    "CRUDE": "2026-10-21",
+    "COPPER": "2026-10-21",
+    "NATGAS": "2026-10-21",
+    "DOW": "2026-10-21",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 28331,
+     "latlon": 21152,
+     "daily": 21170,
+     "vr": 14443
+    },
+    "BANKNIFTY": {
+     "astral": 710,
+     "latlon": 2011,
+     "daily": 2043,
+     "vr": 258
+    },
+    "GOLD": {
+     "astral": 691,
+     "latlon": 20903,
+     "daily": 23882,
+     "vr": 14873
+    },
+    "SILVER": {
+     "astral": 689,
+     "latlon": 1981,
+     "daily": 2421,
+     "vr": 290
+    },
+    "CRUDE": {
+     "astral": 686,
+     "latlon": 2108,
+     "daily": 2502,
+     "vr": 323
+    },
+    "COPPER": {
+     "astral": 689,
+     "latlon": 2369,
+     "daily": 2229,
+     "vr": 292
+    },
+    "NATGAS": {
+     "astral": 691,
+     "latlon": 2251,
+     "daily": 2796,
+     "vr": 314
+    },
+    "DOW": {
+     "astral": 2807,
+     "latlon": 2370,
+     "daily": 2376,
+     "vr": 342
+    },
+    "SPX": {
+     "astral": 744,
+     "latlon": 1988,
+     "daily": 3035,
+     "vr": 312
+    },
+    "NASDAQ": {
+     "astral": 748,
+     "latlon": 2352,
+     "daily": 2883,
+     "vr": 329
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26"
+    ],
+    "BANKNIFTY": [
+     "2026-10-20",
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26"
+    ],
+    "GOLD": [
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27"
+    ],
+    "SILVER": [
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27"
+    ],
+    "CRUDE": [
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27"
+    ],
+    "COPPER": [
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27"
+    ],
+    "NATGAS": [
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27"
+    ],
+    "DOW": [
+     "2026-10-21",
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27"
     ],
     "SPX": [
      "2026-09-21",
