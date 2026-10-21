@@ -15021,7 +15021,24 @@
     "astroAndTech": -1
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-21",
+    "o": 52652.8516,
+    "c": 52650.4609,
+    "prevClose": 52495.88,
+    "ccPct": 0.29,
+    "ocPct": 0,
+    "dir": 1,
+    "rangePct": 0.61,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "miss",
+     "techWithAstroFilter": "miss",
+     "astroAndTech": "miss",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -19664,6 +19681,112 @@
      }
     }
    ]
+  },
+  {
+   "id": "2026-10-28|DOW",
+   "target": "2026-10-28",
+   "inst": "DOW",
+   "made": "2026-10-21T18:28:28.557Z",
+   "lastClose": 52650.4609,
+   "lastDate": "2026-10-21",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 19
+   },
+   "astro": {
+    "score": 20,
+    "band": "BULLISH",
+    "volatility": 1.7,
+    "turning": 4.4,
+    "top": [
+     {
+      "sec": "MERCURY WITH JUPITER",
+      "name": "Mercury Square / Kendra (4-10) Jupiter",
+      "dir": -1,
+      "w": 1.86
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Jupiter Left-Vedh: Ashlesha → Magha (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.8
+     },
+     {
+      "sec": "SUN WITH HERSCHEL",
+      "name": "Sun Quincunx / Shadashtak (6-8) Herschel",
+      "dir": -1,
+      "w": 1.75
+     },
+     {
+      "sec": "VEDH AS PER SBC / BENEFIC-MALEFIC OF VEDH",
+      "name": "Moon Left-Vedh: Rohini → Swati (MUTUAL — Strong)",
+      "dir": -1,
+      "w": 1.73
+     },
+     {
+      "sec": "IMPORTANT COMBINATION BETWEEN DAY AND NAKSHTRA",
+      "name": "Wednesday + Moon nakshatra (Rohini)",
+      "dir": 1,
+      "w": 1.6
+     }
+    ]
+   },
+   "tech": {
+    "net": 1,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed ABOVE the 2-candle SMA",
+      "dir": -1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Above the Highs of the last 2 Total Days",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": 1,
+    "techOnly": 1,
+    "techWithAstroFilter": 1,
+    "astroAndTech": 1
+   },
+   "vol": "quiet",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "DOW|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-26",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "DOW|latlon|2026-10-20|2026-11-03|TURN",
+     "source": "latlon",
+     "type": "TURN",
+     "from": "2026-10-22",
+     "to": "2026-11-03",
+     "at": "2026-10-22..2026-10-30",
+     "proven": true
+    }
+   ],
+   "daily": []
   },
   {
    "id": "2026-10-28|GOLD",
@@ -29133,6 +29256,32 @@
   },
   {
    "source": "astral",
+   "inst": "DOW",
+   "made": "2026-10-21T18:28:28.557Z",
+   "asOf": "2026-10-21",
+   "at": "2026-11-24..2026-11-27",
+   "from": "2026-11-20",
+   "to": "2026-12-01",
+   "rawFrom": "2026-11-20",
+   "rawTo": "2026-12-01",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1776,
+    "rate": 0.463,
+    "base": 0.461
+   },
+   "reasons": [
+    "2026-11-24 Moon latitude at its northern extreme (+5.00°), turning South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-11-26 Venus declination maximum (−9.21°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-11-26 Moon declination maximum (+27.64°) (book TURN; not proven — past hits ≈ random chance)",
+    "2026-11-27 Moon latitude starts moving rapidly South (0.937°/day > 0.9°) (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-11-20|2026-12-01|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-10-14T15:50:38.078Z",
    "asOf": "2026-10-14",
@@ -29960,6 +30109,30 @@
     "2026-11-30 Mars–Neptune Shadashtak (6/8) exact at 7.4° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)"
    ],
    "id": "CRUDE|astral|2026-11-26|2026-12-02|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
+   "inst": "DOW",
+   "made": "2026-10-21T18:28:28.557Z",
+   "asOf": "2026-10-21",
+   "at": "2026-11-30",
+   "from": "2026-11-26",
+   "to": "2026-12-02",
+   "rawFrom": "2026-11-26",
+   "rawTo": "2026-12-02",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1776,
+    "rate": 0.463,
+    "base": 0.461
+   },
+   "reasons": [
+    "2026-11-30 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)",
+    "2026-11-30 Mars–Neptune Shadashtak (6/8) exact at 7.4° — bearish impact is over once they separate (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-11-26|2026-12-02|TURN",
    "graded": null
   },
   {
@@ -37757,6 +37930,165 @@
      "2026-10-23",
      "2026-10-26",
      "2026-10-27"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
+  },
+  {
+   "at": "2026-10-21T18:28:28.557Z",
+   "target": "2026-10-22",
+   "added": 1,
+   "turnsAdded": 2,
+   "graded": 1,
+   "turnsGraded": 0,
+   "dailyAdded": 0,
+   "dailyGraded": 0,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-10-22",
+    "BANKNIFTY": "2026-10-22",
+    "GOLD": "2026-10-22",
+    "SILVER": "2026-10-22",
+    "CRUDE": "2026-10-22",
+    "COPPER": "2026-10-22",
+    "NATGAS": "2026-10-22",
+    "DOW": "2026-10-22",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 28390,
+     "latlon": 21150,
+     "daily": 21057,
+     "vr": 14504
+    },
+    "BANKNIFTY": {
+     "astral": 703,
+     "latlon": 1940,
+     "daily": 1963,
+     "vr": 14537
+    },
+    "GOLD": {
+     "astral": 674,
+     "latlon": 1628,
+     "daily": 23607,
+     "vr": 282
+    },
+    "SILVER": {
+     "astral": 679,
+     "latlon": 1885,
+     "daily": 2353,
+     "vr": 252
+    },
+    "CRUDE": {
+     "astral": 684,
+     "latlon": 2484,
+     "daily": 2197,
+     "vr": 333
+    },
+    "COPPER": {
+     "astral": 678,
+     "latlon": 2037,
+     "daily": 2698,
+     "vr": 329
+    },
+    "NATGAS": {
+     "astral": 679,
+     "latlon": 2189,
+     "daily": 2748,
+     "vr": 299
+    },
+    "DOW": {
+     "astral": 2859,
+     "latlon": 2453,
+     "daily": 2418,
+     "vr": 341
+    },
+    "SPX": {
+     "astral": 742,
+     "latlon": 2039,
+     "daily": 3285,
+     "vr": 355
+    },
+    "NASDAQ": {
+     "astral": 755,
+     "latlon": 2197,
+     "daily": 3209,
+     "vr": 342
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "BANKNIFTY": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "GOLD": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "SILVER": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "CRUDE": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "COPPER": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "NATGAS": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
+    ],
+    "DOW": [
+     "2026-10-22",
+     "2026-10-23",
+     "2026-10-26",
+     "2026-10-27",
+     "2026-10-28"
     ],
     "SPX": [
      "2026-09-21",
