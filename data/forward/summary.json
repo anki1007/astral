@@ -1,37 +1,37 @@
 {
  "version": 2,
- "generated": "2026-10-22T18:25:21.281Z",
+ "generated": "2026-10-23T16:02:11.798Z",
  "since": "2026-09-19",
- "lastGraded": "2026-10-22",
- "nDays": 23,
+ "lastGraded": "2026-10-23",
+ "nDays": 24,
  "flatBandPct": 0.1,
  "astroMin": 7,
  "direction": {
   "NIFTY": {
    "astroOnly": {
-    "n": 22,
-    "hits": 13,
-    "hitPct": 59.09,
+    "n": 23,
+    "hits": 14,
+    "hitPct": 60.87,
     "ci95": [
-     38.73,
-     76.74
+     40.79,
+     77.84
     ],
-    "bullPctSameDays": 40.91,
-    "vsBullPP": 18.18,
-    "p": 0.066,
+    "bullPctSameDays": 39.13,
+    "vsBullPP": 21.74,
+    "p": 0.029,
     "aside": 0
    },
    "techOnly": {
-    "n": 17,
+    "n": 18,
     "hits": 8,
-    "hitPct": 47.06,
+    "hitPct": 44.44,
     "ci95": [
-     26.16,
-     69.04
+     24.56,
+     66.28
     ],
-    "bullPctSameDays": 35.29,
-    "vsBullPP": 11.76,
-    "p": 0.22,
+    "bullPctSameDays": 33.33,
+    "vsBullPP": 11.11,
+    "p": 0.223,
     "aside": 5
    },
    "techWithAstroFilter": {
@@ -45,7 +45,7 @@
     "bullPctSameDays": 42.86,
     "vsBullPP": 14.29,
     "p": 0.208,
-    "aside": 8
+    "aside": 9
    },
    "astroAndTech": {
     "n": 14,
@@ -58,124 +58,124 @@
     "bullPctSameDays": 42.86,
     "vsBullPP": 14.29,
     "p": 0.208,
-    "aside": 8
+    "aside": 9
    },
    "alwaysBullish": {
-    "n": 22,
+    "n": 23,
     "hits": 9,
-    "hitPct": 40.91,
+    "hitPct": 39.13,
     "ci95": [
-     23.26,
-     61.27
+     22.16,
+     59.21
     ]
    },
    "alwaysNeutral": {
-    "n": 22,
+    "n": 23,
     "hits": 0,
     "hitPct": 0,
     "ci95": [
      0,
-     14.87
+     14.31
     ]
    }
   },
   "BANKNIFTY": {
    "astroOnly": {
-    "n": 22,
-    "hits": 11,
-    "hitPct": 50,
+    "n": 23,
+    "hits": 12,
+    "hitPct": 52.17,
     "ci95": [
-     30.72,
-     69.28
+     32.96,
+     70.76
     ],
-    "bullPctSameDays": 40.91,
-    "vsBullPP": 9.09,
-    "p": 0.256,
+    "bullPctSameDays": 39.13,
+    "vsBullPP": 13.04,
+    "p": 0.143,
     "aside": 0
    },
    "techOnly": {
-    "n": 17,
-    "hits": 8,
-    "hitPct": 47.06,
+    "n": 18,
+    "hits": 9,
+    "hitPct": 50,
     "ci95": [
-     26.16,
-     69.04
+     29.03,
+     70.97
     ],
-    "bullPctSameDays": 35.29,
-    "vsBullPP": 11.76,
-    "p": 0.22,
+    "bullPctSameDays": 33.33,
+    "vsBullPP": 16.67,
+    "p": 0.108,
     "aside": 5
    },
    "techWithAstroFilter": {
-    "n": 14,
-    "hits": 7,
-    "hitPct": 50,
+    "n": 15,
+    "hits": 8,
+    "hitPct": 53.33,
     "ci95": [
-     26.8,
-     73.2
+     30.12,
+     75.19
     ],
-    "bullPctSameDays": 35.71,
-    "vsBullPP": 14.29,
-    "p": 0.199,
+    "bullPctSameDays": 33.33,
+    "vsBullPP": 20,
+    "p": 0.088,
     "aside": 8
    },
    "astroAndTech": {
-    "n": 14,
-    "hits": 7,
-    "hitPct": 50,
+    "n": 15,
+    "hits": 8,
+    "hitPct": 53.33,
     "ci95": [
-     26.8,
-     73.2
+     30.12,
+     75.19
     ],
-    "bullPctSameDays": 35.71,
-    "vsBullPP": 14.29,
-    "p": 0.199,
+    "bullPctSameDays": 33.33,
+    "vsBullPP": 20,
+    "p": 0.088,
     "aside": 8
    },
    "alwaysBullish": {
-    "n": 22,
+    "n": 23,
     "hits": 9,
-    "hitPct": 40.91,
+    "hitPct": 39.13,
     "ci95": [
-     23.26,
-     61.27
+     22.16,
+     59.21
     ]
    },
    "alwaysNeutral": {
-    "n": 22,
+    "n": 23,
     "hits": 2,
-    "hitPct": 9.09,
+    "hitPct": 8.7,
     "ci95": [
-     2.53,
-     27.82
+     2.42,
+     26.8
     ]
    }
   },
   "GOLD": {
    "astroOnly": {
-    "n": 12,
-    "hits": 7,
-    "hitPct": 58.33,
+    "n": 13,
+    "hits": 8,
+    "hitPct": 61.54,
     "ci95": [
-     31.95,
-     80.67
+     35.52,
+     82.29
     ],
-    "bullPctSameDays": 33.33,
-    "vsBullPP": 25,
-    "p": 0.066,
+    "bullPctSameDays": 30.77,
+    "vsBullPP": 30.77,
+    "p": 0.021,
     "aside": 1
    },
    "techOnly": {
-    "n": 13,
+    "n": 14,
     "hits": 6,
-    "hitPct": 46.15,
+    "hitPct": 42.86,
     "ci95": [
-     23.21,
-     70.86
+     21.38,
+     67.41
     ],
-    "bullPctSameDays": 30.77,
-    "vsBullPP": 15.38,
-    "p": 0.182,
+    "bullPctSameDays": 28.57,
+    "vsBullPP": 14.29,
+    "p": 0.185,
     "aside": 0
    },
    "techWithAstroFilter": {
@@ -189,7 +189,7 @@
     "bullPctSameDays": 42.86,
     "vsBullPP": 14.29,
     "p": 0.347,
-    "aside": 6
+    "aside": 7
    },
    "astroAndTech": {
     "n": 6,
@@ -202,39 +202,39 @@
     "bullPctSameDays": 50,
     "vsBullPP": 0,
     "p": 0.656,
-    "aside": 7
+    "aside": 8
    },
    "alwaysBullish": {
-    "n": 13,
+    "n": 14,
     "hits": 4,
-    "hitPct": 30.77,
+    "hitPct": 28.57,
     "ci95": [
-     12.68,
-     57.63
+     11.72,
+     54.65
     ]
    },
    "alwaysNeutral": {
-    "n": 13,
+    "n": 14,
     "hits": 0,
     "hitPct": 0,
     "ci95": [
      0,
-     22.81
+     21.53
     ]
    }
   },
   "SILVER": {
    "astroOnly": {
-    "n": 12,
-    "hits": 7,
-    "hitPct": 58.33,
+    "n": 13,
+    "hits": 8,
+    "hitPct": 61.54,
     "ci95": [
-     31.95,
-     80.67
+     35.52,
+     82.29
     ],
-    "bullPctSameDays": 50,
-    "vsBullPP": 8.33,
-    "p": 0.387,
+    "bullPctSameDays": 46.15,
+    "vsBullPP": 15.38,
+    "p": 0.202,
     "aside": 1
    },
    "techOnly": {
@@ -248,7 +248,7 @@
     "bullPctSameDays": 53.85,
     "vsBullPP": -15.38,
     "p": 0.918,
-    "aside": 0
+    "aside": 1
    },
    "techWithAstroFilter": {
     "n": 7,
@@ -261,7 +261,7 @@
     "bullPctSameDays": 57.14,
     "vsBullPP": -14.29,
     "p": 0.873,
-    "aside": 6
+    "aside": 7
    },
    "astroAndTech": {
     "n": 6,
@@ -274,52 +274,52 @@
     "bullPctSameDays": 50,
     "vsBullPP": 0,
     "p": 0.656,
-    "aside": 7
+    "aside": 8
    },
    "alwaysBullish": {
-    "n": 13,
+    "n": 14,
     "hits": 7,
-    "hitPct": 53.85,
+    "hitPct": 50,
     "ci95": [
-     29.14,
-     76.79
+     26.8,
+     73.2
     ]
    },
    "alwaysNeutral": {
-    "n": 13,
+    "n": 14,
     "hits": 0,
     "hitPct": 0,
     "ci95": [
      0,
-     22.81
+     21.53
     ]
    }
   },
   "CRUDE": {
    "astroOnly": {
-    "n": 12,
+    "n": 13,
     "hits": 6,
-    "hitPct": 50,
+    "hitPct": 46.15,
     "ci95": [
-     25.38,
-     74.62
+     23.21,
+     70.86
     ],
-    "bullPctSameDays": 41.67,
-    "vsBullPP": 8.33,
-    "p": 0.38,
+    "bullPctSameDays": 46.15,
+    "vsBullPP": 0,
+    "p": 0.606,
     "aside": 1
    },
    "techOnly": {
-    "n": 13,
-    "hits": 5,
-    "hitPct": 38.46,
+    "n": 14,
+    "hits": 6,
+    "hitPct": 42.86,
     "ci95": [
-     17.71,
-     64.48
+     21.38,
+     67.41
     ],
-    "bullPctSameDays": 38.46,
+    "bullPctSameDays": 42.86,
     "vsBullPP": 0,
-    "p": 0.603,
+    "p": 0.601,
     "aside": 0
    },
    "techWithAstroFilter": {
@@ -333,7 +333,7 @@
     "bullPctSameDays": 57.14,
     "vsBullPP": -14.29,
     "p": 0.873,
-    "aside": 6
+    "aside": 7
    },
    "astroAndTech": {
     "n": 6,
@@ -346,50 +346,50 @@
     "bullPctSameDays": 66.67,
     "vsBullPP": -33.33,
     "p": 0.982,
-    "aside": 7
+    "aside": 8
    },
    "alwaysBullish": {
-    "n": 13,
-    "hits": 5,
-    "hitPct": 38.46,
+    "n": 14,
+    "hits": 6,
+    "hitPct": 42.86,
     "ci95": [
-     17.71,
-     64.48
+     21.38,
+     67.41
     ]
    },
    "alwaysNeutral": {
-    "n": 13,
+    "n": 14,
     "hits": 0,
     "hitPct": 0,
     "ci95": [
      0,
-     22.81
+     21.53
     ]
    }
   },
   "COPPER": {
    "astroOnly": {
-    "n": 12,
+    "n": 13,
     "hits": 6,
-    "hitPct": 50,
+    "hitPct": 46.15,
     "ci95": [
-     25.38,
-     74.62
+     23.21,
+     70.86
     ],
-    "bullPctSameDays": 50,
-    "vsBullPP": 0,
-    "p": 0.613,
+    "bullPctSameDays": 53.85,
+    "vsBullPP": -7.69,
+    "p": 0.798,
     "aside": 1
    },
    "techOnly": {
-    "n": 13,
-    "hits": 7,
-    "hitPct": 53.85,
+    "n": 14,
+    "hits": 8,
+    "hitPct": 57.14,
     "ci95": [
-     29.14,
-     76.79
+     32.59,
+     78.62
     ],
-    "bullPctSameDays": 53.85,
+    "bullPctSameDays": 57.14,
     "vsBullPP": 0,
     "p": 0.611,
     "aside": 0
@@ -405,7 +405,7 @@
     "bullPctSameDays": 100,
     "vsBullPP": 0,
     "p": 1,
-    "aside": 11
+    "aside": 12
    },
    "astroAndTech": {
     "n": 1,
@@ -418,39 +418,39 @@
     "bullPctSameDays": 100,
     "vsBullPP": 0,
     "p": 1,
-    "aside": 12
+    "aside": 13
    },
    "alwaysBullish": {
-    "n": 13,
-    "hits": 7,
-    "hitPct": 53.85,
+    "n": 14,
+    "hits": 8,
+    "hitPct": 57.14,
     "ci95": [
-     29.14,
-     76.79
+     32.59,
+     78.62
     ]
    },
    "alwaysNeutral": {
-    "n": 13,
+    "n": 14,
     "hits": 1,
-    "hitPct": 7.69,
+    "hitPct": 7.14,
     "ci95": [
-     1.37,
-     33.31
+     1.27,
+     31.47
     ]
    }
   },
   "NATGAS": {
    "astroOnly": {
-    "n": 12,
+    "n": 13,
     "hits": 5,
-    "hitPct": 41.67,
+    "hitPct": 38.46,
     "ci95": [
-     19.33,
-     68.05
+     17.71,
+     64.48
     ],
-    "bullPctSameDays": 50,
-    "vsBullPP": -8.33,
-    "p": 0.806,
+    "bullPctSameDays": 53.85,
+    "vsBullPP": -15.38,
+    "p": 0.918,
     "aside": 1
    },
    "techOnly": {
@@ -464,7 +464,7 @@
     "bullPctSameDays": 46.15,
     "vsBullPP": -7.69,
     "p": 0.797,
-    "aside": 0
+    "aside": 1
    },
    "techWithAstroFilter": {
     "n": 7,
@@ -477,7 +477,7 @@
     "bullPctSameDays": 42.86,
     "vsBullPP": -14.29,
     "p": 0.876,
-    "aside": 6
+    "aside": 7
    },
    "astroAndTech": {
     "n": 6,
@@ -490,24 +490,24 @@
     "bullPctSameDays": 50,
     "vsBullPP": -16.67,
     "p": 0.891,
-    "aside": 7
+    "aside": 8
    },
    "alwaysBullish": {
-    "n": 13,
-    "hits": 6,
-    "hitPct": 46.15,
+    "n": 14,
+    "hits": 7,
+    "hitPct": 50,
     "ci95": [
-     23.21,
-     70.86
+     26.8,
+     73.2
     ]
    },
    "alwaysNeutral": {
-    "n": 13,
+    "n": 14,
     "hits": 0,
     "hitPct": 0,
     "ci95": [
      0,
-     22.81
+     21.53
     ]
    }
   },
@@ -731,8 +731,8 @@
  "volatility": {
   "NIFTY": {
    "quiet": {
-    "n": 15,
-    "meanRangePct": 1.19
+    "n": 16,
+    "meanRangePct": 1.23
    },
    "normal": {
     "n": 6,
@@ -745,8 +745,8 @@
   },
   "BANKNIFTY": {
    "quiet": {
-    "n": 15,
-    "meanRangePct": 1.22
+    "n": 16,
+    "meanRangePct": 1.26
    },
    "normal": {
     "n": 6,
@@ -759,8 +759,8 @@
   },
   "GOLD": {
    "quiet": {
-    "n": 9,
-    "meanRangePct": 1.56
+    "n": 10,
+    "meanRangePct": 1.55
    },
    "normal": {
     "n": 3,
@@ -773,8 +773,8 @@
   },
   "SILVER": {
    "quiet": {
-    "n": 9,
-    "meanRangePct": 2.41
+    "n": 10,
+    "meanRangePct": 2.48
    },
    "normal": {
     "n": 3,
@@ -787,8 +787,8 @@
   },
   "CRUDE": {
    "quiet": {
-    "n": 9,
-    "meanRangePct": 4.13
+    "n": 10,
+    "meanRangePct": 4.17
    },
    "normal": {
     "n": 3,
@@ -801,8 +801,8 @@
   },
   "COPPER": {
    "quiet": {
-    "n": 9,
-    "meanRangePct": 1.36
+    "n": 10,
+    "meanRangePct": 1.46
    },
    "normal": {
     "n": 3,
@@ -815,8 +815,8 @@
   },
   "NATGAS": {
    "quiet": {
-    "n": 9,
-    "meanRangePct": 5.64
+    "n": 10,
+    "meanRangePct": 5.54
    },
    "normal": {
     "n": 3,
@@ -892,17 +892,17 @@
     "majorOk": 0
    },
    "latlon": {
-    "made": 22,
-    "graded": 0,
+    "made": 23,
+    "graded": 1,
     "pending": 22,
     "hits": 0,
-    "hitPct": null,
+    "hitPct": 0,
     "ci95": [
      0,
-     0
+     79.35
     ],
-    "chancePct": null,
-    "p": null,
+    "chancePct": 17.46,
+    "p": 1,
     "typeN": 0,
     "typeOk": 0,
     "typePct": null,
@@ -951,9 +951,9 @@
     "majorOk": 0
    },
    "latlon": {
-    "made": 24,
+    "made": 26,
     "graded": 0,
-    "pending": 24,
+    "pending": 26,
     "hits": 0,
     "hitPct": null,
     "ci95": [
@@ -1010,9 +1010,9 @@
     "majorOk": 0
    },
    "latlon": {
-    "made": 7,
+    "made": 8,
     "graded": 0,
-    "pending": 7,
+    "pending": 8,
     "hits": 0,
     "hitPct": null,
     "ci95": [
@@ -1187,9 +1187,9 @@
     "majorOk": 0
    },
    "latlon": {
-    "made": 10,
+    "made": 11,
     "graded": 0,
-    "pending": 10,
+    "pending": 11,
     "hits": 0,
     "hitPct": null,
     "ci95": [
@@ -1246,9 +1246,9 @@
     "majorOk": 0
    },
    "latlon": {
-    "made": 3,
+    "made": 4,
     "graded": 0,
-    "pending": 3,
+    "pending": 4,
     "hits": 0,
     "hitPct": null,
     "ci95": [
@@ -1305,9 +1305,9 @@
     "majorOk": 0
    },
    "latlon": {
-    "made": 11,
+    "made": 12,
     "graded": 0,
-    "pending": 11,
+    "pending": 12,
     "hits": 0,
     "hitPct": null,
     "ci95": [
@@ -1468,7 +1468,7 @@
    "window3": 17.46,
    "pivots": 434,
    "from": "2000-01-03",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "BANKNIFTY": {
@@ -1476,7 +1476,7 @@
    "window3": 23.11,
    "pivots": 562,
    "from": "2000-01-01",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "GOLD": {
@@ -1484,7 +1484,7 @@
    "window3": 12.38,
    "pivots": 277,
    "from": "2000-08-30",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "SILVER": {
@@ -1492,15 +1492,15 @@
    "window3": 24.09,
    "pivots": 575,
    "from": "2000-08-30",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "CRUDE": {
    "window5": 59.04,
-   "window3": 43.36,
-   "pivots": 1154,
+   "window3": 43.37,
+   "pivots": 1155,
    "from": "2000-08-23",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "COPPER": {
@@ -1508,15 +1508,15 @@
    "window3": 21.54,
    "pivots": 510,
    "from": "2000-08-30",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "NATGAS": {
    "window5": 78.62,
-   "window3": 62.39,
-   "pivots": 1852,
+   "window3": 62.38,
+   "pivots": 1853,
    "from": "2000-08-30",
-   "to": "2026-10-22",
+   "to": "2026-10-23",
    "rule": ">=5% swing, >=10% major"
   },
   "DOW": {
@@ -1600,7 +1600,7 @@
    },
    "baselines": {
     "window": "last 250 sessions",
-    "upPct": 42,
+    "upPct": 41.6,
     "gapPct": 24,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
@@ -1622,17 +1622,17 @@
     "p": null
    },
    "big": {
-    "made": 12,
-    "graded": 6,
+    "made": 13,
+    "graded": 7,
     "pending": 5,
-    "hits": 1,
-    "hitPct": 16.67,
+    "hits": 2,
+    "hitPct": 28.57,
     "ci95": [
-     3.01,
-     56.35
+     8.22,
+     64.11
     ],
-    "chancePct": 37.87,
-    "p": 0.942
+    "chancePct": 37.89,
+    "p": 0.812
    },
    "gap": {
     "made": 0,
@@ -1662,14 +1662,14 @@
    },
    "baselines": {
     "window": "last 250 sessions",
-    "upPct": 46.4,
+    "upPct": 46,
     "gapPct": 26,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": {
-     "target": "2026-10-29",
-     "base": 0.384,
-     "bigThrPct": 1.5097
+     "target": "2026-10-30",
+     "base": 0.388,
+     "bigThrPct": 1.5131
     }
    }
   },
@@ -1791,7 +1791,7 @@
    "baselines": {
     "window": "last 250 sessions",
     "upPct": 51.6,
-    "gapPct": 76.19,
+    "gapPct": 75.76,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": null
@@ -1812,17 +1812,17 @@
     "p": null
    },
    "big": {
-    "made": 31,
-    "graded": 21,
+    "made": 33,
+    "graded": 23,
     "pending": 10,
-    "hits": 16,
-    "hitPct": 76.19,
+    "hits": 18,
+    "hitPct": 78.26,
     "ci95": [
-     54.91,
-     89.37
+     58.1,
+     90.34
     ],
-    "chancePct": 49.5,
-    "p": 0.012
+    "chancePct": 49.51,
+    "p": 0.005
    },
    "gap": {
     "made": 0,
@@ -1852,12 +1852,12 @@
    },
    "baselines": {
     "window": "last 250 sessions",
-    "upPct": 54.4,
+    "upPct": 54.8,
     "gapPct": 50,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": {
-     "target": "2026-10-29",
+     "target": "2026-10-30",
      "base": 0.5,
      "bigThrPct": 5.8353
     }
@@ -1919,7 +1919,7 @@
    "baselines": {
     "window": "last 250 sessions",
     "upPct": 49.6,
-    "gapPct": 57.68,
+    "gapPct": 58.09,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": null
@@ -1980,8 +1980,8 @@
    },
    "baselines": {
     "window": "last 250 sessions",
-    "upPct": 54.8,
-    "gapPct": 56.8,
+    "upPct": 55.2,
+    "gapPct": 56.4,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": null
@@ -2620,37 +2620,37 @@
   {
    "k": "NIFTY",
    "grp": "india",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "BANKNIFTY",
    "grp": "india",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "GOLD",
    "grp": "com",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "SILVER",
    "grp": "com",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "CRUDE",
    "grp": "com",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "COPPER",
    "grp": "com",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "NATGAS",
    "grp": "com",
-   "target": "2026-10-23"
+   "target": "2026-10-26"
   },
   {
    "k": "DOW",
@@ -2670,140 +2670,140 @@
  ],
  "skyNote": "the book engine reads the sky at 09:15 IST of the session date for every instrument, US and commodities included; no US-session time is modelled",
  "lastRun": {
-  "at": "2026-10-22T18:22:45.677Z",
-  "target": "2026-10-23",
-  "added": 1,
-  "turnsAdded": 0,
-  "graded": 1,
+  "at": "2026-10-23T15:58:25.827Z",
+  "target": "2026-10-26",
+  "added": 7,
+  "turnsAdded": 7,
+  "graded": 7,
   "turnsGraded": 1,
-  "dailyAdded": 0,
-  "dailyGraded": 0,
+  "dailyAdded": 3,
+  "dailyGraded": 3,
   "vrAdded": 0,
   "errors": [],
   "targets": {
-   "NIFTY": "2026-10-23",
-   "BANKNIFTY": "2026-10-23",
-   "GOLD": "2026-10-23",
-   "SILVER": "2026-10-23",
-   "CRUDE": "2026-10-23",
-   "COPPER": "2026-10-23",
-   "NATGAS": "2026-10-23",
+   "NIFTY": "2026-10-26",
+   "BANKNIFTY": "2026-10-26",
+   "GOLD": "2026-10-26",
+   "SILVER": "2026-10-26",
+   "CRUDE": "2026-10-26",
+   "COPPER": "2026-10-26",
+   "NATGAS": "2026-10-26",
    "DOW": "2026-10-23",
    "SPX": "2026-09-21",
    "NASDAQ": "2026-09-21"
   },
   "ms": {
    "NIFTY": {
-    "astral": 23532,
-    "latlon": 17683,
-    "daily": 17608,
-    "vr": 11782
+    "astral": 36140,
+    "latlon": 27365,
+    "daily": 39591,
+    "vr": 18724
    },
    "BANKNIFTY": {
-    "astral": 655,
-    "latlon": 1983,
-    "daily": 1953,
-    "vr": 264
+    "astral": 829,
+    "latlon": 2641,
+    "daily": 2510,
+    "vr": 319
    },
    "GOLD": {
-    "astral": 617,
-    "latlon": 1624,
-    "daily": 2146,
-    "vr": 308
+    "astral": 786,
+    "latlon": 2210,
+    "daily": 2711,
+    "vr": 370
    },
    "SILVER": {
-    "astral": 629,
-    "latlon": 1849,
-    "daily": 1909,
-    "vr": 434
+    "astral": 800,
+    "latlon": 2492,
+    "daily": 2628,
+    "vr": 358
    },
    "CRUDE": {
-    "astral": 634,
-    "latlon": 1942,
-    "daily": 2576,
-    "vr": 327
+    "astral": 794,
+    "latlon": 2895,
+    "daily": 2715,
+    "vr": 379
    },
    "COPPER": {
-    "astral": 621,
-    "latlon": 2400,
-    "daily": 2131,
-    "vr": 337
+    "astral": 772,
+    "latlon": 2534,
+    "daily": 3223,
+    "vr": 365
    },
    "NATGAS": {
-    "astral": 633,
-    "latlon": 2548,
-    "daily": 2223,
-    "vr": 310
+    "astral": 789,
+    "latlon": 2752,
+    "daily": 3314,
+    "vr": 373
    },
    "DOW": {
-    "astral": 2437,
-    "latlon": 1816,
-    "daily": 2912,
-    "vr": 317
+    "astral": 3479,
+    "latlon": 2990,
+    "daily": 2838,
+    "vr": 381
    },
    "SPX": {
-    "astral": 687,
-    "latlon": 2526,
-    "daily": 2343,
-    "vr": 310
+    "astral": 858,
+    "latlon": 2350,
+    "daily": 3504,
+    "vr": 391
    },
    "NASDAQ": {
-    "astral": 697,
-    "latlon": 1967,
-    "daily": 3113,
-    "vr": 329
+    "astral": 861,
+    "latlon": 3208,
+    "daily": 2973,
+    "vr": 408
    }
   },
   "ahead": 5,
   "aheadTargets": {
    "NIFTY": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "BANKNIFTY": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "GOLD": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "SILVER": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "CRUDE": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "COPPER": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "NATGAS": [
-    "2026-10-23",
     "2026-10-26",
     "2026-10-27",
     "2026-10-28",
-    "2026-10-29"
+    "2026-10-29",
+    "2026-10-30"
    ],
    "DOW": [
     "2026-10-23",
