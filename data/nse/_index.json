@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-23T15:43:08Z",
+ "generated": "2026-10-23T18:02:39Z",
  "source": "upstox v3 historical-candle",
  "instruments": {
   "NIFTY": {
@@ -151,6 +151,11 @@
    "from": "2009-08-20",
    "to": "2026-10-23",
    "count": 4245
+  },
+  "ALKEM": {
+   "from": "2015-12-23",
+   "to": "2026-10-23",
+   "count": 2681
   },
   "AMBER": {
    "from": "2018-01-30",
@@ -1211,7 +1216,6 @@
  },
  "failures": [
   "GOLDSTAR: 'unknown symbol: GOLDSTAR'",
-  "ALKEM: IncompleteRead(106480 bytes read)",
   "ICICIPRULI: 'unknown symbol: ICICIPRULI'"
  ]
 }
