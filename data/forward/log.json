@@ -19297,7 +19297,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 52277.4883,
+    "c": 52381.0391,
+    "prevClose": 52361.58,
+    "ccPct": 0.04,
+    "ocPct": 0.2,
+    "dir": 0,
+    "rangePct": 0.47,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "miss",
+     "techWithAstroFilter": "aside",
+     "astroAndTech": "aside",
+     "alwaysBullish": "miss",
+     "alwaysNeutral": "hit"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -23831,6 +23848,111 @@
    "daily": []
   },
   {
+   "id": "2026-11-03|DOW",
+   "target": "2026-11-03",
+   "inst": "DOW",
+   "made": "2026-10-27T19:12:34.055Z",
+   "lastClose": 52381.0391,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -9,
+    "band": "MILD BEARISH",
+    "volatility": 2.8,
+    "turning": 3.4,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.74
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.68
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 1,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "DOW|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "DOW|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    },
+    {
+     "id": "DOW|latlon|2026-10-26|2026-11-03|TURN",
+     "source": "latlon",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-30",
+     "proven": true
+    }
+   ],
+   "daily": []
+  },
+  {
    "id": "2026-11-03|GOLD",
    "target": "2026-11-03",
    "inst": "GOLD",
@@ -25194,7 +25316,12 @@
     "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "DOW|astral|2026-09-22|2026-09-29|TURN",
-   "graded": null
+   "graded": {
+    "status": "miss",
+    "date": "2026-10-27",
+    "sessions": 6,
+    "chance": 0.2215
+   }
   },
   {
    "source": "astral",
@@ -44537,6 +44664,165 @@
      "2026-10-29",
      "2026-10-30",
      "2026-11-02"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
+  },
+  {
+   "at": "2026-10-27T19:12:34.055Z",
+   "target": "2026-10-28",
+   "added": 1,
+   "turnsAdded": 0,
+   "graded": 1,
+   "turnsGraded": 1,
+   "dailyAdded": 0,
+   "dailyGraded": 0,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-10-28",
+    "BANKNIFTY": "2026-10-28",
+    "GOLD": "2026-10-28",
+    "SILVER": "2026-10-28",
+    "CRUDE": "2026-10-28",
+    "COPPER": "2026-10-28",
+    "NATGAS": "2026-10-28",
+    "DOW": "2026-10-28",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 27228,
+     "latlon": 20762,
+     "daily": 20810,
+     "vr": 14144
+    },
+    "BANKNIFTY": {
+     "astral": 711,
+     "latlon": 2513,
+     "daily": 2616,
+     "vr": 316
+    },
+    "GOLD": {
+     "astral": 690,
+     "latlon": 2275,
+     "daily": 2845,
+     "vr": 356
+    },
+    "SILVER": {
+     "astral": 696,
+     "latlon": 2805,
+     "daily": 2531,
+     "vr": 315
+    },
+    "CRUDE": {
+     "astral": 685,
+     "latlon": 2500,
+     "daily": 3209,
+     "vr": 402
+    },
+    "COPPER": {
+     "astral": 682,
+     "latlon": 2528,
+     "daily": 3319,
+     "vr": 358
+    },
+    "NATGAS": {
+     "astral": 687,
+     "latlon": 3294,
+     "daily": 2915,
+     "vr": 383
+    },
+    "DOW": {
+     "astral": 2778,
+     "latlon": 2346,
+     "daily": 3686,
+     "vr": 414
+    },
+    "SPX": {
+     "astral": 736,
+     "latlon": 3014,
+     "daily": 3038,
+     "vr": 378
+    },
+    "NASDAQ": {
+     "astral": 740,
+     "latlon": 2446,
+     "daily": 3734,
+     "vr": 395
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "BANKNIFTY": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "GOLD": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "SILVER": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "CRUDE": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "COPPER": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "NATGAS": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "DOW": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
     ],
     "SPX": [
      "2026-09-21",
