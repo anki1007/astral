@@ -18847,7 +18847,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 54420.7,
+    "c": 53974.9,
+    "prevClose": 54366.7,
+    "ccPct": -0.72,
+    "ocPct": -0.82,
+    "dir": -1,
+    "rangePct": 1.29,
+    "results": {
+     "astroOnly": "aside",
+     "techOnly": "hit",
+     "techWithAstroFilter": "hit",
+     "astroAndTech": "aside",
+     "alwaysBullish": "miss",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 4,
    "turns": [
     {
@@ -18985,7 +19002,24 @@
     "astroAndTech": -1
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 6.5415,
+    "c": 6.6485,
+    "prevClose": 6.51,
+    "ccPct": 2.16,
+    "ocPct": 1.64,
+    "dir": 1,
+    "rangePct": 1.72,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "miss",
+     "techWithAstroFilter": "miss",
+     "astroAndTech": "miss",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -19096,7 +19130,24 @@
     "astroAndTech": -1
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 101.29,
+    "c": 100.23,
+    "prevClose": 101.76,
+    "ccPct": -1.5,
+    "ocPct": -1.05,
+    "dir": -1,
+    "rangePct": 2.97,
+    "results": {
+     "astroOnly": "hit",
+     "techOnly": "hit",
+     "techWithAstroFilter": "hit",
+     "astroAndTech": "hit",
+     "alwaysBullish": "miss",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -19358,7 +19409,24 @@
     "astroAndTech": -1
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 4032.8,
+    "c": 4075.3,
+    "prevClose": 4038.4,
+    "ccPct": 0.91,
+    "ocPct": 1.05,
+    "dir": 1,
+    "rangePct": 1.91,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "miss",
+     "techWithAstroFilter": "miss",
+     "astroAndTech": "miss",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -19469,7 +19537,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 3.044,
+    "c": 3.003,
+    "prevClose": 2.6,
+    "ccPct": 15.41,
+    "ocPct": -1.35,
+    "dir": 1,
+    "rangePct": 4.07,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "hit",
+     "techWithAstroFilter": "aside",
+     "astroAndTech": "aside",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -19584,7 +19669,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 22708.8,
+    "c": 22749.75,
+    "prevClose": 22753.2,
+    "ccPct": -0.02,
+    "ocPct": 0.18,
+    "dir": 0,
+    "rangePct": 0.85,
+    "results": {
+     "astroOnly": "aside",
+     "techOnly": "miss",
+     "techWithAstroFilter": "miss",
+     "astroAndTech": "aside",
+     "alwaysBullish": "miss",
+     "alwaysNeutral": "hit"
+    }
+   },
    "seq": 4,
    "turns": [
     {
@@ -19695,7 +19797,24 @@
     "astroAndTech": 0
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 54.075,
+    "c": 54.55,
+    "prevClose": 54.11,
+    "ccPct": 0.82,
+    "ocPct": 0.88,
+    "dir": 1,
+    "rangePct": 3.57,
+    "results": {
+     "astroOnly": "miss",
+     "techOnly": "hit",
+     "techWithAstroFilter": "aside",
+     "astroAndTech": "aside",
+     "alwaysBullish": "hit",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -23365,6 +23484,794 @@
     }
    ],
    "daily": []
+  },
+  {
+   "id": "2026-11-03|BANKNIFTY",
+   "target": "2026-11-03",
+   "inst": "BANKNIFTY",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 53974.9,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "Mumbai",
+    "openLocal": 9.25,
+    "hourIST": 9.25
+   },
+   "astro": {
+    "score": -11,
+    "band": "MILD BEARISH",
+    "volatility": 2.9,
+    "turning": 3.1,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.71
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.7
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.62
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": -2,
+    "dir": -1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day Low breached",
+      "dir": -1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Below the Lows of the last 3 Total Days",
+      "dir": -1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": -1,
+    "techWithAstroFilter": -1,
+    "astroAndTech": -1
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "BANKNIFTY|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "BANKNIFTY|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    },
+    {
+     "id": "BANKNIFTY|latlon|2026-10-26|2026-11-23|MAJOR TURN",
+     "source": "latlon",
+     "type": "MAJOR TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-23",
+     "at": "2026-10-28..2026-11-19",
+     "proven": true
+    }
+   ],
+   "daily": [
+    {
+     "id": "2026-11-03|BANKNIFTY|big|Venus S-rising + Jupiter N-rising",
+     "study": "big",
+     "pattern": "Venus S-rising + Jupiter N-rising",
+     "plain": "Venus south of the ecliptic, rising + Jupiter north of the ecliptic, rising",
+     "claim": "Big-move day likely: 71.4% vs 36.4% · direction coin-flip",
+     "lean": "more",
+     "bias": {
+      "lean": null,
+      "claim": "direction coin-flip"
+     },
+     "in": {
+      "n": 227,
+      "rate": 0.3921,
+      "base": 0.2685,
+      "bhQ": 0.0039666011593015955
+     },
+     "out": {
+      "n": 42,
+      "rate": 0.7143,
+      "base": 0.364,
+      "p": 0.000004202018198785875
+     }
+    }
+   ]
+  },
+  {
+   "id": "2026-11-03|COPPER",
+   "target": "2026-11-03",
+   "inst": "COPPER",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 6.6485,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -7,
+    "band": "MILD BEARISH",
+    "volatility": 2.8,
+    "turning": 3.4,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.74
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.68
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 3.5,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Breached the Total Day Low, then crossed its High",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Above the Highs of the last 6 Total Days",
+      "dir": 1
+     }
+    ],
+    "setups": [],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "COPPER|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "COPPER|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    },
+    {
+     "id": "COPPER|latlon|2026-10-26|2026-11-03|BOTTOM",
+     "source": "latlon",
+     "type": "BOTTOM",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-30",
+     "proven": true
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-11-03|CRUDE",
+   "target": "2026-11-03",
+   "inst": "CRUDE",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 100.23,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -7,
+    "band": "MILD BEARISH",
+    "volatility": 2.8,
+    "turning": 3.4,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.74
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.68
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 1,
+    "dir": 1,
+    "fired": [
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day High crossed",
+      "dir": 1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level",
+     "Double top formed — watch the intermediate low"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 1,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "CRUDE|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "CRUDE|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-11-03|GOLD",
+   "target": "2026-11-03",
+   "inst": "GOLD",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 4075.3,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -7,
+    "band": "MILD BEARISH",
+    "volatility": 2.8,
+    "turning": 3.4,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.74
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.68
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": -1,
+    "dir": -1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day Low breached",
+      "dir": -1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Below the Lows of the last 6 Total Days",
+      "dir": -1
+     }
+    ],
+    "setups": [
+     "Double top formed — watch the intermediate low"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": -1,
+    "techWithAstroFilter": -1,
+    "astroAndTech": -1
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "GOLD|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "GOLD|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    },
+    {
+     "id": "GOLD|latlon|2026-10-26|2026-11-03|TURN",
+     "source": "latlon",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-30",
+     "proven": false
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-11-03|NATGAS",
+   "target": "2026-11-03",
+   "inst": "NATGAS",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 3.003,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -7,
+    "band": "MILD BEARISH",
+    "volatility": 2.8,
+    "turning": 3.4,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.74
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.68
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": 0,
+    "dir": 0,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed ABOVE the 2-candle SMA",
+      "dir": -1
+     },
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "RULE OF AVERAGES",
+      "name": "50 SMA crossed 183 SMA upward (daily)",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Total Day Low breached",
+      "dir": -1
+     }
+    ],
+    "setups": [],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 0,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "NATGAS|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "NATGAS|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-11-03|NIFTY",
+   "target": "2026-11-03",
+   "inst": "NIFTY",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 22749.75,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "Mumbai",
+    "openLocal": 9.25,
+    "hourIST": 9.25
+   },
+   "astro": {
+    "score": -11,
+    "band": "MILD BEARISH",
+    "volatility": 2.9,
+    "turning": 3.1,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.71
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.7
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.62
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": -1.5,
+    "dir": -1,
+    "fired": [
+     {
+      "sec": "IMPORTANCE OF TWO CANDLE SMA",
+      "name": "Opened AND closed BELOW the 2-candle SMA",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Crossed the Total Day High, then broke its Low",
+      "dir": -1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Below the Lows of the last 5 Total Days",
+      "dir": -1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": -1,
+    "techWithAstroFilter": -1,
+    "astroAndTech": -1
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "NIFTY|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "NIFTY|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-11-03|SILVER",
+   "target": "2026-11-03",
+   "inst": "SILVER",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 54.55,
+   "lastDate": "2026-10-27",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -7,
+    "band": "MILD BEARISH",
+    "volatility": 2.8,
+    "turning": 3.4,
+    "top": [
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": -1,
+      "w": 1.74
+     },
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.68
+     },
+     {
+      "sec": "VENUS COMBUST AND RISE",
+      "name": "Venus rose in the East, in Libra (day 6 since rise)",
+      "dir": 1,
+      "w": 1.65
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.63
+     },
+     {
+      "sec": "SATURN WITH NEPTUNE",
+      "name": "Saturn Conjunction (together) Neptune",
+      "dir": -1,
+      "w": 1.5
+     }
+    ]
+   },
+   "tech": {
+    "net": -1.5,
+    "dir": -1,
+    "fired": [
+     {
+      "sec": "PURITY OF BREAKOUT",
+      "name": "Closed above the CONFIRMATION breakout level",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Crossed the Total Day High, then broke its Low",
+      "dir": -1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Below the Lows of the last 6 Total Days",
+      "dir": -1
+     }
+    ],
+    "setups": [],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": -1,
+    "techWithAstroFilter": -1,
+    "astroAndTech": -1
+   },
+   "vol": "normal",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "SILVER|astral|2026-10-26|2026-11-03|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-28",
+     "to": "2026-11-03",
+     "at": "2026-10-28..2026-10-31",
+     "proven": false
+    },
+    {
+     "id": "SILVER|astral|2026-10-30|2026-11-10|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-10-30",
+     "to": "2026-11-10",
+     "at": "2026-11-03..2026-11-06",
+     "proven": false
+    },
+    {
+     "id": "SILVER|latlon|2026-10-29|2026-11-05|MAJOR TURN",
+     "source": "latlon",
+     "type": "MAJOR TURN",
+     "from": "2026-10-29",
+     "to": "2026-11-05",
+     "at": "2026-11-02..2026-11-03",
+     "proven": true
+    }
+   ],
+   "daily": []
   }
  ],
  "reversals": [
@@ -24312,7 +25219,12 @@
     "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; no measured edge)"
    ],
    "id": "GOLD|astral|2026-09-22|2026-09-29|TURN",
-   "graded": null
+   "graded": {
+    "status": "miss",
+    "date": "2026-10-27",
+    "sessions": 6,
+    "chance": 0.2332
+   }
   },
   {
    "source": "astral",
@@ -24511,7 +25423,12 @@
     "2026-09-26 Sun–Neptune opposition (Sun 7.9° Virgo) (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "SILVER|astral|2026-09-22|2026-09-29|TURN",
-   "graded": null
+   "graded": {
+    "status": "miss",
+    "date": "2026-10-27",
+    "sessions": 6,
+    "chance": 0.4181
+   }
   },
   {
    "source": "astral",
@@ -26934,7 +27851,21 @@
     "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "CRUDE|astral|2026-10-15|2026-10-27|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-10-27",
+    "sessions": 9,
+    "chance": 0.7712,
+    "pivot": {
+     "date": "2026-10-20",
+     "price": 110.48,
+     "movePct": 12.87,
+     "type": "TOP",
+     "cls": "MAJOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "astral",
@@ -27273,7 +28204,21 @@
     "2026-10-23 Mercury declination minimum (−20.96°) (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "NATGAS|astral|2026-10-15|2026-10-27|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-10-27",
+    "sessions": 9,
+    "chance": 0.9172,
+    "pivot": {
+     "date": "2026-10-26",
+     "price": 2.5,
+     "movePct": 22.83,
+     "type": "BOTTOM",
+     "cls": "MAJOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "astral",
@@ -27794,7 +28739,21 @@
     "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "CRUDE|astral|2026-10-19|2026-10-27|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-10-27",
+    "sessions": 7,
+    "chance": 0.6958,
+    "pivot": {
+     "date": "2026-10-20",
+     "price": 110.48,
+     "movePct": 12.87,
+     "type": "TOP",
+     "cls": "MAJOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "astral",
@@ -27939,7 +28898,21 @@
     "2026-10-24 Mercury stations Retrograde at 26.75° Libra (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "NATGAS|astral|2026-10-19|2026-10-27|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-10-27",
+    "sessions": 7,
+    "chance": 0.87,
+    "pivot": {
+     "date": "2026-10-26",
+     "price": 2.5,
+     "movePct": 22.83,
+     "type": "BOTTOM",
+     "cls": "MAJOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "astral",
@@ -28064,7 +29037,21 @@
     "Jupiter N-rising + Saturn in U.Bhadra: 81/89 days hit a ≥5% swing, 91.0% vs 75.1% chance, 20 of 39 swings were tops, 25 major (not proven — past hits ≈ random chance)"
    ],
    "id": "CRUDE|latlon|2026-10-21|2026-10-27|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-10-27",
+    "sessions": 5,
+    "chance": 0.5904,
+    "pivot": {
+     "date": "2026-10-21",
+     "price": 96.26,
+     "movePct": 7.96,
+     "type": "BOTTOM",
+     "cls": "MINOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "latlon",
@@ -29213,6 +30200,33 @@
   },
   {
    "source": "latlon",
+   "inst": "DOW",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-26",
+   "at": "2026-10-28..2026-10-30",
+   "from": "2026-10-27",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-26",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 64.2,
+   "days": [
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Mars N-rising + Jupiter N-rising + Jupiter direct in Cancer: 33/36 days hit a ≥5% swing, 91.7% vs 38.2% chance, 5 of 9 swings were tops, 3 major",
+    "Mars N-rising + Mars direct in Cancer + Jupiter direct in Cancer: 30/30 days hit a ≥5% swing, 100.0% vs 43.9% chance, 4 of 8 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Mars direct in Cancer + Jupiter direct in Cancer: 31/32 days hit a ≥5% swing, 96.9% vs 44.0% chance, 5 of 9 swings were tops, 4 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|latlon|2026-10-26|2026-11-03|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
    "inst": "GOLD",
    "made": "2026-10-26T17:22:32.468Z",
    "asOf": "2026-10-26",
@@ -29323,6 +30337,47 @@
    "graded": null
   },
   {
+   "source": "latlon",
+   "inst": "BANKNIFTY",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-27",
+   "at": "2026-10-28..2026-11-19",
+   "from": "2026-10-28",
+   "to": "2026-11-23",
+   "rawFrom": "2026-10-26",
+   "rawTo": "2026-11-23",
+   "type": "MAJOR TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 56.8,
+   "days": [
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30",
+    "2026-11-02",
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-09",
+    "2026-11-10",
+    "2026-11-11",
+    "2026-11-12",
+    "2026-11-13",
+    "2026-11-16",
+    "2026-11-17",
+    "2026-11-18",
+    "2026-11-19"
+   ],
+   "reasons": [
+    "Venus S-rising + Jupiter N-rising: 161/392 days hit a ≥5% swing, 41.1% vs 29.4% chance, 20 of 44 swings were tops, 22 major",
+    "Venus S-rising + Mercury in Swati: 29/37 days hit a ≥5% swing, 78.4% vs 42.3% chance, 4 of 10 swings were tops, 7 major (not proven — past hits ≈ random chance)",
+    "Venus S-rising + Mercury direct in Libra: 25/33 days hit a ≥5% swing, 75.8% vs 39.6% chance, 3 of 8 swings were tops, 5 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "BANKNIFTY|latlon|2026-10-26|2026-11-23|MAJOR TURN",
+   "graded": null
+  },
+  {
    "source": "astral",
    "inst": "COPPER",
    "made": "2026-09-19T19:58:53.970Z",
@@ -29374,6 +30429,33 @@
     "2026-11-03 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)"
    ],
    "id": "COPPER|astral|2026-10-28|2026-11-05|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "COPPER",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-27",
+   "at": "2026-10-28..2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-26",
+   "rawTo": "2026-11-03",
+   "type": "BOTTOM",
+   "edge": true,
+   "pick": "measured label",
+   "score": 27.8,
+   "days": [
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "Moon N-peak + Venus in Chitra: 33/53 days hit a ≥5% swing, 62.3% vs 34.7% chance, 5 of 15 swings were tops, 7 major",
+    "Saturn S-rising + Saturn in U.Bhadra: 26/40 days hit a ≥5% swing, 65.0% vs 35.4% chance, 4 of 8 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Venus in Chitra: 109/265 days hit a ≥5% swing, 41.1% vs 31.4% chance, 16 of 36 swings were tops, 13 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "COPPER|latlon|2026-10-26|2026-11-03|BOTTOM",
    "graded": null
   },
   {
@@ -29539,6 +30621,34 @@
    "graded": null
   },
   {
+   "source": "latlon",
+   "inst": "GOLD",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-27",
+   "at": "2026-10-28..2026-10-30",
+   "from": "2026-10-28",
+   "to": "2026-11-03",
+   "rawFrom": "2026-10-26",
+   "rawTo": "2026-11-03",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 18.9,
+   "days": [
+    "2026-10-28",
+    "2026-10-29",
+    "2026-10-30"
+   ],
+   "reasons": [
+    "state label TURN (not proven — past hits ≈ random chance)",
+    "Mercury S-rising + Saturn in U.Bhadra: 38/55 days hit a ≥5% swing, 69.1% vs 41.6% chance, 7 of 13 swings were tops, 6 major (not proven — past hits ≈ random chance)",
+    "Venus in Chitra + Ketu in Magha: 14/16 days hit a ≥5% swing, 87.5% vs 39.0% chance, 3 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Mars in Ashlesha: 77/262 days hit a ≥5% swing, 29.4% vs 20.6% chance, 9 of 20 swings were tops, 7 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "GOLD|latlon|2026-10-26|2026-11-03|TURN",
+   "graded": null
+  },
+  {
    "source": "astral",
    "inst": "NASDAQ",
    "made": "2026-09-19T19:58:53.970Z",
@@ -29670,6 +30780,33 @@
     "2026-11-03 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)"
    ],
    "id": "NIFTY|astral|2026-10-28|2026-11-05|TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "NIFTY",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-27",
+   "at": "2026-10-28..2026-10-29",
+   "from": "2026-10-28",
+   "to": "2026-11-02",
+   "rawFrom": "2026-10-26",
+   "rawTo": "2026-11-02",
+   "type": "TURN",
+   "edge": false,
+   "pick": "top score (not proven — past hits ≈ random chance)",
+   "score": 29.7,
+   "days": [
+    "2026-10-28",
+    "2026-10-29"
+   ],
+   "reasons": [
+    "state label MAJOR BOTTOM (not proven — past hits ≈ random chance)",
+    "Venus retro in Libra combust: 15/23 days hit a ≥5% swing, 65.2% vs 19.9% chance, 2 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Sun direct in Libra + Venus retro in Libra combust: 15/23 days hit a ≥5% swing, 65.2% vs 19.9% chance, 2 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)",
+    "Venus S-rising + Venus retro in Libra combust: 15/23 days hit a ≥5% swing, 65.2% vs 19.9% chance, 2 of 5 swings were tops, 3 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "NIFTY|latlon|2026-10-26|2026-11-02|TURN",
    "graded": null
   },
   {
@@ -33549,6 +34686,38 @@
    "graded": null
   },
   {
+   "source": "latlon",
+   "inst": "BANKNIFTY",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-27",
+   "at": "2026-11-27..2026-12-08",
+   "from": "2026-11-25",
+   "to": "2026-12-10",
+   "rawFrom": "2026-11-25",
+   "rawTo": "2026-12-10",
+   "type": "TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 25.3,
+   "days": [
+    "2026-11-27",
+    "2026-11-30",
+    "2026-12-01",
+    "2026-12-02",
+    "2026-12-03",
+    "2026-12-04",
+    "2026-12-07",
+    "2026-12-08"
+   ],
+   "reasons": [
+    "Mercury N-falling + Mars direct in Leo: 49/96 days hit a ≥5% swing, 51.0% vs 31.7% chance, 8 of 16 swings were tops, 7 major",
+    "Venus N-rising + Saturn S-rising: 97/288 days hit a ≥5% swing, 33.7% vs 25.5% chance, 13 of 23 swings were tops, 13 major (not proven — past hits ≈ random chance)",
+    "Jupiter N-rising + Saturn in U.Bhadra: 23/84 days hit a ≥5% swing, 27.4% vs 15.9% chance, 3 of 6 swings were tops, 3 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "BANKNIFTY|latlon|2026-11-25|2026-12-10|TURN",
+   "graded": null
+  },
+  {
    "source": "astral",
    "inst": "COPPER",
    "made": "2026-10-16T15:24:12.287Z",
@@ -34249,6 +35418,32 @@
     "Mars N-rising + Sun direct in Scorpio: 118/166 days hit a ≥5% swing, 71.1% vs 58.7% chance, 17 of 35 swings were tops, 20 major (not proven — past hits ≈ random chance)"
    ],
    "id": "CRUDE|latlon|2026-12-03|2026-12-09|MAJOR TURN",
+   "graded": null
+  },
+  {
+   "source": "latlon",
+   "inst": "CRUDE",
+   "made": "2026-10-27T16:28:08.753Z",
+   "asOf": "2026-10-27",
+   "at": "2026-12-07..2026-12-08",
+   "from": "2026-12-03",
+   "to": "2026-12-10",
+   "rawFrom": "2026-12-03",
+   "rawTo": "2026-12-10",
+   "type": "MAJOR TURN",
+   "edge": true,
+   "pick": "measured label",
+   "score": 28.3,
+   "days": [
+    "2026-12-07",
+    "2026-12-08"
+   ],
+   "reasons": [
+    "Venus N-rising + Mercury in Anuradha: 43/55 days hit a ≥5% swing, 78.2% vs 51.8% chance, 8 of 18 swings were tops, 11 major",
+    "Moon S-bottom + Mercury in Anuradha: 42/49 days hit a ≥5% swing, 85.7% vs 58.9% chance, 13 of 25 swings were tops, 15 major (not proven — past hits ≈ random chance)",
+    "Mars N-rising + Sun direct in Scorpio: 118/166 days hit a ≥5% swing, 71.1% vs 58.7% chance, 17 of 35 swings were tops, 20 major (not proven — past hits ≈ random chance)"
+   ],
+   "id": "CRUDE|latlon|2026-12-03|2026-12-10|MAJOR TURN",
    "graded": null
   },
   {
@@ -43199,6 +44394,165 @@
      "2026-09-25"
     ]
    }
+  },
+  {
+   "at": "2026-10-27T16:28:08.753Z",
+   "target": "2026-10-28",
+   "added": 7,
+   "turnsAdded": 7,
+   "graded": 7,
+   "turnsGraded": 7,
+   "dailyAdded": 1,
+   "dailyGraded": 4,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-10-28",
+    "BANKNIFTY": "2026-10-28",
+    "GOLD": "2026-10-28",
+    "SILVER": "2026-10-28",
+    "CRUDE": "2026-10-28",
+    "COPPER": "2026-10-28",
+    "NATGAS": "2026-10-28",
+    "DOW": "2026-10-27",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 36225,
+     "latlon": 27091,
+     "daily": 26831,
+     "vr": 18281
+    },
+    "BANKNIFTY": {
+     "astral": 829,
+     "latlon": 2609,
+     "daily": 2745,
+     "vr": 325
+    },
+    "GOLD": {
+     "astral": 798,
+     "latlon": 2374,
+     "daily": 2675,
+     "vr": 367
+    },
+    "SILVER": {
+     "astral": 775,
+     "latlon": 2391,
+     "daily": 2421,
+     "vr": 451
+    },
+    "CRUDE": {
+     "astral": 782,
+     "latlon": 2543,
+     "daily": 2593,
+     "vr": 381
+    },
+    "COPPER": {
+     "astral": 771,
+     "latlon": 2310,
+     "daily": 3089,
+     "vr": 361
+    },
+    "NATGAS": {
+     "astral": 784,
+     "latlon": 3039,
+     "daily": 3692,
+     "vr": 359
+    },
+    "DOW": {
+     "astral": 3443,
+     "latlon": 2827,
+     "daily": 2663,
+     "vr": 395
+    },
+    "SPX": {
+     "astral": 858,
+     "latlon": 2240,
+     "daily": 3358,
+     "vr": 414
+    },
+    "NASDAQ": {
+     "astral": 865,
+     "latlon": 3246,
+     "daily": 2821,
+     "vr": 404
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "BANKNIFTY": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "GOLD": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "SILVER": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "CRUDE": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "COPPER": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "NATGAS": [
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02",
+     "2026-11-03"
+    ],
+    "DOW": [
+     "2026-10-27",
+     "2026-10-28",
+     "2026-10-29",
+     "2026-10-30",
+     "2026-11-02"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
   }
  ],
  "daily": [
@@ -45757,7 +47111,24 @@
     "avgMovePct": -0.12,
     "medMovePct": -0.42
    },
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 54420.7,
+    "h": 54654.05,
+    "l": 53951.2,
+    "c": 53974.9,
+    "prevClose": 54366.7,
+    "ccPct": -0.72,
+    "trPct": 1.29,
+    "gapPct": 0.1,
+    "up": false,
+    "big": false,
+    "gap": false,
+    "outcome": false,
+    "result": "miss",
+    "moveDir": "down",
+    "biasResult": "not a big-move day"
+   },
    "seq": 4
   },
   {
@@ -45814,7 +47185,24 @@
     "avgMovePct": -0.53,
     "medMovePct": -1.9
    },
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 101.29,
+    "h": 102.82,
+    "l": 99.8,
+    "c": 100.23,
+    "prevClose": 101.76,
+    "ccPct": -1.5,
+    "trPct": 2.97,
+    "gapPct": 0.46,
+    "up": false,
+    "big": false,
+    "gap": false,
+    "outcome": false,
+    "result": "hit",
+    "moveDir": "down",
+    "biasResult": "not a big-move day"
+   },
    "seq": 5
   },
   {
@@ -45871,7 +47259,24 @@
     "avgMovePct": -0.6,
     "medMovePct": -1.9
    },
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 101.29,
+    "h": 102.82,
+    "l": 99.8,
+    "c": 100.23,
+    "prevClose": 101.76,
+    "ccPct": -1.5,
+    "trPct": 2.97,
+    "gapPct": 0.46,
+    "up": false,
+    "big": false,
+    "gap": false,
+    "outcome": false,
+    "result": "hit",
+    "moveDir": "down",
+    "biasResult": "not a big-move day"
+   },
    "seq": 5
   },
   {
@@ -45928,7 +47333,24 @@
     "avgMovePct": 1.16,
     "medMovePct": 1.45
    },
-   "graded": null,
+   "graded": {
+    "date": "2026-10-27",
+    "o": 3.044,
+    "h": 3.067,
+    "l": 2.961,
+    "c": 3.003,
+    "prevClose": 2.6,
+    "ccPct": 15.41,
+    "trPct": 17.87,
+    "gapPct": 16.99,
+    "up": true,
+    "big": true,
+    "gap": true,
+    "outcome": true,
+    "result": "hit",
+    "moveDir": "up",
+    "biasResult": "no call (coin-flip)"
+   },
    "seq": 1
   },
   {
@@ -46725,6 +48147,63 @@
     "days": 203,
     "avgMovePct": 1.16,
     "medMovePct": 1.45
+   },
+   "graded": null,
+   "seq": 5
+  },
+  {
+   "id": "2026-11-03|BANKNIFTY|big|Venus S-rising + Jupiter N-rising",
+   "source": "Proven daily",
+   "inst": "BANKNIFTY",
+   "target": "2026-11-03",
+   "made": "2026-10-27T16:28:08.753Z",
+   "lastClose": 53974.9,
+   "lastDate": "2026-10-27",
+   "study": "big",
+   "pattern": "Venus S-rising + Jupiter N-rising",
+   "plain": "Venus south of the ecliptic, rising + Jupiter north of the ecliptic, rising",
+   "claim": "Big-move day likely: 71.4% vs 36.4% · direction coin-flip",
+   "lean": "more",
+   "backtest": {
+    "in": {
+     "n": 227,
+     "rate": 0.3921,
+     "base": 0.2685,
+     "bhQ": 0.0039666011593015955
+    },
+    "out": {
+     "n": 42,
+     "rate": 0.7143,
+     "base": 0.364,
+     "p": 0.000004202018198785875
+    },
+    "weeks": {
+     "n": 10,
+     "rate": 0.7,
+     "base": 0.2542,
+     "p": 0.0038864265334478767
+    }
+   },
+   "base": 0.388,
+   "bigThrPct": 1.5131,
+   "confirmedOn": [],
+   "bias": {
+    "lean": null,
+    "claim": "direction coin-flip",
+    "inSample": {
+     "n": 89,
+     "upShare": 0.4607,
+     "base": 0.4995
+    },
+    "out": {
+     "n": 30,
+     "upShare": 0.4333,
+     "base": 0.5026,
+     "p": 0.5648995865770587
+    },
+    "days": 119,
+    "avgMovePct": -0.13,
+    "medMovePct": -0.42
    },
    "graded": null,
    "seq": 5
