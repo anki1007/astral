@@ -33679,7 +33679,24 @@
     "astroAndTech": -1
    },
    "vol": "quiet",
-   "graded": null,
+   "graded": {
+    "date": "2026-11-16",
+    "o": 52267.0586,
+    "c": 51608.1719,
+    "prevClose": 52347.55,
+    "ccPct": -1.41,
+    "ocPct": -1.26,
+    "dir": -1,
+    "rangePct": 1.55,
+    "results": {
+     "astroOnly": "hit",
+     "techOnly": "hit",
+     "techWithAstroFilter": "hit",
+     "astroAndTech": "hit",
+     "alwaysBullish": "miss",
+     "alwaysNeutral": "miss"
+    }
+   },
    "seq": 5,
    "turns": [
     {
@@ -38044,6 +38061,116 @@
      "to": "2026-11-30",
      "at": "2026-11-22..2026-11-26",
      "proven": false
+    }
+   ],
+   "daily": []
+  },
+  {
+   "id": "2026-11-23|DOW",
+   "target": "2026-11-23",
+   "inst": "DOW",
+   "made": "2026-11-16T23:18:33.078Z",
+   "lastClose": 51608.1719,
+   "lastDate": "2026-11-16",
+   "venue": {
+    "place": "New York",
+    "openLocal": 9.5,
+    "hourIST": 20
+   },
+   "astro": {
+    "score": -24,
+    "band": "BEARISH",
+    "volatility": 0.5,
+    "turning": 4.2,
+    "top": [
+     {
+      "sec": "VENUS WITH RAHU / KETU",
+      "name": "Venus Trine (5-9) Rahu",
+      "dir": 1,
+      "w": 1.76
+     },
+     {
+      "sec": "SUN WITH NEPTUNE",
+      "name": "Sun Trine (5-9) Neptune",
+      "dir": 1,
+      "w": 1.75
+     },
+     {
+      "sec": "IMPORTANT COMBINATION BETWEEN DAY AND NAKSHTRA",
+      "name": "Monday + Venus nakshatra (Bharani)",
+      "dir": -1,
+      "w": 1.6
+     },
+     {
+      "sec": "JUPITER WITH RAHU / KETU",
+      "name": "Jupiter Opposition (7th) Rahu (with Ketu)",
+      "dir": -1,
+      "w": 1.59
+     },
+     {
+      "sec": "JUPITER WITH VENUS",
+      "name": "Jupiter Sextile / Triekadash (3-11) Venus",
+      "dir": 1,
+      "w": 1.56
+     }
+    ]
+   },
+   "tech": {
+    "net": 0,
+    "dir": 0,
+    "fired": [
+     {
+      "sec": "REVERSE DIVERSION",
+      "name": "New low on RSI with a HIGHER bottom in price",
+      "dir": 1
+     },
+     {
+      "sec": "CONCEPT OF TOTAL DAY",
+      "name": "Crossed the Total Day High, then broke its Low",
+      "dir": -1
+     }
+    ],
+    "setups": [
+     "Price is sitting on a square / cube level"
+    ],
+    "openAssumed": "last close"
+   },
+   "calls": {
+    "astroOnly": -1,
+    "techOnly": 0,
+    "techWithAstroFilter": 0,
+    "astroAndTech": 0
+   },
+   "vol": "quiet",
+   "graded": null,
+   "seq": 5,
+   "turns": [
+    {
+     "id": "DOW|astral|2026-11-12|2026-11-23|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-11-17",
+     "to": "2026-11-23",
+     "at": "2026-11-15..2026-11-19",
+     "proven": false
+    },
+    {
+     "id": "DOW|astral|2026-11-19|2026-11-30|TURN",
+     "source": "astral",
+     "type": "TURN",
+     "from": "2026-11-19",
+     "to": "2026-11-30",
+     "at": "2026-11-22..2026-11-26",
+     "proven": false
+    },
+    {
+     "id": "DOW|latlon|2026-11-18|2026-11-24|MAJOR BOTTOM",
+     "source": "latlon",
+     "type": "MAJOR BOTTOM",
+     "from": "2026-11-18",
+     "to": "2026-11-24",
+     "at": "2026-11-20",
+     "proven": true
     }
    ],
    "daily": []
@@ -47172,7 +47299,21 @@
     "Moon direct in Libra + Mars direct in Cancer: 22/51 days hit a ≥5% swing, 43.1% vs 17.5% chance, 8 of 13 swings were tops, 5 major (not proven — past hits ≈ random chance)"
    ],
    "id": "DOW|latlon|2026-11-03|2026-11-16|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-11-16",
+    "sessions": 9,
+    "chance": 0.3038,
+    "pivot": {
+     "date": "2026-11-05",
+     "price": 53710.61,
+     "movePct": 5.06,
+     "type": "TOP",
+     "cls": "MINOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "latlon",
@@ -47388,7 +47529,21 @@
     "2026-11-12 Moon declination minimum (−27.66°) (book TURN; not proven — past hits ≈ random chance)"
    ],
    "id": "DOW|astral|2026-11-05|2026-11-16|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-11-16",
+    "sessions": 8,
+    "chance": 0.2781,
+    "pivot": {
+     "date": "2026-11-05",
+     "price": 53710.61,
+     "movePct": 5.06,
+     "type": "TOP",
+     "cls": "MINOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "latlon",
@@ -47417,7 +47572,21 @@
     "Moon direct in Libra + Mars direct in Cancer: 22/51 days hit a ≥5% swing, 43.1% vs 17.5% chance, 8 of 13 swings were tops, 5 major (not proven — past hits ≈ random chance)"
    ],
    "id": "DOW|latlon|2026-11-04|2026-11-16|TURN",
-   "graded": null
+   "graded": {
+    "status": "hit",
+    "date": "2026-11-16",
+    "sessions": 8,
+    "chance": 0.2781,
+    "pivot": {
+     "date": "2026-11-05",
+     "price": 53710.61,
+     "movePct": 5.06,
+     "type": "TOP",
+     "cls": "MINOR"
+    },
+    "typeRight": null,
+    "majorRight": null
+   }
   },
   {
    "source": "astral",
@@ -55704,6 +55873,29 @@
   },
   {
    "source": "astral",
+   "inst": "DOW",
+   "made": "2026-11-16T23:18:33.078Z",
+   "asOf": "2026-11-16",
+   "at": "2026-12-27",
+   "from": "2026-12-24",
+   "to": "2026-12-29",
+   "rawFrom": "2026-12-24",
+   "rawTo": "2026-12-29",
+   "type": "TURN",
+   "edge": false,
+   "hist": {
+    "n": 1783,
+    "rate": 0.463,
+    "base": 0.461
+   },
+   "reasons": [
+    "2026-12-27 Moon latitude crosses 0° North→South (book BOTTOM; not proven — past hits ≈ random chance)"
+   ],
+   "id": "DOW|astral|2026-12-24|2026-12-29|TURN",
+   "graded": null
+  },
+  {
+   "source": "astral",
    "inst": "GOLD",
    "made": "2026-11-16T21:07:29.200Z",
    "asOf": "2026-11-16",
@@ -55796,165 +55988,6 @@
   }
  ],
  "runs": [
-  {
-   "at": "2026-10-05T21:39:35.445Z",
-   "target": "2026-10-06",
-   "added": 4,
-   "turnsAdded": 6,
-   "graded": 4,
-   "turnsGraded": 0,
-   "dailyAdded": 0,
-   "dailyGraded": 0,
-   "vrAdded": 0,
-   "errors": [],
-   "targets": {
-    "NIFTY": "2026-10-06",
-    "BANKNIFTY": "2026-10-06",
-    "GOLD": "2026-09-21",
-    "SILVER": "2026-09-21",
-    "CRUDE": "2026-09-21",
-    "COPPER": "2026-09-21",
-    "NATGAS": "2026-09-21",
-    "DOW": "2026-09-21",
-    "SPX": "2026-09-21",
-    "NASDAQ": "2026-09-21"
-   },
-   "ms": {
-    "NIFTY": {
-     "astral": 20643,
-     "latlon": 15305,
-     "daily": 21049,
-     "vr": 10358
-    },
-    "BANKNIFTY": {
-     "astral": 582,
-     "latlon": 1444,
-     "daily": 1416,
-     "vr": 179
-    },
-    "GOLD": {
-     "astral": 571,
-     "latlon": 1203,
-     "daily": 1549,
-     "vr": 207
-    },
-    "SILVER": {
-     "astral": 575,
-     "latlon": 1587,
-     "daily": 1338,
-     "vr": 182
-    },
-    "CRUDE": {
-     "astral": 568,
-     "latlon": 1396,
-     "daily": 1768,
-     "vr": 238
-    },
-    "COPPER": {
-     "astral": 575,
-     "latlon": 1384,
-     "daily": 1788,
-     "vr": 200
-    },
-    "NATGAS": {
-     "astral": 573,
-     "latlon": 1630,
-     "daily": 1566,
-     "vr": 218
-    },
-    "DOW": {
-     "astral": 2417,
-     "latlon": 1388,
-     "daily": 1551,
-     "vr": 230
-    },
-    "SPX": {
-     "astral": 618,
-     "latlon": 1273,
-     "daily": 2031,
-     "vr": 212
-    },
-    "NASDAQ": {
-     "astral": 624,
-     "latlon": 1423,
-     "daily": 2098,
-     "vr": 221
-    }
-   },
-   "ahead": 5,
-   "aheadTargets": {
-    "NIFTY": [
-     "2026-10-06",
-     "2026-10-07",
-     "2026-10-08",
-     "2026-10-09",
-     "2026-10-12"
-    ],
-    "BANKNIFTY": [
-     "2026-10-06",
-     "2026-10-07",
-     "2026-10-08",
-     "2026-10-09",
-     "2026-10-12"
-    ],
-    "GOLD": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "SILVER": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "CRUDE": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "COPPER": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "NATGAS": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "DOW": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "SPX": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ],
-    "NASDAQ": [
-     "2026-09-21",
-     "2026-09-22",
-     "2026-09-23",
-     "2026-09-24",
-     "2026-09-25"
-    ]
-   }
-  },
   {
    "at": "2026-10-06T17:20:54.411Z",
    "target": "2026-10-07",
@@ -65319,6 +65352,165 @@
      "2026-11-18",
      "2026-11-19",
      "2026-11-20"
+    ],
+    "SPX": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ],
+    "NASDAQ": [
+     "2026-09-21",
+     "2026-09-22",
+     "2026-09-23",
+     "2026-09-24",
+     "2026-09-25"
+    ]
+   }
+  },
+  {
+   "at": "2026-11-16T23:18:33.078Z",
+   "target": "2026-11-17",
+   "added": 1,
+   "turnsAdded": 1,
+   "graded": 1,
+   "turnsGraded": 3,
+   "dailyAdded": 0,
+   "dailyGraded": 0,
+   "vrAdded": 0,
+   "errors": [],
+   "targets": {
+    "NIFTY": "2026-11-17",
+    "BANKNIFTY": "2026-11-17",
+    "GOLD": "2026-11-17",
+    "SILVER": "2026-11-17",
+    "CRUDE": "2026-11-17",
+    "COPPER": "2026-11-17",
+    "NATGAS": "2026-11-17",
+    "DOW": "2026-11-17",
+    "SPX": "2026-09-21",
+    "NASDAQ": "2026-09-21"
+   },
+   "ms": {
+    "NIFTY": {
+     "astral": 21029,
+     "latlon": 15847,
+     "daily": 15816,
+     "vr": 10608
+    },
+    "BANKNIFTY": {
+     "astral": 619,
+     "latlon": 1823,
+     "daily": 1734,
+     "vr": 228
+    },
+    "GOLD": {
+     "astral": 594,
+     "latlon": 1656,
+     "daily": 1647,
+     "vr": 261
+    },
+    "SILVER": {
+     "astral": 599,
+     "latlon": 1588,
+     "daily": 1970,
+     "vr": 229
+    },
+    "CRUDE": {
+     "astral": 593,
+     "latlon": 2070,
+     "daily": 1760,
+     "vr": 261
+    },
+    "COPPER": {
+     "astral": 590,
+     "latlon": 1598,
+     "daily": 2252,
+     "vr": 266
+    },
+    "NATGAS": {
+     "astral": 592,
+     "latlon": 2303,
+     "daily": 1854,
+     "vr": 285
+    },
+    "DOW": {
+     "astral": 2164,
+     "latlon": 1559,
+     "daily": 2567,
+     "vr": 271
+    },
+    "SPX": {
+     "astral": 654,
+     "latlon": 1606,
+     "daily": 2634,
+     "vr": 288
+    },
+    "NASDAQ": {
+     "astral": 650,
+     "latlon": 1713,
+     "daily": 2726,
+     "vr": 291
+    }
+   },
+   "ahead": 5,
+   "aheadTargets": {
+    "NIFTY": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "BANKNIFTY": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "GOLD": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "SILVER": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "CRUDE": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "COPPER": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "NATGAS": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
+    ],
+    "DOW": [
+     "2026-11-17",
+     "2026-11-18",
+     "2026-11-19",
+     "2026-11-20",
+     "2026-11-23"
     ],
     "SPX": [
      "2026-09-21",
