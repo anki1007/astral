@@ -28421,7 +28421,7 @@ function bmDMIdx(Rf){
 }
 function bmDMTestable(r){ return !!r && r.n>=BM_DM_MIN_N && r.nEp>=BM_MIN_EP; }
 /* every category's strongest testable lean for one day's sky, proven first */
-function bmDMCell(R,fr,sl,cats){
+function bmDMCell(R,fr,sl,cats,bodies){
   const out=[];
   if(!sl) return out;
   for(const spec of (cats||BM_DM_CATS)){
@@ -28432,6 +28432,7 @@ function bmDMCell(R,fr,sl,cats){
     let best=null;
     for(let i=0;i<BM_BODIES.length;i++){
       const lon=sl[i]; if(lon==null||!isFinite(lon)) continue;
+      if(bodies&&!bodies.includes(BM_BODIES[i])) continue;
       const t=BM_DEG+fr.lab(BM_BODIES[i],fr.bin(lon));
       const o=idx.get(t), r=o&&o[tg];
       if(!bmDMTestable(r)) continue;
@@ -28812,7 +28813,7 @@ function calCell(k,R,fr,day,today){
   const wknd=day.col>=5;
   const sl = S_ ? S_.sl : (wknd?null:bmDMSky(ds,k,bmAy()));
   let cells=[];
-  try{ cells=bmDMCell(R,fr,sl,calCats())||[]; }catch(e){ cells=[]; }
+  try{ cells=bmDMCell(R,fr,sl,calCats(),CAL_FAST)||[]; }catch(e){ cells=[]; }
   const b=cells[0], b2=cells[1];
   const tint=b?calTint(b):'transparent';
   const bord=(b&&b.r.proven)?'2px solid '+b.col:'1px solid var(--bd)';
@@ -28876,7 +28877,7 @@ function calGridHTML(){
   let nJ=0, nH=0, nLean=0;
   for(const d of days){
     const s=calByDate(R).get(d.ds); if(!s || d.ds>=today) continue;
-    let cs=[]; try{ cs=bmDMCell(R,fr,s.sl,calCats())||[]; }catch(e){}
+    let cs=[]; try{ cs=bmDMCell(R,fr,s.sl,calCats(),CAL_FAST)||[]; }catch(e){}
     if(!cs.length) continue;
     nLean++;
     const h=calHit(cs[0],s); if(h===null) continue;
@@ -28910,7 +28911,7 @@ function calGridHTML(){
   const G='display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;min-width:'+CAL_MIN_W+'px';
   const dow='<div style="'+G+';margin-bottom:5px">'
     +CAL_DOW.map(d=>'<div style="font-size:10px;color:var(--tx3);letter-spacing:.06em;text-align:center">'+d+'</div>').join('')+'</div>';
-  return '<div class="pb">'+head
+  return '<div class="pb">'+head+calSlowHTML(k,R,fr,ym,days)
     +'<div style="overflow-x:auto">'+dow
     +'<div style="'+G+'">'+pad+cells+'</div></div>'
     +'<div style="font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.6">'+score
@@ -28934,6 +28935,48 @@ function calGridHTML(){
     +'</div>';
 }
 const CAL_MIN_W=700;
+/* Day cells read only the fast bodies: a slow planet sits in one degree bin
+   for weeks, so it would print the same lean on every day of the month. */
+const CAL_FAST=['Sun','Moon','Mercury','Venus','Mars'];
+const CAL_SLOW=['Jupiter','Saturn','Rahu','Ketu'];
+/* forward record of slow-planet sign changes and stations, Nifty and Bank
+   Nifty 2000->2026-11: n, closes higher after N sessions, baseline for any
+   N-session window, avg return, both halves. Built by a one-off backtest. */
+const CAL_SLOW_REC={"NIFTY":{"Saturn turns direct":{"20":{"n":26,"up":17,"base":0.603,"avg":0.0174,"bavg":0.0101,"e":[11,19],"l":[6,7]},"60":{"n":26,"up":14,"base":0.621,"avg":0.0057,"bavg":0.0309,"e":[9,19],"l":[5,7]}},"Mars changes sign":{"20":{"n":184,"up":110,"base":0.603,"avg":0.0073,"bavg":0.0101,"e":[72,127],"l":[38,57]},"60":{"n":183,"up":115,"base":0.621,"avg":0.0283,"bavg":0.0309,"e":[77,127],"l":[38,56]}},"Jupiter changes sign":{"20":{"n":39,"up":30,"base":0.603,"avg":0.022,"bavg":0.0101,"e":[17,23],"l":[13,16]},"60":{"n":39,"up":23,"base":0.621,"avg":0.0338,"bavg":0.0309,"e":[12,23],"l":[11,16]}},"Saturn changes sign":{"20":{"n":23,"up":15,"base":0.603,"avg":0.0193,"bavg":0.0101,"e":[13,18],"l":[2,5]},"60":{"n":23,"up":17,"base":0.621,"avg":0.0467,"bavg":0.0309,"e":[15,18],"l":[2,5]}},"Rahu changes sign":{"20":{"n":17,"up":11,"base":0.603,"avg":0.0089,"bavg":0.0101,"e":[8,12],"l":[3,5]},"60":{"n":17,"up":9,"base":0.621,"avg":0.0169,"bavg":0.0309,"e":[6,12],"l":[3,5]}},"Saturn turns retrograde":{"20":{"n":26,"up":15,"base":0.603,"avg":0.007,"bavg":0.0101,"e":[9,18],"l":[6,8]},"60":{"n":25,"up":18,"base":0.621,"avg":0.0475,"bavg":0.0309,"e":[13,18],"l":[5,7]}},"Jupiter turns retrograde":{"20":{"n":24,"up":14,"base":0.603,"avg":0.0006,"bavg":0.0101,"e":[10,17],"l":[4,7]},"60":{"n":24,"up":13,"base":0.621,"avg":0.0236,"bavg":0.0309,"e":[9,17],"l":[4,7]}},"Jupiter turns direct":{"20":{"n":24,"up":10,"base":0.603,"avg":-0.015,"bavg":0.0101,"e":[8,17],"l":[2,7]},"60":{"n":24,"up":13,"base":0.621,"avg":0.0182,"bavg":0.0309,"e":[9,17],"l":[4,7]}},"Mars turns retrograde":{"20":{"n":12,"up":9,"base":0.603,"avg":0.0296,"bavg":0.0101,"e":[7,9],"l":[2,3]},"60":{"n":12,"up":9,"base":0.621,"avg":0.0449,"bavg":0.0309,"e":[7,9],"l":[2,3]}},"Mars turns direct":{"20":{"n":12,"up":8,"base":0.603,"avg":0.0247,"bavg":0.0101,"e":[6,9],"l":[2,3]},"60":{"n":12,"up":7,"base":0.621,"avg":0.0522,"bavg":0.0309,"e":[5,9],"l":[2,3]}}},"BANKNIFTY":{"Saturn turns direct":{"20":{"n":26,"up":19,"base":0.584,"avg":0.0219,"bavg":0.0156,"e":[13,19],"l":[6,7]},"60":{"n":26,"up":15,"base":0.632,"avg":0.0358,"bavg":0.0472,"e":[10,19],"l":[5,7]}},"Mars changes sign":{"20":{"n":184,"up":110,"base":0.584,"avg":0.0125,"bavg":0.0156,"e":[74,127],"l":[36,57]},"60":{"n":183,"up":116,"base":0.632,"avg":0.0524,"bavg":0.0472,"e":[82,127],"l":[34,56]}},"Jupiter changes sign":{"20":{"n":39,"up":25,"base":0.584,"avg":0.0247,"bavg":0.0156,"e":[13,23],"l":[12,16]},"60":{"n":39,"up":26,"base":0.632,"avg":0.0356,"bavg":0.0472,"e":[13,23],"l":[13,16]}},"Saturn changes sign":{"20":{"n":23,"up":15,"base":0.584,"avg":0.041,"bavg":0.0156,"e":[13,18],"l":[2,5]},"60":{"n":23,"up":18,"base":0.632,"avg":0.0793,"bavg":0.0472,"e":[15,18],"l":[3,5]}},"Rahu changes sign":{"20":{"n":17,"up":10,"base":0.584,"avg":0.006,"bavg":0.0156,"e":[6,12],"l":[4,5]},"60":{"n":17,"up":9,"base":0.632,"avg":0.0213,"bavg":0.0472,"e":[6,12],"l":[3,5]}},"Saturn turns retrograde":{"20":{"n":26,"up":12,"base":0.584,"avg":0.0136,"bavg":0.0156,"e":[8,18],"l":[4,8]},"60":{"n":25,"up":18,"base":0.632,"avg":0.0565,"bavg":0.0472,"e":[13,18],"l":[5,7]}},"Jupiter turns retrograde":{"20":{"n":24,"up":15,"base":0.584,"avg":0.0074,"bavg":0.0156,"e":[10,17],"l":[5,7]},"60":{"n":24,"up":17,"base":0.632,"avg":0.0448,"bavg":0.0472,"e":[11,17],"l":[6,7]}},"Jupiter turns direct":{"20":{"n":24,"up":10,"base":0.584,"avg":-0.0068,"bavg":0.0156,"e":[9,17],"l":[1,7]},"60":{"n":24,"up":13,"base":0.632,"avg":0.058,"bavg":0.0472,"e":[10,17],"l":[3,7]}},"Mars turns retrograde":{"20":{"n":12,"up":9,"base":0.584,"avg":0.0364,"bavg":0.0156,"e":[7,9],"l":[2,3]},"60":{"n":12,"up":7,"base":0.632,"avg":0.0754,"bavg":0.0472,"e":[5,9],"l":[2,3]}},"Mars turns direct":{"20":{"n":12,"up":6,"base":0.584,"avg":0.0188,"bavg":0.0156,"e":[4,9],"l":[2,3]},"60":{"n":12,"up":8,"base":0.632,"avg":0.0331,"bavg":0.0472,"e":[5,9],"l":[3,3]}}}};
+const CAL_SIGNS=['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+function calSlowEvents(ym){
+  const out=[], y=+ym.slice(0,4), m=+ym.slice(5,7), n=new Date(Date.UTC(y,m,0)).getUTCDate();
+  const at=(dd,b)=>{ const J=JD(y,m,dd,9.25); return {s:Math.floor(n360(geoLon(b,J)-getAyanamsa(J,'lahiri'))/30), r:b==='Rahu'?1:(isRetrograde(b,J)?1:0)}; };
+  for(const b of ['Mars','Jupiter','Saturn','Rahu']){
+    let p=at(0,b);
+    for(let dd=1; dd<=n; dd++){ const c=at(dd,b);
+      if(c.s!==p.s) out.push({d:dd, b:b, ty:b+' changes sign', txt:b+' enters '+CAL_SIGNS[c.s]});
+      if(b!=='Rahu'&&c.r!==p.r) out.push({d:dd, b:b, ty:b+(c.r?' turns retrograde':' turns direct'), txt:b+(c.r?' turns retrograde':' turns direct')+' in '+CAL_SIGNS[c.s]});
+      p=c; } }
+  return out.sort((a,b)=>a.d-b.d);
+}
+function calSlowHTML(k,R,fr,ym,days){
+  let lean='';
+  try{
+    const d0=days.find(d=>d.col<5), S_=d0&&calByDate(R).get(d0.ds);
+    const sl=S_?S_.sl:(d0?bmDMSky(d0.ds,k,bmAy()):null);
+    const cs=bmDMCell(R,fr,sl,calCats(),CAL_SLOW)||[];
+    lean=cs.slice(0,2).map(x=>'<span style="margin-right:14px"><b style="color:'+(calUp(x)?'var(--bull)':'var(--bear)')+'">'+reEsc(calShort(x))+'</b> '
+      +reEsc(x.body)+' '+reEsc(String(x.t).slice(2).replace(/^[^ ]+ /,''))+' \u00b7 '+bmPct(x.r.rate)+' vs '+bmPct(x.r.base)+(x.r.proven?' \u2605':' <span style="color:var(--tx3)">(unproven)</span>')+'</span>').join('');
+  }catch(e){}
+  const rk=(k==='BANKNIFTY')?'BANKNIFTY':'NIFTY', rec=CAL_SLOW_REC[rk]||{};
+  let evs=[]; try{ evs=calSlowEvents(ym); }catch(e){}
+  const evh=evs.map(e=>{ const r=rec[e.ty]||{}, a=r[20], c=r[60];
+    const f=x=>x?'<b>'+Math.round(100*x.up/x.n)+'%</b> higher of '+x.n+' (base '+Math.round(100*x.base)+'%, avg '+(x.avg*100).toFixed(1)+'% vs '+(x.bavg*100).toFixed(1)+'%; 2000\u201318 '+x.e[0]+'/'+x.e[1]+', 2019+ '+x.l[0]+'/'+x.l[1]+')':'\u2013';
+    return '<div style="margin-top:3px"><b>'+e.d+'</b> \u00b7 '+reEsc(e.txt)
+      +' <span style="color:var(--tx3)">\u2014 '+(rk==='NIFTY'?'Nifty':'Bank Nifty')+' after 20 sessions: '+f(a)+'; after 60: '+f(c)+'</span></div>'; }).join('');
+  return '<div style="border:1px solid var(--bd);border-radius:4px;padding:7px 9px;margin-bottom:8px;font-size:11px;line-height:1.5;background:var(--bg2)">'
+    +'<b>LONGER TIMEFRAME \u2014 slow planets this month</b> <span style="color:var(--tx3)">(Jupiter, Saturn, Rahu/Ketu sit in one degree band for weeks, so they are read once for the month, not per day; day cells below use Sun, Moon, Mercury, Venus and Mars only)</span>'
+    +'<div style="margin-top:4px">'+(lean||'<span style="color:var(--tx3)">no testable slow-planet lean this month</span>')+'</div>'
+    +(evh?'<div style="margin-top:4px"><b>Sign changes and stations</b> (Mars, Jupiter, Saturn, Rahu)'+evh+'</div>':'<div style="margin-top:4px;color:var(--tx3)">No slow-planet sign change or station this month.</div>')
+    +'<div style="margin-top:4px;color:var(--tx3)">Of 20 ingress/station types tested on Nifty, the strongest is Jupiter changing sign (higher 20 sessions later 30 of 39 times vs a 60% baseline, held in both halves) \u2014 it does not survive correction for the 20 tests, so treat every line here as unproven.</div>'
+    +'</div>';
+}
 const CAL_BTN='background:var(--bg3);color:var(--acc);border:1px solid var(--bd2);border-radius:3px;padding:3px 9px;font-family:inherit;font-size:11.5px;cursor:pointer';
 
 function tCalendar(){
