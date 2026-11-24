@@ -1,6 +1,6 @@
 {
  "version": 2,
- "generated": "2026-11-24T21:20:26.498Z",
+ "generated": "2026-11-24T23:37:42.331Z",
  "since": "2026-09-19",
  "lastGraded": "2026-11-24",
  "nDays": 46,
@@ -513,29 +513,29 @@
   },
   "DOW": {
    "astroOnly": {
-    "n": 31,
-    "hits": 18,
-    "hitPct": 58.06,
+    "n": 32,
+    "hits": 19,
+    "hitPct": 59.38,
     "ci95": [
-     40.77,
-     73.58
+     42.26,
+     74.48
     ],
-    "bullPctSameDays": 38.71,
-    "vsBullPP": 19.35,
-    "p": 0.023,
+    "bullPctSameDays": 40.63,
+    "vsBullPP": 18.75,
+    "p": 0.025,
     "aside": 4
    },
    "techOnly": {
-    "n": 32,
+    "n": 33,
     "hits": 15,
-    "hitPct": 46.88,
+    "hitPct": 45.45,
     "ci95": [
-     30.87,
-     63.55
+     29.84,
+     62.01
     ],
-    "bullPctSameDays": 34.38,
-    "vsBullPP": 12.5,
-    "p": 0.098,
+    "bullPctSameDays": 36.36,
+    "vsBullPP": 9.09,
+    "p": 0.182,
     "aside": 3
    },
    "techWithAstroFilter": {
@@ -549,7 +549,7 @@
     "bullPctSameDays": 33.33,
     "vsBullPP": 20.83,
     "p": 0.028,
-    "aside": 11
+    "aside": 12
    },
    "astroAndTech": {
     "n": 20,
@@ -562,24 +562,24 @@
     "bullPctSameDays": 35,
     "vsBullPP": 25,
     "p": 0.02,
-    "aside": 15
+    "aside": 16
    },
    "alwaysBullish": {
-    "n": 35,
-    "hits": 13,
-    "hitPct": 37.14,
+    "n": 36,
+    "hits": 14,
+    "hitPct": 38.89,
     "ci95": [
-     23.17,
-     53.66
+     24.78,
+     55.14
     ]
    },
    "alwaysNeutral": {
-    "n": 35,
+    "n": 36,
     "hits": 6,
-    "hitPct": 17.14,
+    "hitPct": 16.67,
     "ci95": [
-     8.1,
-     32.68
+     7.87,
+     31.89
     ]
    }
   },
@@ -829,8 +829,8 @@
   },
   "DOW": {
    "quiet": {
-    "n": 27,
-    "meanRangePct": 1.08
+    "n": 28,
+    "meanRangePct": 1.1
    },
    "normal": {
     "n": 7,
@@ -1287,16 +1287,16 @@
   "DOW": {
    "astral": {
     "made": 46,
-    "graded": 12,
-    "pending": 34,
+    "graded": 14,
+    "pending": 32,
     "hits": 4,
-    "hitPct": 33.33,
+    "hitPct": 28.57,
     "ci95": [
-     13.81,
-     60.94
+     11.72,
+     54.65
     ],
-    "chancePct": 20.59,
-    "p": 0.221,
+    "chancePct": 21.61,
+    "p": 0.358,
     "typeN": 0,
     "typeOk": 0,
     "typePct": null,
@@ -1488,9 +1488,9 @@
    "rule": ">=5% swing, >=10% major"
   },
   "SILVER": {
-   "window5": 36.43,
-   "window3": 24.07,
-   "pivots": 578,
+   "window5": 36.44,
+   "window3": 24.08,
+   "pivots": 579,
    "from": "2000-08-29",
    "to": "2026-11-24",
    "rule": ">=5% swing, >=10% major"
@@ -1504,9 +1504,9 @@
    "rule": ">=5% swing, >=10% major"
   },
   "COPPER": {
-   "window5": 32.89,
-   "window3": 21.46,
-   "pivots": 512,
+   "window5": 32.88,
+   "window3": 21.45,
+   "pivots": 511,
    "from": "2000-08-29",
    "to": "2026-11-24",
    "rule": ">=5% swing, >=10% major"
@@ -1524,7 +1524,7 @@
    "window3": 12.02,
    "pivots": 305,
    "from": "1998-01-02",
-   "to": "2026-11-23",
+   "to": "2026-11-24",
    "rule": ">=5% swing, >=10% major"
   },
   "SPX": {
@@ -1729,7 +1729,7 @@
    "baselines": {
     "window": "last 250 sessions",
     "upPct": 48.8,
-    "gapPct": 28.8,
+    "gapPct": 29.2,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": null
@@ -1791,7 +1791,7 @@
    "baselines": {
     "window": "last 250 sessions",
     "upPct": 50.8,
-    "gapPct": 76.62,
+    "gapPct": 77.06,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": null
@@ -1853,7 +1853,7 @@
    "baselines": {
     "window": "last 250 sessions",
     "upPct": 54,
-    "gapPct": 52.4,
+    "gapPct": 52.8,
     "bigPct": 30,
     "bigRule": "true range above the 70th percentile of the previous 250 sessions",
     "lastPrediction": {
@@ -2659,7 +2659,7 @@
   {
    "k": "DOW",
    "grp": "us",
-   "target": "2026-11-24"
+   "target": "2026-11-25"
   },
   {
    "k": "SPX",
@@ -2674,14 +2674,14 @@
  ],
  "skyNote": "the book engine reads the sky at 09:15 IST of the session date for every instrument, US and commodities included; no US-session time is modelled",
  "lastRun": {
-  "at": "2026-11-24T21:16:29.080Z",
+  "at": "2026-11-24T23:34:21.889Z",
   "target": "2026-11-24",
-  "added": 5,
-  "turnsAdded": 5,
-  "graded": 5,
-  "turnsGraded": 10,
-  "dailyAdded": 1,
-  "dailyGraded": 1,
+  "added": 1,
+  "turnsAdded": 0,
+  "graded": 1,
+  "turnsGraded": 2,
+  "dailyAdded": 0,
+  "dailyGraded": 0,
   "vrAdded": 0,
   "errors": [],
   "targets": {
@@ -2692,70 +2692,70 @@
    "CRUDE": "2026-11-25",
    "COPPER": "2026-11-25",
    "NATGAS": "2026-11-25",
-   "DOW": "2026-11-24",
+   "DOW": "2026-11-25",
    "SPX": "2026-09-21",
    "NASDAQ": "2026-09-21"
   },
   "ms": {
    "NIFTY": {
-    "astral": 36574,
-    "latlon": 27225,
-    "daily": 27241,
-    "vr": 18806
+    "astral": 28788,
+    "latlon": 21631,
+    "daily": 21697,
+    "vr": 14700
    },
    "BANKNIFTY": {
-    "astral": 819,
-    "latlon": 2481,
-    "daily": 2476,
-    "vr": 311
+    "astral": 720,
+    "latlon": 2118,
+    "daily": 2244,
+    "vr": 261
    },
    "GOLD": {
-    "astral": 774,
-    "latlon": 26873,
-    "daily": 2592,
-    "vr": 331
+    "astral": 696,
+    "latlon": 21547,
+    "daily": 2382,
+    "vr": 297
    },
    "SILVER": {
-    "astral": 781,
-    "latlon": 2673,
-    "daily": 2297,
-    "vr": 323
+    "astral": 697,
+    "latlon": 2384,
+    "daily": 2237,
+    "vr": 258
    },
    "CRUDE": {
-    "astral": 772,
-    "latlon": 2442,
-    "daily": 2895,
-    "vr": 386
+    "astral": 690,
+    "latlon": 2229,
+    "daily": 2582,
+    "vr": 321
    },
    "COPPER": {
-    "astral": 777,
-    "latlon": 2397,
-    "daily": 2898,
-    "vr": 344
+    "astral": 690,
+    "latlon": 2197,
+    "daily": 2943,
+    "vr": 299
    },
    "NATGAS": {
-    "astral": 773,
-    "latlon": 2700,
-    "daily": 3119,
-    "vr": 367
+    "astral": 693,
+    "latlon": 2634,
+    "daily": 3150,
+    "vr": 323
    },
    "DOW": {
-    "astral": 3409,
-    "latlon": 2773,
-    "daily": 2630,
-    "vr": 400
+    "astral": 2927,
+    "latlon": 2029,
+    "daily": 3270,
+    "vr": 359
    },
    "SPX": {
-    "astral": 845,
-    "latlon": 2268,
-    "daily": 3392,
-    "vr": 370
+    "astral": 759,
+    "latlon": 2872,
+    "daily": 2833,
+    "vr": 326
    },
    "NASDAQ": {
-    "astral": 855,
-    "latlon": 3099,
-    "daily": 2851,
-    "vr": 432
+    "astral": 790,
+    "latlon": 2479,
+    "daily": 3499,
+    "vr": 347
    }
   },
   "ahead": 5,
@@ -2810,11 +2810,11 @@
     "2026-12-01"
    ],
    "DOW": [
-    "2026-11-24",
     "2026-11-25",
     "2026-11-26",
     "2026-11-27",
-    "2026-11-30"
+    "2026-11-30",
+    "2026-12-01"
    ],
    "SPX": [
     "2026-09-21",
